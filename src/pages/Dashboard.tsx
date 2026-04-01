@@ -14,10 +14,10 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
-  const { user, logout } = useUser();
+  const { user, activeAvatar, logout, setActiveAvatar } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const avatar = user.avatar;
+  const avatar = activeAvatar;
   const firstName = avatar?.fullName.split(" ")[0] || "there";
 
   const [filters, setFilters] = useState<JobFilters>(defaultFilters);
