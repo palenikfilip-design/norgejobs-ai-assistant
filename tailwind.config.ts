@@ -27,6 +27,7 @@ export default {
           DEFAULT: "hsl(var(--red-accent))",
           light: "hsl(var(--red-accent-light))",
         },
+        "soft-blue": "hsl(var(--soft-blue))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
