@@ -8,9 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Bot, ArrowRight, ArrowLeft, Check, X } from "lucide-react";
 
-const COUNTRIES = ["Norway", "Germany", "Austria", "Sweden", "Denmark", "Finland", "Netherlands", "Switzerland"];
-const LANGUAGES = ["English", "Norwegian", "German", "Polish", "Spanish", "French", "Ukrainian", "Romanian", "Arabic"];
-const JOB_TYPES = ["Full-time", "Part-time", "Seasonal"];
+const COUNTRIES = ["Remote / Work from Home", "Norway", "Germany", "Austria", "Sweden", "Denmark", "Finland", "Netherlands", "Switzerland", "Czech Republic", "Poland", "United Kingdom", "France", "Spain", "Italy"];
+const LANGUAGES = ["English", "Czech", "Slovak", "Norwegian", "German", "Polish", "Spanish", "French", "Ukrainian", "Romanian", "Arabic"];
+const JOB_TYPES = ["Full-time", "Part-time", "Seasonal", "Remote"];
 const PERSONALITY_OPTIONS = ["Introvert", "Extrovert", "Structured", "Flexible"];
 
 const TagSelector = ({
