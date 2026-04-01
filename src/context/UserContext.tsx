@@ -56,12 +56,16 @@ interface UserState {
 interface UserContextType {
   user: UserState;
   supabaseUser: User | null;
+  activeAvatar: AvatarProfile | null;
   login: (email: string) => void;
   loginWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
   signUpWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
   loginWithProvider: (provider: "google" | "apple") => Promise<void>;
   logout: () => Promise<void>;
-  setAvatar: (avatar: AvatarProfile) => void;
+  addAvatar: (avatar: AvatarProfile) => void;
+  updateAvatar: (avatar: AvatarProfile) => void;
+  setActiveAvatar: (id: string) => void;
+  deleteAvatar: (id: string) => void;
   clearNotifications: () => void;
   loading: boolean;
 }
