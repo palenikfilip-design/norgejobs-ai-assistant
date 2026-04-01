@@ -2,12 +2,37 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
+export interface LanguageWithLevel {
+  language: string;
+  level: string;
+}
+
+export interface MatchWeights {
+  skills: number;
+  location: number;
+  salary: number;
+  jobType: number;
+  bonus: number;
+}
+
+export const DEFAULT_MATCH_WEIGHTS: MatchWeights = {
+  skills: 40,
+  location: 20,
+  salary: 20,
+  jobType: 10,
+  bonus: 10,
+};
+
 export interface AvatarProfile {
+  id: string;
+  name: string; // avatar name like "Norway Avatar"
   fullName: string;
   age?: number;
   country: string;
-  languages: string[];
+  languages: LanguageWithLevel[];
   workExperience: string;
+  experienceLevel: string;
+  profession: string;
   skills: string[];
   preferredJobType: string;
   preferredCountries: string[];
@@ -15,6 +40,8 @@ export interface AvatarProfile {
   salaryMax: number;
   housingPreference: boolean;
   personality?: string;
+  desiredBonuses: string[];
+  matchWeights: MatchWeights;
 }
 
 interface UserState {
