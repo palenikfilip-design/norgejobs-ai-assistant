@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUser } from "@/context/UserContext";
+import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,7 +31,15 @@ const Signup = () => {
   };
 
   const handleSocial = async (provider: "google" | "apple") => {
-    await loginWithProvider(provider);
+    const result = await lovable.auth.signInWithOAuth(provider, {
+      redirect_uri: window.location.origin + "/onboarding",
+    });
+    if (result.error) {
+      toast({ title: "Error", description: String(result.error), variant: "destructive" });
+      return;
+    }
+    if (result.redirected) return;
+    navigate("/onboarding");
   };
 
   return (
@@ -99,6 +108,7 @@ const Signup = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="bg-background border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
             <div className="space-y-2">
@@ -111,6 +121,7 @@ const Signup = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
+                className="bg-background border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
             <Button
