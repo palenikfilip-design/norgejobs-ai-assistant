@@ -63,7 +63,7 @@ const Dashboard = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => { logout(); navigate("/"); }}
+              onClick={async () => { await logout(); navigate("/"); }}
             >
               <LogOut className="w-5 h-5" />
             </Button>
