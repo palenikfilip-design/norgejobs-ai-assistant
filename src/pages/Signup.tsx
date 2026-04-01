@@ -121,6 +121,7 @@ const Signup = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
+                className="bg-background border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
             <Button

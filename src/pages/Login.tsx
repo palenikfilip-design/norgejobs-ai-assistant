@@ -119,6 +119,7 @@ const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                className="bg-background border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
             <Button
