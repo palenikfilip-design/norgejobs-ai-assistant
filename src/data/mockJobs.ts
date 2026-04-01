@@ -184,9 +184,13 @@ export function matchJobsToProfile(
       const reasons: string[] = [];
 
       // Country match (30 pts)
-      if (preferredCountries.some((c) => c.toLowerCase() === job.country.toLowerCase())) {
+      const wantsRemote = preferredCountries.some((c) => c.toLowerCase().includes("remote"));
+      const countryMatch = preferredCountries.some((c) => c.toLowerCase() === job.country.toLowerCase());
+      const isRemoteJob = job.country.toLowerCase() === "remote";
+
+      if (countryMatch || (wantsRemote && isRemoteJob)) {
         score += 30;
-        reasons.push(`Located in ${job.country}, one of your preferred countries`);
+        reasons.push(isRemoteJob ? "Remote job — work from anywhere" : `Located in ${job.country}, one of your preferred countries`);
       }
 
       // Skills overlap (up to 40 pts)
