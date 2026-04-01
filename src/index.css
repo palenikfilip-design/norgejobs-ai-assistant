@@ -113,11 +113,11 @@
   }
 
   .bg-navy-gradient {
-    background: linear-gradient(135deg, hsl(222 65% 10%), hsl(222 50% 22%));
+    background: linear-gradient(135deg, hsl(217 38% 10%), hsl(217 30% 22%));
   }
 
   .bg-accent-gradient {
-    background: linear-gradient(135deg, hsl(0 72% 51%), hsl(350 80% 45%));
+    background: linear-gradient(135deg, hsl(0 84% 60%), hsl(350 80% 50%));
   }
 
   .glass-card {
