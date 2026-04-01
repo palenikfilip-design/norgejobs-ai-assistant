@@ -47,7 +47,8 @@ export interface AvatarProfile {
 interface UserState {
   isAuthenticated: boolean;
   email: string;
-  avatar: AvatarProfile | null;
+  avatars: AvatarProfile[];
+  activeAvatarId: string | null;
   hasCompletedOnboarding: boolean;
   notifications: number;
 }
