@@ -28,60 +28,61 @@ export function calculateMatchScore(job: Job, avatar: AvatarProfile): {
   const reasons: string[] = [];
   const negatives: string[] = [];
   const normalizedSkills = avatar.skills.map(s => s.toLowerCase());
+  const w = avatar.matchWeights;
 
-  // Skills match (0-40 points)
+  // Skills match
   const overlap = job.skills.filter(s => normalizedSkills.includes(s.toLowerCase()));
-  const skillScore = Math.round((overlap.length / Math.max(job.skills.length, 1)) * 40);
-  details.push({ category: "Skills", points: skillScore, maxPoints: 40, reason: overlap.length > 0 ? `Matches: ${overlap.join(", ")}` : "No skill overlap" });
+  const skillScore = Math.round((overlap.length / Math.max(job.skills.length, 1)) * w.skills);
+  details.push({ category: "Skills", points: skillScore, maxPoints: w.skills, reason: overlap.length > 0 ? `Matches: ${overlap.join(", ")}` : "No skill overlap" });
   if (overlap.length > 0) reasons.push(`Matches your ${overlap.join(", ")} skills`);
   if (overlap.length === 0) negatives.push("No matching skills found");
   const missingSkills = job.skills.filter(s => !normalizedSkills.includes(s.toLowerCase()));
   if (missingSkills.length > 0 && overlap.length > 0) negatives.push(`Missing: ${missingSkills.join(", ")}`);
 
-  // Location match (0-20 points)
+  // Location match
   const wantsRemote = avatar.preferredCountries.some(c => c.toLowerCase().includes("remote"));
   const countryMatch = avatar.preferredCountries.some(c => c.toLowerCase() === job.country.toLowerCase());
   const isRemoteJob = job.country.toLowerCase() === "remote";
   let locationScore = 0;
   if (countryMatch || (wantsRemote && isRemoteJob)) {
-    locationScore = 20;
+    locationScore = w.location;
     reasons.push(isRemoteJob ? "Remote job — work from anywhere" : `Located in ${job.country}, your preferred country`);
   } else {
     negatives.push(`${job.country} is not in your preferred countries`);
   }
-  details.push({ category: "Location", points: locationScore, maxPoints: 20, reason: locationScore > 0 ? `${job.country} matches preference` : `${job.country} not preferred` });
+  details.push({ category: "Location", points: locationScore, maxPoints: w.location, reason: locationScore > 0 ? `${job.country} matches preference` : `${job.country} not preferred` });
 
-  // Salary match (0-20 points)
+  // Salary match
   const parsed = parseSalaryRange(job.salary);
   let salaryScore = 0;
   if (parsed) {
     const jobMaxEur = convertCurrency(parsed.max, parsed.currency, "EUR");
     const jobMinEur = convertCurrency(parsed.min, parsed.currency, "EUR");
     if (jobMaxEur >= avatar.salaryMin && jobMinEur <= avatar.salaryMax * 1.5) {
-      salaryScore = 20;
+      salaryScore = w.salary;
       reasons.push("Salary meets your expectations");
     } else if (jobMaxEur >= avatar.salaryMin * 0.8) {
-      salaryScore = 10;
+      salaryScore = Math.round(w.salary / 2);
       reasons.push("Salary is close to your expectations");
     } else {
       negatives.push("Salary below your minimum expectation");
     }
   }
-  details.push({ category: "Salary", points: salaryScore, maxPoints: 20, reason: salaryScore >= 15 ? "Meets expectations" : salaryScore > 0 ? "Close to expectations" : "Below expectations" });
+  details.push({ category: "Salary", points: salaryScore, maxPoints: w.salary, reason: salaryScore >= w.salary * 0.75 ? "Meets expectations" : salaryScore > 0 ? "Close to expectations" : "Below expectations" });
 
-  // Job type match (0-10 points)
+  // Job type match
   let typeScore = 0;
   if (job.type.toLowerCase() === avatar.preferredJobType.toLowerCase()) {
-    typeScore = 10;
+    typeScore = w.jobType;
     reasons.push(`${job.type} matches your preference`);
   }
-  details.push({ category: "Job Type", points: typeScore, maxPoints: 10, reason: typeScore > 0 ? "Matches preference" : `You prefer ${avatar.preferredJobType}` });
+  details.push({ category: "Job Type", points: typeScore, maxPoints: w.jobType, reason: typeScore > 0 ? "Matches preference" : `You prefer ${avatar.preferredJobType}` });
 
-  // Bonus (0-10 points) — language, housing, etc.
-  let bonusScore = 5; // base relevance
+  // Bonus
+  let bonusScore = Math.round(w.bonus / 2);
   if (job.description.toLowerCase().includes("housing") || job.description.toLowerCase().includes("accommodation")) {
     if (avatar.housingPreference) {
-      bonusScore += 5;
+      bonusScore = w.bonus;
       reasons.push("Housing/accommodation provided");
     }
   }
@@ -91,9 +92,9 @@ export function calculateMatchScore(job: Job, avatar: AvatarProfile): {
   if (job.description.toLowerCase().includes("physically demanding") || job.skills.some(s => s.toLowerCase() === "physical fitness")) {
     negatives.push("Physically demanding job");
   }
-  details.push({ category: "Bonus", points: Math.min(bonusScore, 10), maxPoints: 10, reason: "Additional factors" });
+  details.push({ category: "Bonus", points: Math.min(bonusScore, w.bonus), maxPoints: w.bonus, reason: "Additional factors" });
 
-  const totalScore = Math.min(99, skillScore + locationScore + salaryScore + typeScore + Math.min(bonusScore, 10));
+  const totalScore = Math.min(99, skillScore + locationScore + salaryScore + typeScore + Math.min(bonusScore, w.bonus));
 
   return { score: totalScore, details, reasons, negatives };
 }
