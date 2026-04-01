@@ -5,6 +5,7 @@ import { useUser } from "@/context/UserContext";
 import { mockJobs } from "@/data/mockJobs";
 import { matchJobsEnhanced, type EnhancedJob } from "@/utils/jobMatching";
 import EnhancedJobCard from "@/components/EnhancedJobCard";
+import AvatarSwitcher from "@/components/AvatarSwitcher";
 import CoverLetterDialog from "@/components/CoverLetterDialog";
 import JobFiltersPanel from "@/components/JobFiltersPanel";
 import { Button } from "@/components/ui/button";
@@ -14,10 +15,10 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
-  const { user, logout } = useUser();
+  const { user, activeAvatar, logout, setActiveAvatar } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const avatar = user.avatar;
+  const avatar = activeAvatar;
   const firstName = avatar?.fullName.split(" ")[0] || "there";
 
   const [filters, setFilters] = useState<JobFilters>(defaultFilters);
@@ -169,32 +170,37 @@ const Dashboard = () => {
           </div>
         </motion.div>
 
-        {/* Avatar Summary */}
-        {avatar && (
+        {/* Avatar Switcher & Summary */}
+        {user.avatars.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8">
             <div className="bg-card rounded-xl p-5 border border-border shadow-sm">
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="w-4 h-4 text-accent" />
-                <h2 className="font-semibold text-foreground">Your Avatar Profile</h2>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-accent" />
+                  <h2 className="font-semibold text-foreground">Active Avatar</h2>
+                </div>
+                <AvatarSwitcher />
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Looking for</span>
-                  <p className="font-medium text-foreground">{avatar.preferredJobType}</p>
+              {avatar && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Looking for</span>
+                    <p className="font-medium text-foreground">{avatar.preferredJobType}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Countries</span>
+                    <p className="font-medium text-foreground">{avatar.preferredCountries.join(", ")}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Skills</span>
+                    <p className="font-medium text-foreground">{avatar.skills.slice(0, 3).join(", ")}{avatar.skills.length > 3 ? "..." : ""}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Salary</span>
+                    <p className="font-medium text-foreground">€{avatar.salaryMin.toLocaleString()} – €{avatar.salaryMax.toLocaleString()}</p>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Countries</span>
-                  <p className="font-medium text-foreground">{avatar.preferredCountries.join(", ")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Skills</span>
-                  <p className="font-medium text-foreground">{avatar.skills.slice(0, 3).join(", ")}{avatar.skills.length > 3 ? "..." : ""}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Salary</span>
-                  <p className="font-medium text-foreground">€{avatar.salaryMin.toLocaleString()} – €{avatar.salaryMax.toLocaleString()}</p>
-                </div>
-              </div>
+              )}
             </div>
           </motion.div>
         )}

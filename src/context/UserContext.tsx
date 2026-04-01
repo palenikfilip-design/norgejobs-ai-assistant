@@ -2,12 +2,37 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
+export interface LanguageWithLevel {
+  language: string;
+  level: string;
+}
+
+export interface MatchWeights {
+  skills: number;
+  location: number;
+  salary: number;
+  jobType: number;
+  bonus: number;
+}
+
+export const DEFAULT_MATCH_WEIGHTS: MatchWeights = {
+  skills: 40,
+  location: 20,
+  salary: 20,
+  jobType: 10,
+  bonus: 10,
+};
+
 export interface AvatarProfile {
+  id: string;
+  name: string; // avatar name like "Norway Avatar"
   fullName: string;
   age?: number;
   country: string;
-  languages: string[];
+  languages: LanguageWithLevel[];
   workExperience: string;
+  experienceLevel: string;
+  profession: string;
   skills: string[];
   preferredJobType: string;
   preferredCountries: string[];
@@ -15,12 +40,15 @@ export interface AvatarProfile {
   salaryMax: number;
   housingPreference: boolean;
   personality?: string;
+  desiredBonuses: string[];
+  matchWeights: MatchWeights;
 }
 
 interface UserState {
   isAuthenticated: boolean;
   email: string;
-  avatar: AvatarProfile | null;
+  avatars: AvatarProfile[];
+  activeAvatarId: string | null;
   hasCompletedOnboarding: boolean;
   notifications: number;
 }
@@ -28,12 +56,16 @@ interface UserState {
 interface UserContextType {
   user: UserState;
   supabaseUser: User | null;
+  activeAvatar: AvatarProfile | null;
   login: (email: string) => void;
   loginWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
   signUpWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
   loginWithProvider: (provider: "google" | "apple") => Promise<void>;
   logout: () => Promise<void>;
-  setAvatar: (avatar: AvatarProfile) => void;
+  addAvatar: (avatar: AvatarProfile) => void;
+  updateAvatar: (avatar: AvatarProfile) => void;
+  setActiveAvatar: (id: string) => void;
+  deleteAvatar: (id: string) => void;
   clearNotifications: () => void;
   loading: boolean;
 }
@@ -41,7 +73,8 @@ interface UserContextType {
 const defaultUser: UserState = {
   isAuthenticated: false,
   email: "",
-  avatar: null,
+  avatars: [],
+  activeAvatarId: null,
   hasCompletedOnboarding: false,
   notifications: 3,
 };
@@ -129,8 +162,34 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     setUser(defaultUser);
   };
 
-  const setAvatar = (avatar: AvatarProfile) =>
-    setUser((u) => ({ ...u, avatar, hasCompletedOnboarding: true }));
+  const addAvatar = (avatar: AvatarProfile) =>
+    setUser((u) => ({
+      ...u,
+      avatars: [...u.avatars, avatar],
+      activeAvatarId: avatar.id,
+      hasCompletedOnboarding: true,
+    }));
+
+  const updateAvatar = (avatar: AvatarProfile) =>
+    setUser((u) => ({
+      ...u,
+      avatars: u.avatars.map((a) => (a.id === avatar.id ? avatar : a)),
+    }));
+
+  const setActiveAvatar = (id: string) =>
+    setUser((u) => ({ ...u, activeAvatarId: id }));
+
+  const deleteAvatar = (id: string) =>
+    setUser((u) => {
+      const filtered = u.avatars.filter((a) => a.id !== id);
+      return {
+        ...u,
+        avatars: filtered,
+        activeAvatarId: filtered.length > 0 ? filtered[0].id : null,
+      };
+    });
+
+  const activeAvatar = user.avatars.find((a) => a.id === user.activeAvatarId) ?? null;
 
   const clearNotifications = () =>
     setUser((u) => ({ ...u, notifications: 0 }));
@@ -140,12 +199,16 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       value={{
         user,
         supabaseUser,
+        activeAvatar,
         login,
         loginWithEmail,
         signUpWithEmail,
         loginWithProvider,
         logout,
-        setAvatar,
+        addAvatar,
+        updateAvatar,
+        setActiveAvatar,
+        deleteAvatar,
         clearNotifications,
         loading,
       }}
