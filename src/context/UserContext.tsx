@@ -199,12 +199,16 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       value={{
         user,
         supabaseUser,
+        activeAvatar,
         login,
         loginWithEmail,
         signUpWithEmail,
         loginWithProvider,
         logout,
-        setAvatar,
+        addAvatar,
+        updateAvatar,
+        setActiveAvatar,
+        deleteAvatar,
         clearNotifications,
         loading,
       }}
