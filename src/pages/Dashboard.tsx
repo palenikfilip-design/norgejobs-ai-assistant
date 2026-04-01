@@ -5,6 +5,7 @@ import { useUser } from "@/context/UserContext";
 import { mockJobs } from "@/data/mockJobs";
 import { matchJobsEnhanced, type EnhancedJob } from "@/utils/jobMatching";
 import EnhancedJobCard from "@/components/EnhancedJobCard";
+import AvatarSwitcher from "@/components/AvatarSwitcher";
 import CoverLetterDialog from "@/components/CoverLetterDialog";
 import JobFiltersPanel from "@/components/JobFiltersPanel";
 import { Button } from "@/components/ui/button";
