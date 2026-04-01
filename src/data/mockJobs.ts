@@ -101,8 +101,73 @@ export const mockJobs: Job[] = [
     description: "Help with harvest and farm maintenance during the growing season. Accommodation available.",
     skills: ["Agriculture", "Physical fitness", "Driving license"],
   },
+  {
+    id: "9",
+    title: "Remote Customer Support Specialist",
+    company: "CloudDesk",
+    country: "Remote",
+    city: "Anywhere",
+    salary: "€28,000 – €35,000",
+    type: "Remote",
+    description: "Provide customer support via chat and email from home. Flexible hours, full training provided.",
+    skills: ["Customer service", "Communication", "English"],
+  },
+  {
+    id: "10",
+    title: "Full-Stack Developer (Remote)",
+    company: "DistributeIO",
+    country: "Remote",
+    city: "Anywhere",
+    salary: "€50,000 – €70,000",
+    type: "Remote",
+    description: "Build and maintain web applications for a fully remote SaaS company. Work from anywhere in Europe.",
+    skills: ["React", "Node.js", "TypeScript", "PostgreSQL"],
+  },
+  {
+    id: "11",
+    title: "Data Entry Clerk",
+    company: "DataFirst s.r.o.",
+    country: "Czech Republic",
+    city: "Prague",
+    salary: "€18,000 – €24,000",
+    type: "Full-time",
+    description: "Process and organize data for financial clients. Office-based in Prague city center.",
+    skills: ["Excel", "Attention to detail", "Data entry"],
+  },
+  {
+    id: "12",
+    title: "Remote Graphic Designer",
+    company: "PixelCraft",
+    country: "Remote",
+    city: "Anywhere",
+    salary: "€30,000 – €45,000",
+    type: "Remote",
+    description: "Create visual content for brands across Europe. Fully remote with flexible schedule.",
+    skills: ["Figma", "Adobe Creative Suite", "Branding", "Illustration"],
+  },
+  {
+    id: "13",
+    title: "Delivery Driver",
+    company: "SwiftPack GmbH",
+    country: "Germany",
+    city: "Frankfurt",
+    salary: "€28,000 – €34,000",
+    type: "Full-time",
+    description: "Deliver packages across the Frankfurt metro area. Company vehicle and fuel provided.",
+    skills: ["Driving license", "Navigation", "Physical fitness"],
+  },
+  {
+    id: "14",
+    title: "Online English Teacher",
+    company: "LearnGlobal",
+    country: "Remote",
+    city: "Anywhere",
+    salary: "€20,000 – €32,000",
+    type: "Part-time",
+    description: "Teach English online to students worldwide. Set your own schedule, work from home.",
+    skills: ["English", "Teaching", "Communication", "Patience"],
+  },
 ];
-
 export function matchJobsToProfile(
   jobs: Job[],
   skills: string[],
@@ -119,9 +184,13 @@ export function matchJobsToProfile(
       const reasons: string[] = [];
 
       // Country match (30 pts)
-      if (preferredCountries.some((c) => c.toLowerCase() === job.country.toLowerCase())) {
+      const wantsRemote = preferredCountries.some((c) => c.toLowerCase().includes("remote"));
+      const countryMatch = preferredCountries.some((c) => c.toLowerCase() === job.country.toLowerCase());
+      const isRemoteJob = job.country.toLowerCase() === "remote";
+
+      if (countryMatch || (wantsRemote && isRemoteJob)) {
         score += 30;
-        reasons.push(`Located in ${job.country}, one of your preferred countries`);
+        reasons.push(isRemoteJob ? "Remote job — work from anywhere" : `Located in ${job.country}, one of your preferred countries`);
       }
 
       // Skills overlap (up to 40 pts)
