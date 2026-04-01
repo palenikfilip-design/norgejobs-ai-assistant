@@ -73,7 +73,8 @@ interface UserContextType {
 const defaultUser: UserState = {
   isAuthenticated: false,
   email: "",
-  avatar: null,
+  avatars: [],
+  activeAvatarId: null,
   hasCompletedOnboarding: false,
   notifications: 3,
 };
