@@ -162,8 +162,34 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     setUser(defaultUser);
   };
 
-  const setAvatar = (avatar: AvatarProfile) =>
-    setUser((u) => ({ ...u, avatar, hasCompletedOnboarding: true }));
+  const addAvatar = (avatar: AvatarProfile) =>
+    setUser((u) => ({
+      ...u,
+      avatars: [...u.avatars, avatar],
+      activeAvatarId: avatar.id,
+      hasCompletedOnboarding: true,
+    }));
+
+  const updateAvatar = (avatar: AvatarProfile) =>
+    setUser((u) => ({
+      ...u,
+      avatars: u.avatars.map((a) => (a.id === avatar.id ? avatar : a)),
+    }));
+
+  const setActiveAvatar = (id: string) =>
+    setUser((u) => ({ ...u, activeAvatarId: id }));
+
+  const deleteAvatar = (id: string) =>
+    setUser((u) => {
+      const filtered = u.avatars.filter((a) => a.id !== id);
+      return {
+        ...u,
+        avatars: filtered,
+        activeAvatarId: filtered.length > 0 ? filtered[0].id : null,
+      };
+    });
+
+  const activeAvatar = user.avatars.find((a) => a.id === user.activeAvatarId) ?? null;
 
   const clearNotifications = () =>
     setUser((u) => ({ ...u, notifications: 0 }));
