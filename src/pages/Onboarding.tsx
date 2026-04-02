@@ -379,22 +379,12 @@ const Onboarding = () => {
     </div>,
 
 
-    // Step 4: Match Weights & Finalize
+    // Step 5: Match Weights & Finalize
     <div key="finalize" className="space-y-5">
       <div className="space-y-2">
         <Label>Avatar Name *</Label>
         <p className="text-xs text-muted-foreground">Give this avatar a name (e.g. "Norway Jobs", "Remote Developer")</p>
         <Input value={form.name} onChange={(e) => update("name", e.target.value)} placeholder='e.g. "My Norway Avatar"' />
-      </div>
-
-      <div className="space-y-2">
-        <Label>Personality Tone</Label>
-        <p className="text-xs text-muted-foreground">How should your avatar communicate?</p>
-        <SimpleTagSelector
-          options={PERSONALITY_TONES}
-          selected={form.personality ? [form.personality] : []}
-          onChange={(v) => update("personality", v[v.length - 1] || undefined)}
-        />
       </div>
 
       <div className="space-y-2">
@@ -412,22 +402,17 @@ const Onboarding = () => {
           </div>
           <div>
             <h3 className="font-display font-semibold text-foreground">{form.name || "Your AI Avatar"}</h3>
-            <p className="text-xs text-muted-foreground">Preview</p>
+            <p className="text-xs text-muted-foreground">AI Summary</p>
           </div>
         </div>
-        <div className="text-sm text-foreground/80 space-y-1">
-          <p><strong>{form.fullName || "..."}</strong> from {form.country || "..."}</p>
-          <p>Languages: {form.languages.map(l => `${l.language} (${l.level})`).join(", ") || "..."}</p>
-          <p>Profession: {PROFESSION_CATEGORIES.find(p => p.value === form.profession)?.label || "..."}</p>
-          <p>Skills: {form.skills.join(", ") || "..."}</p>
-          <p>Looking for: {form.preferredJobType} in {form.preferredCountries.join(", ") || "..."}</p>
-          <p>Salary: €{form.salaryMin.toLocaleString()} – €{form.salaryMax.toLocaleString()}</p>
+        <div className="text-sm text-foreground/80 leading-relaxed bg-secondary/30 rounded-lg p-3 italic">
+          "{form.fullName || "You"} is a motivated {PROFESSION_CATEGORIES.find(p => p.value === form.profession)?.label?.toLowerCase() || "professional"}{form.skills.length > 0 ? `, skilled in ${form.skills.slice(0, 3).join(", ")}` : ""}, looking for {form.preferredJobType.toLowerCase()} opportunities{form.preferredCountries.length > 0 ? ` in ${form.preferredCountries.join(" and ")}` : " abroad"}, with a salary expectation of €{form.salaryMin.toLocaleString()} – €{form.salaryMax.toLocaleString()}/year.{form.housingPreference ? " Housing assistance is important." : ""}{form.personality ? ` Communication style: ${form.personality.toLowerCase()}.` : ""}"
         </div>
       </div>
     </div>,
   ];
 
-  const stepTitles = ["About You", "Languages", "Experience & Skills", "Job Preferences", "Finalize Avatar"];
+  const stepTitles = ["About You", "Languages", "Experience & Skills", "Job Preferences", "Lifestyle & Tone", "Finalize Avatar"];
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
