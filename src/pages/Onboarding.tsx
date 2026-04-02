@@ -224,7 +224,7 @@ const MatchWeightsEditor = ({
   );
 };
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
 
 const Onboarding = () => {
   const [step, setStep] = useState(0);
