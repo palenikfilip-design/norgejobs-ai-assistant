@@ -37,6 +37,11 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
     ? `≈ ${formatCurrency(convertCurrency((parsed.min + parsed.max) / 2 / 12, parsed.currency, userCurrency), userCurrency)}/month`
     : null;
 
+  const costInsight = useMemo(() => {
+    if (!parsed) return null;
+    return getCostOfLivingInsight(job.country, job.title, parsed.min, parsed.max);
+  }, [job.country, job.title, parsed?.min, parsed?.max]);
+
   const handleSave = () => {
     setSaved(!saved);
     onSaveJob?.(job);
