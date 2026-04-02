@@ -124,7 +124,7 @@ const Dashboard = () => {
             <div className="w-8 h-8 rounded-lg bg-accent-gradient flex items-center justify-center">
               <Bot className="w-4 h-4 text-accent-foreground" />
             </div>
-            <span className="font-display font-bold text-foreground text-lg">NorgeJobs AI</span>
+            <span className="font-display font-bold text-foreground text-lg">Leslie AI</span>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" className="relative" onClick={() => {}}>

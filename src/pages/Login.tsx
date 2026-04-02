@@ -63,7 +63,7 @@ const Login = () => {
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-accent-gradient mb-4">
             <Bot className="w-7 h-7 text-accent-foreground" />
           </div>
-          <h1 className="font-display text-3xl font-bold text-primary-foreground">NorgeJobs AI</h1>
+          <h1 className="font-display text-3xl font-bold text-primary-foreground">Leslie AI</h1>
           <p className="text-primary-foreground/60 mt-1">Welcome back to your AI assistant</p>
         </div>
 

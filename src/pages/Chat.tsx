@@ -102,7 +102,7 @@ const Chat = () => {
             <Bot className="w-4 h-4 text-accent-foreground" />
           </div>
           <div>
-            <p className="font-display font-semibold text-foreground text-sm">NorgeJobs AI</p>
+            <p className="font-display font-semibold text-foreground text-sm">Leslie AI</p>
             <p className="text-xs text-muted-foreground">Your job assistant</p>
           </div>
         </div>
