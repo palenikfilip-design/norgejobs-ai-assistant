@@ -46,7 +46,7 @@ function generateResponse(text: string, userName: string, skills: string[], coun
   }
 
   if (lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
-    return `Hey ${userName}! 👋 I'm your NorgeJobs AI assistant. I can help you find jobs, suggest skills to learn, or answer questions about working abroad. What would you like to know?`;
+    return `Hey ${userName}! 👋 I'm your Leslie AI assistant. I can help you find jobs, suggest skills to learn, or answer questions about working abroad. What would you like to know?`;
   }
 
   if (lower.includes("salary") || lower.includes("pay") || lower.includes("money")) {
