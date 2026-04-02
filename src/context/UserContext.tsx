@@ -92,7 +92,11 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<UserState>(() => {
     const saved = localStorage.getItem("norgeJobsUser");
-    return saved ? JSON.parse(saved) : defaultUser;
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return { ...defaultUser, ...parsed, avatars: Array.isArray(parsed.avatars) ? parsed.avatars : [] };
+    }
+    return defaultUser;
   });
 
   useEffect(() => {
