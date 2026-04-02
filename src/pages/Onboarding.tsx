@@ -373,9 +373,10 @@ const Onboarding = () => {
       </div>
 
       <div className="space-y-2">
-        <Label>Personality (optional)</Label>
+        <Label>Personality Tone</Label>
+        <p className="text-xs text-muted-foreground">How should your avatar communicate?</p>
         <SimpleTagSelector
-          options={PERSONALITY_OPTIONS}
+          options={PERSONALITY_TONES}
           selected={form.personality ? [form.personality] : []}
           onChange={(v) => update("personality", v[v.length - 1] || undefined)}
         />
