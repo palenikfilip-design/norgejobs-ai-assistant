@@ -351,8 +351,21 @@ const Onboarding = () => {
         <Label>Desired Bonuses</Label>
         <TagSelector options={JOB_BONUSES} selected={form.desiredBonuses} onChange={(v) => update("desiredBonuses", v)} />
       </div>
-      <div className="flex items-center gap-3">
-        <Label>Need housing?</Label>
+    </div>,
+
+    // Step 4: Lifestyle & Tone
+    <div key="lifestyle" className="space-y-5">
+      <div className="space-y-2">
+        <Label>Communication Tone</Label>
+        <p className="text-xs text-muted-foreground">How should your AI avatar talk to you?</p>
+        <SimpleTagSelector
+          options={PERSONALITY_TONES}
+          selected={form.personality ? [form.personality] : []}
+          onChange={(v) => update("personality", v[v.length - 1] || undefined)}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Housing needed?</Label>
         <button
           type="button"
           onClick={() => update("housingPreference", !form.housingPreference)}
@@ -360,10 +373,11 @@ const Onboarding = () => {
             form.housingPreference ? "bg-accent-gradient text-accent-foreground" : "bg-secondary text-secondary-foreground"
           }`}
         >
-          {form.housingPreference ? "Yes" : "No"}
+          {form.housingPreference ? "Yes, I need housing" : "No, I have my own"}
         </button>
       </div>
     </div>,
+
 
     // Step 4: Match Weights & Finalize
     <div key="finalize" className="space-y-5">
