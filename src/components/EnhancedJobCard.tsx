@@ -99,6 +99,13 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
         {/* AI Summary */}
         <p className="text-sm text-foreground/80 mb-3">{job.aiSummary}</p>
 
+        {/* Real Value Insight */}
+        {costInsight && (
+          <div className="mb-3">
+            <RealValueInsight insight={costInsight} userCurrency={userCurrency} />
+          </div>
+        )}
+
         {/* Skills */}
         <div className="flex flex-wrap gap-1.5 mb-3">
           {job.skills.map(skill => (
