@@ -153,9 +153,9 @@ const Index = () => {
             <div className="w-7 h-7 rounded-lg bg-accent-gradient flex items-center justify-center">
               <Bot className="w-3.5 h-3.5 text-accent-foreground" />
             </div>
-            <span className="font-display font-bold text-foreground">NorgeJobs AI</span>
+            <span className="font-display font-bold text-foreground">Leslie AI</span>
           </div>
-          <p className="text-sm text-muted-foreground">© 2026 NorgeJobs AI. All rights reserved.</p>
+          <p className="text-sm text-muted-foreground">© 2026 Leslie AI. All rights reserved.</p>
         </div>
       </footer>
     </div>

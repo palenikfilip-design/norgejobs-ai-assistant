@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { MapPin, Banknote, Briefcase, Sparkles, ExternalLink, FileText, Heart, ChevronDown, ChevronUp, TrendingUp, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { EnhancedJob } from "@/utils/jobMatching";
 import { parseSalaryRange, getMultiCurrencyDisplay, formatCurrency, convertCurrency, type CurrencyCode } from "@/utils/currency";
+import { getCostOfLivingInsight } from "@/utils/costOfLiving";
+import RealValueInsight from "@/components/RealValueInsight";
 
 interface EnhancedJobCardProps {
   job: EnhancedJob;
@@ -34,6 +36,11 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
   const userMonthlySalary = parsed && userCurrency
     ? `≈ ${formatCurrency(convertCurrency((parsed.min + parsed.max) / 2 / 12, parsed.currency, userCurrency), userCurrency)}/month`
     : null;
+
+  const costInsight = useMemo(() => {
+    if (!parsed) return null;
+    return getCostOfLivingInsight(job.country, job.title, parsed.min, parsed.max);
+  }, [job.country, job.title, parsed?.min, parsed?.max]);
 
   const handleSave = () => {
     setSaved(!saved);
@@ -91,6 +98,13 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
 
         {/* AI Summary */}
         <p className="text-sm text-foreground/80 mb-3">{job.aiSummary}</p>
+
+        {/* Real Value Insight */}
+        {costInsight && (
+          <div className="mb-3">
+            <RealValueInsight insight={costInsight} userCurrency={userCurrency} />
+          </div>
+        )}
 
         {/* Skills */}
         <div className="flex flex-wrap gap-1.5 mb-3">

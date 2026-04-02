@@ -46,7 +46,7 @@ function generateResponse(text: string, userName: string, skills: string[], coun
   }
 
   if (lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
-    return `Hey ${userName}! 👋 I'm your NorgeJobs AI assistant. I can help you find jobs, suggest skills to learn, or answer questions about working abroad. What would you like to know?`;
+    return `Hey ${userName}! 👋 I'm your Leslie AI assistant. I can help you find jobs, suggest skills to learn, or answer questions about working abroad. What would you like to know?`;
   }
 
   if (lower.includes("salary") || lower.includes("pay") || lower.includes("money")) {
@@ -66,7 +66,7 @@ const Chat = () => {
     {
       id: "welcome",
       role: "assistant",
-      content: `Hi ${firstName}! 👋 I'm your NorgeJobs AI assistant. Ask me anything about job opportunities, skills, or working abroad. How can I help you today?`,
+      content: `Hi ${firstName}! 👋 I'm your Leslie AI assistant. Ask me anything about job opportunities, skills, or working abroad. How can I help you today?`,
     },
   ]);
   const [input, setInput] = useState("");
@@ -102,7 +102,7 @@ const Chat = () => {
             <Bot className="w-4 h-4 text-accent-foreground" />
           </div>
           <div>
-            <p className="font-display font-semibold text-foreground text-sm">NorgeJobs AI</p>
+            <p className="font-display font-semibold text-foreground text-sm">Leslie AI</p>
             <p className="text-xs text-muted-foreground">Your job assistant</p>
           </div>
         </div>

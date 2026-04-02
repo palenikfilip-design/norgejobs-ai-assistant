@@ -91,7 +91,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<UserState>(() => {
-    const saved = localStorage.getItem("norgeJobsUser");
+    const saved = localStorage.getItem("leslieUser");
     if (saved) {
       const parsed = JSON.parse(saved);
       return { ...defaultUser, ...parsed, avatars: Array.isArray(parsed.avatars) ? parsed.avatars : [] };
@@ -111,7 +111,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         }));
       } else {
         setUser(defaultUser);
-        localStorage.removeItem("norgeJobsUser");
+        localStorage.removeItem("leslieUser");
       }
       setLoading(false);
     });
@@ -133,7 +133,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("norgeJobsUser", JSON.stringify(user));
+    localStorage.setItem("leslieUser", JSON.stringify(user));
   }, [user]);
 
   const login = (email: string) =>
@@ -162,7 +162,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     await supabase.auth.signOut();
-    localStorage.removeItem("norgeJobsUser");
+    localStorage.removeItem("leslieUser");
     setUser(defaultUser);
   };
 
