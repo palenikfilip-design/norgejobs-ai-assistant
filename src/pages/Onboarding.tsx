@@ -260,7 +260,8 @@ const Onboarding = () => {
     if (step === 1) return form.languages.length > 0 && form.languages.every(l => l.language);
     if (step === 2) return form.profession.length > 0;
     if (step === 3) return form.preferredCountries.length > 0;
-    if (step === 4) {
+    if (step === 4) return true; // personality is optional
+    if (step === 5) {
       const total = form.matchWeights.skills + form.matchWeights.location + form.matchWeights.salary + form.matchWeights.jobType + form.matchWeights.bonus;
       return total === 100 && form.name.length > 0;
     }
