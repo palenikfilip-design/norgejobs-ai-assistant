@@ -133,7 +133,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("norgeJobsUser", JSON.stringify(user));
+    localStorage.setItem("leslieUser", JSON.stringify(user));
   }, [user]);
 
   const login = (email: string) =>
