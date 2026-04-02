@@ -13,7 +13,7 @@ import { COUNTRIES } from "@/constants/countries";
 import { LANGUAGES, LANGUAGE_LEVELS, EXPERIENCE_LEVELS, PROFESSION_CATEGORIES, JOB_BONUSES } from "@/constants/jobRequirements";
 
 const JOB_TYPES = ["Full-time", "Part-time", "Seasonal", "Remote"];
-const PERSONALITY_OPTIONS = ["Introvert", "Extrovert", "Structured", "Flexible"];
+const PERSONALITY_TONES = ["Professional", "Friendly", "Direct"];
 
 const TagSelector = ({
   options,
