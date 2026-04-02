@@ -111,7 +111,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         }));
       } else {
         setUser(defaultUser);
-        localStorage.removeItem("norgeJobsUser");
+        localStorage.removeItem("leslieUser");
       }
       setLoading(false);
     });
