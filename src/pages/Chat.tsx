@@ -66,7 +66,7 @@ const Chat = () => {
     {
       id: "welcome",
       role: "assistant",
-      content: `Hi ${firstName}! 👋 I'm your NorgeJobs AI assistant. Ask me anything about job opportunities, skills, or working abroad. How can I help you today?`,
+      content: `Hi ${firstName}! 👋 I'm your Leslie AI assistant. Ask me anything about job opportunities, skills, or working abroad. How can I help you today?`,
     },
   ]);
   const [input, setInput] = useState("");
