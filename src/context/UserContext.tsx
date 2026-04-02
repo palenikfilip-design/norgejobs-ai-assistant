@@ -91,7 +91,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<UserState>(() => {
-    const saved = localStorage.getItem("norgeJobsUser");
+    const saved = localStorage.getItem("leslieUser");
     if (saved) {
       const parsed = JSON.parse(saved);
       return { ...defaultUser, ...parsed, avatars: Array.isArray(parsed.avatars) ? parsed.avatars : [] };
