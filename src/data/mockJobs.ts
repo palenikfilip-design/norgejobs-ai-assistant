@@ -68,6 +68,11 @@ export const mockJobs: Job[] = [
     type: "Seasonal",
     description: "Work in fish processing during peak season. Accommodation and meals included.",
     skills: ["Physical fitness", "Teamwork", "Food processing"],
+    requiredLanguages: [{ language: "english", level: "A1" }],
+    experienceRequired: "no_experience",
+    applicants: 5,
+    positions: 10,
+    avgDaysToFill: 7,
   },
   {
     id: "4",
