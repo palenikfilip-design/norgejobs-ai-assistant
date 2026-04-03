@@ -166,6 +166,10 @@ export const mockJobs: Job[] = [
     type: "Remote",
     description: "Provide customer support via chat and email from home. Flexible hours, full training provided.",
     skills: ["Customer service", "Communication", "English"],
+    requiredLanguages: [{ language: "english", level: "B1" }],
+    applicants: 80,
+    positions: 5,
+    avgDaysToFill: 20,
   },
   {
     id: "10",
