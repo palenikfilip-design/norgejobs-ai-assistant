@@ -10,6 +10,15 @@ export interface Job {
   skills: string[];
   matchScore?: number;
   matchReason?: string;
+  // Smart Match fields
+  requiredSkills?: string[];
+  requiredLanguages?: { language: string; level: string }[];
+  experienceRequired?: string;
+  certificationsRequired?: string[];
+  // Market Heat fields
+  applicants?: number;
+  positions?: number;
+  avgDaysToFill?: number;
 }
 
 export const mockJobs: Job[] = [

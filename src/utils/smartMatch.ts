@@ -1,5 +1,5 @@
-import type { EnhancedJob } from "@/data/mockJobs";
-import type { AvatarProfile, LanguageWithLevel } from "@/context/UserContext";
+import type { EnhancedJob } from "@/utils/jobMatching";
+import type { AvatarProfile } from "@/context/UserContext";
 import { parseSalaryRange, convertCurrency } from "./currency";
 
 export interface SmartMatchBreakdown {
