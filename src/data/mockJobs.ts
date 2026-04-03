@@ -10,6 +10,15 @@ export interface Job {
   skills: string[];
   matchScore?: number;
   matchReason?: string;
+  // Smart Match fields
+  requiredSkills?: string[];
+  requiredLanguages?: { language: string; level: string }[];
+  experienceRequired?: string;
+  certificationsRequired?: string[];
+  // Market Heat fields
+  applicants?: number;
+  positions?: number;
+  avgDaysToFill?: number;
 }
 
 export const mockJobs: Job[] = [
@@ -23,6 +32,13 @@ export const mockJobs: Job[] = [
     type: "Full-time",
     description: "Build modern web applications using React and TypeScript for a growing fintech startup in Oslo.",
     skills: ["React", "TypeScript", "CSS", "Node.js"],
+    requiredSkills: ["React", "TypeScript", "CSS", "Node.js"],
+    requiredLanguages: [{ language: "english", level: "B2" }],
+    experienceRequired: "2_years",
+    certificationsRequired: [],
+    applicants: 45,
+    positions: 2,
+    avgDaysToFill: 30,
   },
   {
     id: "2",
@@ -34,6 +50,13 @@ export const mockJobs: Job[] = [
     type: "Full-time",
     description: "Join our logistics team managing inventory and shipments. Housing provided near the facility.",
     skills: ["Logistics", "Physical fitness", "Forklift license"],
+    requiredSkills: ["Logistics", "Physical fitness"],
+    requiredLanguages: [{ language: "english", level: "A2" }, { language: "norwegian", level: "A1" }],
+    experienceRequired: "6_months",
+    certificationsRequired: ["Forklift license"],
+    applicants: 8,
+    positions: 3,
+    avgDaysToFill: 14,
   },
   {
     id: "3",
@@ -45,6 +68,11 @@ export const mockJobs: Job[] = [
     type: "Seasonal",
     description: "Work in fish processing during peak season. Accommodation and meals included.",
     skills: ["Physical fitness", "Teamwork", "Food processing"],
+    requiredLanguages: [{ language: "english", level: "A1" }],
+    experienceRequired: "no_experience",
+    applicants: 5,
+    positions: 10,
+    avgDaysToFill: 7,
   },
   {
     id: "4",
@@ -56,6 +84,11 @@ export const mockJobs: Job[] = [
     type: "Full-time",
     description: "Welcome guests at a premium alpine resort. Multi-language skills are a plus.",
     skills: ["Customer service", "Languages", "Hospitality"],
+    requiredLanguages: [{ language: "english", level: "B1" }, { language: "german", level: "A2" }],
+    experienceRequired: "1_year",
+    applicants: 22,
+    positions: 1,
+    avgDaysToFill: 21,
   },
   {
     id: "5",
@@ -67,6 +100,12 @@ export const mockJobs: Job[] = [
     type: "Full-time",
     description: "Develop scalable backend systems for Europe's fastest-growing e-commerce platform.",
     skills: ["Python", "AWS", "PostgreSQL", "Docker"],
+    requiredSkills: ["Python", "AWS", "PostgreSQL", "Docker"],
+    requiredLanguages: [{ language: "english", level: "B2" }],
+    experienceRequired: "3_5_years",
+    applicants: 120,
+    positions: 3,
+    avgDaysToFill: 45,
   },
   {
     id: "6",
@@ -78,6 +117,13 @@ export const mockJobs: Job[] = [
     type: "Full-time",
     description: "Help build sustainable housing projects in Northern Norway. Experience preferred.",
     skills: ["Construction", "Physical fitness", "Safety certification"],
+    requiredSkills: ["Construction", "Physical fitness"],
+    certificationsRequired: ["Safety certification"],
+    requiredLanguages: [{ language: "english", level: "A2" }],
+    experienceRequired: "1_year",
+    applicants: 12,
+    positions: 5,
+    avgDaysToFill: 10,
   },
   {
     id: "7",
@@ -89,6 +135,11 @@ export const mockJobs: Job[] = [
     type: "Full-time",
     description: "Design intuitive user experiences for healthcare applications used across Europe.",
     skills: ["Figma", "User Research", "Prototyping", "Design Systems"],
+    requiredLanguages: [{ language: "english", level: "B2" }],
+    experienceRequired: "2_years",
+    applicants: 55,
+    positions: 1,
+    avgDaysToFill: 35,
   },
   {
     id: "8",
@@ -100,6 +151,10 @@ export const mockJobs: Job[] = [
     type: "Seasonal",
     description: "Help with harvest and farm maintenance during the growing season. Accommodation available.",
     skills: ["Agriculture", "Physical fitness", "Driving license"],
+    experienceRequired: "no_experience",
+    applicants: 3,
+    positions: 8,
+    avgDaysToFill: 5,
   },
   {
     id: "9",
@@ -111,6 +166,10 @@ export const mockJobs: Job[] = [
     type: "Remote",
     description: "Provide customer support via chat and email from home. Flexible hours, full training provided.",
     skills: ["Customer service", "Communication", "English"],
+    requiredLanguages: [{ language: "english", level: "B1" }],
+    applicants: 80,
+    positions: 5,
+    avgDaysToFill: 20,
   },
   {
     id: "10",
@@ -122,6 +181,12 @@ export const mockJobs: Job[] = [
     type: "Remote",
     description: "Build and maintain web applications for a fully remote SaaS company. Work from anywhere in Europe.",
     skills: ["React", "Node.js", "TypeScript", "PostgreSQL"],
+    requiredSkills: ["React", "Node.js", "TypeScript", "PostgreSQL"],
+    requiredLanguages: [{ language: "english", level: "B2" }],
+    experienceRequired: "2_years",
+    applicants: 90,
+    positions: 2,
+    avgDaysToFill: 28,
   },
   {
     id: "11",
@@ -133,6 +198,10 @@ export const mockJobs: Job[] = [
     type: "Full-time",
     description: "Process and organize data for financial clients. Office-based in Prague city center.",
     skills: ["Excel", "Attention to detail", "Data entry"],
+    experienceRequired: "no_experience",
+    applicants: 15,
+    positions: 2,
+    avgDaysToFill: 12,
   },
   {
     id: "12",
@@ -144,6 +213,10 @@ export const mockJobs: Job[] = [
     type: "Remote",
     description: "Create visual content for brands across Europe. Fully remote with flexible schedule.",
     skills: ["Figma", "Adobe Creative Suite", "Branding", "Illustration"],
+    requiredLanguages: [{ language: "english", level: "B1" }],
+    applicants: 70,
+    positions: 1,
+    avgDaysToFill: 40,
   },
   {
     id: "13",
@@ -155,6 +228,10 @@ export const mockJobs: Job[] = [
     type: "Full-time",
     description: "Deliver packages across the Frankfurt metro area. Company vehicle and fuel provided.",
     skills: ["Driving license", "Navigation", "Physical fitness"],
+    certificationsRequired: ["Driving license"],
+    applicants: 18,
+    positions: 4,
+    avgDaysToFill: 8,
   },
   {
     id: "14",
@@ -166,6 +243,10 @@ export const mockJobs: Job[] = [
     type: "Part-time",
     description: "Teach English online to students worldwide. Set your own schedule, work from home.",
     skills: ["English", "Teaching", "Communication", "Patience"],
+    requiredLanguages: [{ language: "english", level: "C1" }],
+    applicants: 200,
+    positions: 10,
+    avgDaysToFill: 15,
   },
 ];
 export function matchJobsToProfile(

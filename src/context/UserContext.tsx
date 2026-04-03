@@ -40,6 +40,7 @@ export interface AvatarProfile {
   salaryMax: number;
   housingPreference: boolean;
   personality?: string;
+  certifications: string[];
   desiredBonuses: string[];
   matchWeights: MatchWeights;
 }

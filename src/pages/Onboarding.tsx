@@ -248,6 +248,7 @@ const Onboarding = () => {
     salaryMax: 60000,
     housingPreference: false,
     personality: undefined,
+    certifications: [],
     desiredBonuses: [],
     matchWeights: { ...DEFAULT_MATCH_WEIGHTS },
   });
