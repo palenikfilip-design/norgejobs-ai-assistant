@@ -151,6 +151,10 @@ export const mockJobs: Job[] = [
     type: "Seasonal",
     description: "Help with harvest and farm maintenance during the growing season. Accommodation available.",
     skills: ["Agriculture", "Physical fitness", "Driving license"],
+    experienceRequired: "no_experience",
+    applicants: 3,
+    positions: 8,
+    avgDaysToFill: 5,
   },
   {
     id: "9",
