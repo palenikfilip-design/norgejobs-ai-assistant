@@ -117,6 +117,13 @@ export const mockJobs: Job[] = [
     type: "Full-time",
     description: "Help build sustainable housing projects in Northern Norway. Experience preferred.",
     skills: ["Construction", "Physical fitness", "Safety certification"],
+    requiredSkills: ["Construction", "Physical fitness"],
+    certificationsRequired: ["Safety certification"],
+    requiredLanguages: [{ language: "english", level: "A2" }],
+    experienceRequired: "1_year",
+    applicants: 12,
+    positions: 5,
+    avgDaysToFill: 10,
   },
   {
     id: "7",
