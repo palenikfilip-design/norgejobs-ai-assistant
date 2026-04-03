@@ -228,6 +228,10 @@ export const mockJobs: Job[] = [
     type: "Full-time",
     description: "Deliver packages across the Frankfurt metro area. Company vehicle and fuel provided.",
     skills: ["Driving license", "Navigation", "Physical fitness"],
+    certificationsRequired: ["Driving license"],
+    applicants: 18,
+    positions: 4,
+    avgDaysToFill: 8,
   },
   {
     id: "14",
