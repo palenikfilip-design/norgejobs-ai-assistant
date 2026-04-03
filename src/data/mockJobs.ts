@@ -84,6 +84,11 @@ export const mockJobs: Job[] = [
     type: "Full-time",
     description: "Welcome guests at a premium alpine resort. Multi-language skills are a plus.",
     skills: ["Customer service", "Languages", "Hospitality"],
+    requiredLanguages: [{ language: "english", level: "B1" }, { language: "german", level: "A2" }],
+    experienceRequired: "1_year",
+    applicants: 22,
+    positions: 1,
+    avgDaysToFill: 21,
   },
   {
     id: "5",
