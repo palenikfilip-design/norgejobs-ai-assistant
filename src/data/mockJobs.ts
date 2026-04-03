@@ -198,6 +198,10 @@ export const mockJobs: Job[] = [
     type: "Full-time",
     description: "Process and organize data for financial clients. Office-based in Prague city center.",
     skills: ["Excel", "Attention to detail", "Data entry"],
+    experienceRequired: "no_experience",
+    applicants: 15,
+    positions: 2,
+    avgDaysToFill: 12,
   },
   {
     id: "12",
