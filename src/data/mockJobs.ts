@@ -100,6 +100,12 @@ export const mockJobs: Job[] = [
     type: "Full-time",
     description: "Develop scalable backend systems for Europe's fastest-growing e-commerce platform.",
     skills: ["Python", "AWS", "PostgreSQL", "Docker"],
+    requiredSkills: ["Python", "AWS", "PostgreSQL", "Docker"],
+    requiredLanguages: [{ language: "english", level: "B2" }],
+    experienceRequired: "3_5_years",
+    applicants: 120,
+    positions: 3,
+    avgDaysToFill: 45,
   },
   {
     id: "6",
