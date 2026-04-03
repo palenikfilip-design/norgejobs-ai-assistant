@@ -135,6 +135,11 @@ export const mockJobs: Job[] = [
     type: "Full-time",
     description: "Design intuitive user experiences for healthcare applications used across Europe.",
     skills: ["Figma", "User Research", "Prototyping", "Design Systems"],
+    requiredLanguages: [{ language: "english", level: "B2" }],
+    experienceRequired: "2_years",
+    applicants: 55,
+    positions: 1,
+    avgDaysToFill: 35,
   },
   {
     id: "8",
