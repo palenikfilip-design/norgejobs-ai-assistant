@@ -181,6 +181,12 @@ export const mockJobs: Job[] = [
     type: "Remote",
     description: "Build and maintain web applications for a fully remote SaaS company. Work from anywhere in Europe.",
     skills: ["React", "Node.js", "TypeScript", "PostgreSQL"],
+    requiredSkills: ["React", "Node.js", "TypeScript", "PostgreSQL"],
+    requiredLanguages: [{ language: "english", level: "B2" }],
+    experienceRequired: "2_years",
+    applicants: 90,
+    positions: 2,
+    avgDaysToFill: 28,
   },
   {
     id: "11",
