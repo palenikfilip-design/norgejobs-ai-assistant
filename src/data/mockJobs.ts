@@ -213,6 +213,10 @@ export const mockJobs: Job[] = [
     type: "Remote",
     description: "Create visual content for brands across Europe. Fully remote with flexible schedule.",
     skills: ["Figma", "Adobe Creative Suite", "Branding", "Illustration"],
+    requiredLanguages: [{ language: "english", level: "B1" }],
+    applicants: 70,
+    positions: 1,
+    avgDaysToFill: 40,
   },
   {
     id: "13",
