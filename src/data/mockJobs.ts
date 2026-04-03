@@ -243,6 +243,10 @@ export const mockJobs: Job[] = [
     type: "Part-time",
     description: "Teach English online to students worldwide. Set your own schedule, work from home.",
     skills: ["English", "Teaching", "Communication", "Patience"],
+    requiredLanguages: [{ language: "english", level: "C1" }],
+    applicants: 200,
+    positions: 10,
+    avgDaysToFill: 15,
   },
 ];
 export function matchJobsToProfile(
