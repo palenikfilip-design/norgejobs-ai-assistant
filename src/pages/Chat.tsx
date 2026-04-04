@@ -57,9 +57,9 @@ function generateResponse(text: string, userName: string, skills: string[], coun
 }
 
 const Chat = () => {
-  const { user, activeAvatar } = useUser();
+  const { user } = useUser();
   const navigate = useNavigate();
-  const avatar = activeAvatar;
+  const avatar = user.profile;
   const firstName = avatar?.fullName.split(" ")[0] || "there";
 
   const [messages, setMessages] = useState<Message[]>([
