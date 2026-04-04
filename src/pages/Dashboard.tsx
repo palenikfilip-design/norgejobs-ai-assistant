@@ -7,6 +7,7 @@ import { matchJobsEnhanced, type EnhancedJob } from "@/utils/jobMatching";
 import EnhancedJobCard from "@/components/EnhancedJobCard";
 import AvatarSwitcher from "@/components/AvatarSwitcher";
 import CoverLetterDialog from "@/components/CoverLetterDialog";
+import ProfileCompletion from "@/components/ProfileCompletion";
 import JobFiltersPanel from "@/components/JobFiltersPanel";
 import { Button } from "@/components/ui/button";
 import { Bot, MessageCircle, Bell, LogOut, Sparkles, BriefcaseBusiness } from "lucide-react";
@@ -204,6 +205,11 @@ const Dashboard = () => {
             </div>
           </motion.div>
         )}
+
+        {/* Profile Completion */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-8">
+          <ProfileCompletion onEditProfile={() => navigate("/profile/edit")} />
+        </motion.div>
 
         {/* Filters */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
