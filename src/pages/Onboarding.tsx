@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useUser, AvatarProfile, DEFAULT_MATCH_WEIGHTS } from "@/context/UserContext";
+import { useUser, defaultProfile } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,43 +11,19 @@ import { COUNTRIES } from "@/constants/countries";
 const GENDERS = ["Male", "Female", "Non-binary", "Prefer not to say"];
 
 const Onboarding = () => {
-  const { addAvatar } = useUser();
+  const { updateProfile, setOnboarded } = useUser();
   const navigate = useNavigate();
 
-  const [form, setForm] = useState<AvatarProfile>({
-    id: crypto.randomUUID(),
-    name: "",
-    fullName: "",
-    gender: undefined,
-    age: undefined,
-    country: "",
-    languages: [],
-    workExperience: "",
-    experienceLevel: "any",
-    profession: "",
-    skills: [],
-    preferredJobType: "Full-time",
-    preferredCountries: [],
-    salaryMin: 0,
-    salaryMax: 0,
-    housingPreference: false,
-    personality: undefined,
-    certifications: [],
-    desiredBonuses: [],
-    matchWeights: { ...DEFAULT_MATCH_WEIGHTS },
-  });
+  const [form, setForm] = useState({ ...defaultProfile });
 
-  const update = <K extends keyof AvatarProfile>(key: K, val: AvatarProfile[K]) =>
+  const update = <K extends keyof typeof form>(key: K, val: (typeof form)[K]) =>
     setForm((f) => ({ ...f, [key]: val }));
 
   const canFinish = form.fullName.length > 0 && form.country.length > 0;
 
   const handleFinish = () => {
-    const avatar = {
-      ...form,
-      name: form.fullName + " Avatar",
-    };
-    addAvatar(avatar);
+    updateProfile(form);
+    setOnboarded();
     navigate("/dashboard");
   };
 
@@ -73,9 +49,9 @@ const Onboarding = () => {
               <Bot className="w-5 h-5 text-accent-foreground" />
             </div>
             <div>
-              <h2 className="font-display text-2xl font-bold text-foreground">Create Your Avatar</h2>
+              <h2 className="font-display text-2xl font-bold text-foreground">Create Your Profile</h2>
               <p className="text-muted-foreground text-sm">
-                Start with basics — you can complete your profile later
+                Start with basics — add search presets later to find jobs
               </p>
             </div>
           </div>
@@ -139,10 +115,10 @@ const Onboarding = () => {
             </div>
 
             <div className="bg-secondary/30 rounded-lg p-4 text-sm text-muted-foreground">
-              <p className="font-medium text-foreground mb-1">💡 Complete your profile later</p>
+              <p className="font-medium text-foreground mb-1">💡 Next: Create search presets</p>
               <p>
-                After creating your avatar, you can add languages, skills, work experience,
-                job preferences and more. Your profile completion percentage will guide you.
+                After setting up your profile, create search presets for different job markets
+                (e.g. "Norway Jobs", "Germany Tech"). Each preset filters jobs by your preferences.
               </p>
             </div>
           </div>
@@ -153,7 +129,7 @@ const Onboarding = () => {
               disabled={!canFinish}
               className="bg-accent-gradient text-accent-foreground hover:opacity-90"
             >
-              Create Avatar
+              Create Profile
               <Check className="w-4 h-4 ml-1" />
             </Button>
           </div>

@@ -85,7 +85,7 @@ const Chat = () => {
     setInput("");
 
     setTimeout(() => {
-      const response = generateResponse(text, firstName, avatar?.skills || [], avatar?.preferredCountries || []);
+      const response = generateResponse(text, firstName, avatar?.skills || [], []);
       setMessages((m) => [...m, { id: (Date.now() + 1).toString(), role: "assistant", content: response }]);
     }, 600);
   };
