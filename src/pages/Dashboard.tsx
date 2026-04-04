@@ -7,6 +7,7 @@ import { matchJobsEnhanced, type EnhancedJob } from "@/utils/jobMatching";
 import EnhancedJobCard from "@/components/EnhancedJobCard";
 import AvatarSwitcher from "@/components/AvatarSwitcher";
 import CoverLetterDialog from "@/components/CoverLetterDialog";
+import ProfileCompletion from "@/components/ProfileCompletion";
 import JobFiltersPanel from "@/components/JobFiltersPanel";
 import { Button } from "@/components/ui/button";
 import { Bot, MessageCircle, Bell, LogOut, Sparkles, BriefcaseBusiness } from "lucide-react";
