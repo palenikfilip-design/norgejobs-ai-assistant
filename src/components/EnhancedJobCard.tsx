@@ -28,7 +28,8 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
   const [saved, setSaved] = useState(false);
   const [langTestOpen, setLangTestOpen] = useState(false);
   const [langTestLang, setLangTestLang] = useState("English");
-  const { activeAvatar } = useUser();
+  const { activeAvatars } = useUser();
+  const activeAvatar = activeAvatars[0] ?? null;
 
   const scoreColor = job.matchScore >= 80
     ? "text-emerald-500 bg-emerald-500/10 border-emerald-500/30"

@@ -1,0 +1,232 @@
+import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { motion } from "framer-motion";
+import { useUser, SearchPreset, DEFAULT_MATCH_WEIGHTS, defaultPreset } from "@/context/UserContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { ArrowLeft, Check, Save, Info } from "lucide-react";
+import { COUNTRIES } from "@/constants/countries";
+import { JOB_BONUSES } from "@/constants/jobRequirements";
+import { useToast } from "@/hooks/use-toast";
+
+const JOB_TYPES = ["Full-time", "Part-time", "Seasonal", "Remote"];
+
+const TagSelector = ({
+  options,
+  selected,
+  onChange,
+  single = false,
+}: {
+  options: { value: string; label: string }[];
+  selected: string[];
+  onChange: (val: string[]) => void;
+  single?: boolean;
+}) => (
+  <div className="flex flex-wrap gap-2">
+    {options.map((opt) => {
+      const active = selected.includes(opt.value);
+      return (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => {
+            if (single) onChange(active ? [] : [opt.value]);
+            else onChange(active ? selected.filter((s) => s !== opt.value) : [...selected, opt.value]);
+          }}
+          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+            active ? "bg-accent-gradient text-accent-foreground shadow-sm" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+          }`}
+        >
+          {opt.label}
+          {active && <Check className="w-3 h-3 inline ml-1" />}
+        </button>
+      );
+    })}
+  </div>
+);
+
+const SimpleTagSelector = ({
+  options,
+  selected,
+  onChange,
+  single = false,
+}: {
+  options: string[];
+  selected: string[];
+  onChange: (val: string[]) => void;
+  single?: boolean;
+}) => (
+  <div className="flex flex-wrap gap-2">
+    {options.map((opt) => {
+      const active = selected.includes(opt);
+      return (
+        <button
+          key={opt}
+          type="button"
+          onClick={() => {
+            if (single) onChange(active ? [] : [opt]);
+            else onChange(active ? selected.filter((s) => s !== opt) : [...selected, opt]);
+          }}
+          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+            active ? "bg-accent-gradient text-accent-foreground shadow-sm" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+          }`}
+        >
+          {opt}
+          {active && <Check className="w-3 h-3 inline ml-1" />}
+        </button>
+      );
+    })}
+  </div>
+);
+
+const MatchWeightsEditor = ({ weights, onChange }: { weights: typeof DEFAULT_MATCH_WEIGHTS; onChange: (w: typeof DEFAULT_MATCH_WEIGHTS) => void }) => {
+  const total = weights.skills + weights.location + weights.salary + weights.jobType + weights.bonus;
+  const categories = [
+    { key: "skills" as const, label: "🎯 Skills", color: "text-green-600" },
+    { key: "location" as const, label: "📍 Location", color: "text-blue-600" },
+    { key: "salary" as const, label: "💰 Salary", color: "text-yellow-600" },
+    { key: "jobType" as const, label: "💼 Job Type", color: "text-purple-600" },
+    { key: "bonus" as const, label: "🎁 Bonus", color: "text-pink-600" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 mb-2">
+        <Info className="w-4 h-4 text-muted-foreground" />
+        <p className="text-xs text-muted-foreground">Adjust how important each factor is for this preset. Total should be 100.</p>
+      </div>
+      {categories.map(({ key, label, color }) => (
+        <div key={key} className="space-y-1">
+          <div className="flex justify-between items-center">
+            <span className={`text-sm font-medium ${color}`}>{label}</span>
+            <span className="text-sm font-bold text-foreground">{weights[key]}</span>
+          </div>
+          <Slider value={[weights[key]]} onValueChange={([val]) => onChange({ ...weights, [key]: val })} max={60} min={0} step={5} />
+        </div>
+      ))}
+      <div className={`text-sm font-semibold text-center py-2 rounded-lg ${total === 100 ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+        Total: {total} / 100 {total !== 100 && "(adjust to equal 100)"}
+      </div>
+    </div>
+  );
+};
+
+const PresetEdit = () => {
+  const { user, addPreset, updatePreset } = useUser();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { id } = useParams<{ id: string }>();
+
+  const isNew = !id || id === "new";
+  const existing = !isNew ? user.presets.find(p => p.id === id) : null;
+
+  const [form, setForm] = useState<SearchPreset>(
+    existing || {
+      id: crypto.randomUUID(),
+      ...defaultPreset,
+    }
+  );
+
+  const update = <K extends keyof SearchPreset>(key: K, val: SearchPreset[K]) =>
+    setForm((f) => ({ ...f, [key]: val }));
+
+  const canSave = form.name.length > 0;
+
+  const handleSave = () => {
+    if (isNew || !existing) {
+      addPreset(form);
+      toast({ title: "Preset created!", description: `"${form.name}" has been added to your library.` });
+    } else {
+      updatePreset(form);
+      toast({ title: "Preset updated!", description: `"${form.name}" has been saved.` });
+    }
+    navigate("/dashboard");
+  };
+
+  const countryOptions = COUNTRIES.map((c) => ({ value: c.value, label: c.label }));
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border/50">
+        <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
+            <ArrowLeft className="w-4 h-4 mr-1" /> Back
+          </Button>
+          <Button size="sm" onClick={handleSave} disabled={!canSave} className="bg-accent-gradient text-accent-foreground hover:opacity-90">
+            <Save className="w-4 h-4 mr-1" /> {isNew ? "Create Preset" : "Save Changes"}
+          </Button>
+        </div>
+      </header>
+
+      <main className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <h1 className="text-2xl font-bold text-foreground mb-1">
+            {isNew ? "New Search Preset" : `Edit "${existing?.name}"`}
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            Define search preferences for a specific job market or goal
+          </p>
+        </motion.div>
+
+        {/* Preset Name */}
+        <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
+          <h2 className="font-semibold text-foreground">Preset Name</h2>
+          <Input
+            value={form.name}
+            onChange={(e) => update("name", e.target.value)}
+            placeholder="e.g. Norway Jobs, Germany Tech, Remote Work..."
+          />
+        </section>
+
+        {/* Job Preferences */}
+        <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
+          <h2 className="font-semibold text-foreground">Job Preferences</h2>
+          <div className="space-y-2">
+            <Label>Preferred Job Type</Label>
+            <SimpleTagSelector options={JOB_TYPES} selected={[form.preferredJobType]} onChange={(v) => update("preferredJobType", v[v.length - 1] || "Full-time")} single />
+          </div>
+          <div className="space-y-2">
+            <Label>Target Countries</Label>
+            <TagSelector options={countryOptions} selected={form.preferredCountries} onChange={(v) => update("preferredCountries", v)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Salary Expectation (€/year)</Label>
+            <div className="flex gap-3 items-center">
+              <Input type="number" value={form.salaryMin || ""} onChange={(e) => update("salaryMin", Number(e.target.value))} className="w-28" placeholder="Min" />
+              <span className="text-muted-foreground">to</span>
+              <Input type="number" value={form.salaryMax || ""} onChange={(e) => update("salaryMax", Number(e.target.value))} className="w-28" placeholder="Max" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Desired Bonuses</Label>
+            <TagSelector options={JOB_BONUSES} selected={form.desiredBonuses} onChange={(v) => update("desiredBonuses", v)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Housing needed?</Label>
+            <button type="button" onClick={() => update("housingPreference", !form.housingPreference)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${form.housingPreference ? "bg-accent-gradient text-accent-foreground" : "bg-secondary text-secondary-foreground"}`}>
+              {form.housingPreference ? "Yes, I need housing" : "No, I have my own"}
+            </button>
+          </div>
+        </section>
+
+        {/* Match Weights */}
+        <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
+          <h2 className="font-semibold text-foreground">Match Priority</h2>
+          <p className="text-xs text-muted-foreground">Customize what matters most for this search preset.</p>
+          <MatchWeightsEditor weights={form.matchWeights} onChange={(w) => update("matchWeights", w)} />
+        </section>
+
+        <div className="flex justify-end pb-8">
+          <Button size="lg" onClick={handleSave} disabled={!canSave} className="bg-accent-gradient text-accent-foreground hover:opacity-90">
+            <Save className="w-4 h-4 mr-1" /> {isNew ? "Create Preset" : "Save Changes"}
+          </Button>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default PresetEdit;

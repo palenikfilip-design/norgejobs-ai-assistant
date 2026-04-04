@@ -23,9 +23,65 @@ export const DEFAULT_MATCH_WEIGHTS: MatchWeights = {
   bonus: 10,
 };
 
+/** User's personal profile — one per account */
+export interface UserProfile {
+  fullName: string;
+  gender?: string;
+  age?: number;
+  country: string;
+  languages: LanguageWithLevel[];
+  workExperience: string;
+  experienceLevel: string;
+  profession: string;
+  skills: string[];
+  certifications: string[];
+  personality?: string;
+}
+
+export const defaultProfile: UserProfile = {
+  fullName: "",
+  country: "",
+  languages: [],
+  workExperience: "",
+  experienceLevel: "any",
+  profession: "",
+  skills: [],
+  certifications: [],
+};
+
+/** A saved search preset — multiple per account */
+export interface SearchPreset {
+  id: string;
+  name: string;
+  preferredJobType: string;
+  preferredCountries: string[];
+  salaryMin: number;
+  salaryMax: number;
+  housingPreference: boolean;
+  desiredBonuses: string[];
+  matchWeights: MatchWeights;
+  active: boolean; // whether currently used for matching
+}
+
+export const defaultPreset: Omit<SearchPreset, "id"> = {
+  name: "",
+  preferredJobType: "Full-time",
+  preferredCountries: [],
+  salaryMin: 0,
+  salaryMax: 0,
+  housingPreference: false,
+  desiredBonuses: [],
+  matchWeights: { ...DEFAULT_MATCH_WEIGHTS },
+  active: true,
+};
+
+/**
+ * For backward compatibility: merge profile + preset into the shape
+ * that job matching utilities expect (AvatarProfile).
+ */
 export interface AvatarProfile {
   id: string;
-  name: string; // avatar name like "Norway Avatar"
+  name: string;
   fullName: string;
   gender?: string;
   age?: number;
@@ -46,27 +102,45 @@ export interface AvatarProfile {
   matchWeights: MatchWeights;
 }
 
-// Calculate profile completion percentage
-export const getProfileCompletion = (avatar: AvatarProfile): { percent: number; missing: string[] } => {
+export function mergeProfilePreset(profile: UserProfile, preset: SearchPreset): AvatarProfile {
+  return {
+    id: preset.id,
+    name: preset.name,
+    fullName: profile.fullName,
+    gender: profile.gender,
+    age: profile.age,
+    country: profile.country,
+    languages: profile.languages,
+    workExperience: profile.workExperience,
+    experienceLevel: profile.experienceLevel,
+    profession: profile.profession,
+    skills: profile.skills,
+    certifications: profile.certifications,
+    personality: profile.personality,
+    preferredJobType: preset.preferredJobType,
+    preferredCountries: preset.preferredCountries,
+    salaryMin: preset.salaryMin,
+    salaryMax: preset.salaryMax,
+    housingPreference: preset.housingPreference,
+    desiredBonuses: preset.desiredBonuses,
+    matchWeights: preset.matchWeights,
+  };
+}
+
+// Profile completion
+export const getProfileCompletion = (profile: UserProfile): { percent: number; missing: string[] } => {
   const fields: { key: string; label: string; check: () => boolean }[] = [
-    { key: "fullName", label: "Full Name", check: () => !!avatar.fullName },
-    { key: "gender", label: "Gender", check: () => !!avatar.gender },
-    { key: "age", label: "Age", check: () => !!avatar.age },
-    { key: "country", label: "Country", check: () => !!avatar.country },
-    { key: "languages", label: "Languages", check: () => avatar.languages.length > 0 },
-    { key: "profession", label: "Profession", check: () => !!avatar.profession },
-    { key: "skills", label: "Skills", check: () => avatar.skills.length > 0 },
-    { key: "experienceLevel", label: "Experience Level", check: () => !!avatar.experienceLevel && avatar.experienceLevel !== "any" },
-    { key: "workExperience", label: "Work Experience", check: () => !!avatar.workExperience },
-    { key: "preferredCountries", label: "Preferred Countries", check: () => avatar.preferredCountries.length > 0 },
-    { key: "salaryRange", label: "Salary Expectation", check: () => avatar.salaryMin > 0 || avatar.salaryMax > 0 },
-    { key: "preferredJobType", label: "Job Type", check: () => !!avatar.preferredJobType },
-    { key: "certifications", label: "Certifications", check: () => avatar.certifications.length > 0 },
-    { key: "personality", label: "Communication Tone", check: () => !!avatar.personality },
-    { key: "matchWeights", label: "Match Priorities", check: () => {
-      const t = avatar.matchWeights.skills + avatar.matchWeights.location + avatar.matchWeights.salary + avatar.matchWeights.jobType + avatar.matchWeights.bonus;
-      return t === 100 && (avatar.matchWeights.skills !== 40 || avatar.matchWeights.location !== 20);
-    }},
+    { key: "fullName", label: "Full Name", check: () => !!profile.fullName },
+    { key: "gender", label: "Gender", check: () => !!profile.gender },
+    { key: "age", label: "Age", check: () => !!profile.age },
+    { key: "country", label: "Country", check: () => !!profile.country },
+    { key: "languages", label: "Languages", check: () => profile.languages.length > 0 },
+    { key: "profession", label: "Profession", check: () => !!profile.profession },
+    { key: "skills", label: "Skills", check: () => profile.skills.length > 0 },
+    { key: "experienceLevel", label: "Experience Level", check: () => !!profile.experienceLevel && profile.experienceLevel !== "any" },
+    { key: "workExperience", label: "Work Experience", check: () => !!profile.workExperience },
+    { key: "certifications", label: "Certifications", check: () => profile.certifications.length > 0 },
+    { key: "personality", label: "Communication Tone", check: () => !!profile.personality },
   ];
   const missing = fields.filter(f => !f.check()).map(f => f.label);
   const filled = fields.length - missing.length;
@@ -76,8 +150,8 @@ export const getProfileCompletion = (avatar: AvatarProfile): { percent: number; 
 interface UserState {
   isAuthenticated: boolean;
   email: string;
-  avatars: AvatarProfile[];
-  activeAvatarId: string | null;
+  profile: UserProfile;
+  presets: SearchPreset[];
   hasCompletedOnboarding: boolean;
   notifications: number;
 }
@@ -85,16 +159,20 @@ interface UserState {
 interface UserContextType {
   user: UserState;
   supabaseUser: User | null;
-  activeAvatar: AvatarProfile | null;
+  // Convenience: profile + active presets merged
+  activeAvatars: AvatarProfile[];
+  activePresets: SearchPreset[];
   login: (email: string) => void;
   loginWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
   signUpWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
   loginWithProvider: (provider: "google" | "apple") => Promise<void>;
   logout: () => Promise<void>;
-  addAvatar: (avatar: AvatarProfile) => void;
-  updateAvatar: (avatar: AvatarProfile) => void;
-  setActiveAvatar: (id: string) => void;
-  deleteAvatar: (id: string) => void;
+  updateProfile: (profile: UserProfile) => void;
+  setOnboarded: () => void;
+  addPreset: (preset: SearchPreset) => void;
+  updatePreset: (preset: SearchPreset) => void;
+  deletePreset: (id: string) => void;
+  togglePreset: (id: string) => void;
   clearNotifications: () => void;
   loading: boolean;
 }
@@ -102,11 +180,57 @@ interface UserContextType {
 const defaultUser: UserState = {
   isAuthenticated: false,
   email: "",
-  avatars: [],
-  activeAvatarId: null,
+  profile: { ...defaultProfile },
+  presets: [],
   hasCompletedOnboarding: false,
   notifications: 3,
 };
+
+// Migrate old localStorage format
+function migrateState(saved: any): UserState {
+  if (saved.profile) return { ...defaultUser, ...saved };
+  // Old format had "avatars" array
+  const profile: UserProfile = { ...defaultProfile };
+  const presets: SearchPreset[] = [];
+  if (Array.isArray(saved.avatars) && saved.avatars.length > 0) {
+    const a = saved.avatars[0];
+    profile.fullName = a.fullName || "";
+    profile.gender = a.gender;
+    profile.age = a.age;
+    profile.country = a.country || "";
+    profile.languages = a.languages || [];
+    profile.workExperience = a.workExperience || "";
+    profile.experienceLevel = a.experienceLevel || "any";
+    profile.profession = a.profession || "";
+    profile.skills = a.skills || [];
+    profile.certifications = a.certifications || [];
+    profile.personality = a.personality;
+    // Convert each old avatar into a preset
+    saved.avatars.forEach((av: any, i: number) => {
+      presets.push({
+        id: av.id || crypto.randomUUID(),
+        name: av.name || `Preset ${i + 1}`,
+        preferredJobType: av.preferredJobType || "Full-time",
+        preferredCountries: av.preferredCountries || [],
+        salaryMin: av.salaryMin || 0,
+        salaryMax: av.salaryMax || 0,
+        housingPreference: av.housingPreference || false,
+        desiredBonuses: av.desiredBonuses || [],
+        matchWeights: av.matchWeights || { ...DEFAULT_MATCH_WEIGHTS },
+        active: true,
+      });
+    });
+  }
+  return {
+    ...defaultUser,
+    isAuthenticated: saved.isAuthenticated ?? false,
+    email: saved.email ?? "",
+    profile,
+    presets,
+    hasCompletedOnboarding: saved.hasCompletedOnboarding ?? presets.length > 0,
+    notifications: saved.notifications ?? 3,
+  };
+}
 
 const UserContext = createContext<UserContextType | null>(null);
 
@@ -121,43 +245,28 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<UserState>(() => {
     const saved = localStorage.getItem("leslieUser");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      return { ...defaultUser, ...parsed, avatars: Array.isArray(parsed.avatars) ? parsed.avatars : [] };
-    }
+    if (saved) return migrateState(JSON.parse(saved));
     return defaultUser;
   });
 
   useEffect(() => {
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSupabaseUser(session?.user ?? null);
       if (session?.user) {
-        setUser((u) => ({
-          ...u,
-          isAuthenticated: true,
-          email: session.user.email ?? "",
-        }));
+        setUser((u) => ({ ...u, isAuthenticated: true, email: session.user.email ?? "" }));
       } else {
         setUser(defaultUser);
         localStorage.removeItem("leslieUser");
       }
       setLoading(false);
     });
-
-    // THEN check current session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSupabaseUser(session?.user ?? null);
       if (session?.user) {
-        setUser((u) => ({
-          ...u,
-          isAuthenticated: true,
-          email: session.user.email ?? "",
-        }));
+        setUser((u) => ({ ...u, isAuthenticated: true, email: session.user.email ?? "" }));
       }
       setLoading(false);
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
@@ -165,8 +274,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem("leslieUser", JSON.stringify(user));
   }, [user]);
 
-  const login = (email: string) =>
-    setUser((u) => ({ ...u, isAuthenticated: true, email }));
+  const login = (email: string) => setUser((u) => ({ ...u, isAuthenticated: true, email }));
 
   const loginWithEmail = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -174,19 +282,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signUpWithEmail = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: window.location.origin },
-    });
+    const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
     return { error: error?.message ?? null };
   };
 
   const loginWithProvider = async (provider: "google" | "apple") => {
-    await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: window.location.origin + "/onboarding" },
-    });
+    await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: window.location.origin + "/onboarding" } });
   };
 
   const logout = async () => {
@@ -195,53 +296,47 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     setUser(defaultUser);
   };
 
-  const addAvatar = (avatar: AvatarProfile) =>
+  const updateProfile = (profile: UserProfile) => setUser((u) => ({ ...u, profile }));
+  const setOnboarded = () => setUser((u) => ({ ...u, hasCompletedOnboarding: true }));
+
+  const addPreset = (preset: SearchPreset) =>
+    setUser((u) => ({ ...u, presets: [...u.presets, preset] }));
+
+  const updatePreset = (preset: SearchPreset) =>
+    setUser((u) => ({ ...u, presets: u.presets.map((p) => (p.id === preset.id ? preset : p)) }));
+
+  const deletePreset = (id: string) =>
+    setUser((u) => ({ ...u, presets: u.presets.filter((p) => p.id !== id) }));
+
+  const togglePreset = (id: string) =>
     setUser((u) => ({
       ...u,
-      avatars: [...u.avatars, avatar],
-      activeAvatarId: avatar.id,
-      hasCompletedOnboarding: true,
+      presets: u.presets.map((p) => (p.id === id ? { ...p, active: !p.active } : p)),
     }));
 
-  const updateAvatar = (avatar: AvatarProfile) =>
-    setUser((u) => ({
-      ...u,
-      avatars: u.avatars.map((a) => (a.id === avatar.id ? avatar : a)),
-    }));
+  const clearNotifications = () => setUser((u) => ({ ...u, notifications: 0 }));
 
-  const setActiveAvatar = (id: string) =>
-    setUser((u) => ({ ...u, activeAvatarId: id }));
-
-  const deleteAvatar = (id: string) =>
-    setUser((u) => {
-      const filtered = u.avatars.filter((a) => a.id !== id);
-      return {
-        ...u,
-        avatars: filtered,
-        activeAvatarId: filtered.length > 0 ? filtered[0].id : null,
-      };
-    });
-
-  const activeAvatar = user.avatars.find((a) => a.id === user.activeAvatarId) ?? null;
-
-  const clearNotifications = () =>
-    setUser((u) => ({ ...u, notifications: 0 }));
+  const activePresets = user.presets.filter((p) => p.active);
+  const activeAvatars = activePresets.map((p) => mergeProfilePreset(user.profile, p));
 
   return (
     <UserContext.Provider
       value={{
         user,
         supabaseUser,
-        activeAvatar,
+        activeAvatars,
+        activePresets,
         login,
         loginWithEmail,
         signUpWithEmail,
         loginWithProvider,
         logout,
-        addAvatar,
-        updateAvatar,
-        setActiveAvatar,
-        deleteAvatar,
+        updateProfile,
+        setOnboarded,
+        addPreset,
+        updatePreset,
+        deletePreset,
+        togglePreset,
         clearNotifications,
         loading,
       }}

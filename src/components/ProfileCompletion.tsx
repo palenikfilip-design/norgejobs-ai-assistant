@@ -5,12 +5,12 @@ import { ChevronDown, ChevronUp, UserCog } from "lucide-react";
 import { useState } from "react";
 
 const ProfileCompletion = ({ onEditProfile }: { onEditProfile?: () => void }) => {
-  const { activeAvatar } = useUser();
+  const { user } = useUser();
   const [expanded, setExpanded] = useState(false);
 
-  if (!activeAvatar) return null;
+  if (!user.profile.fullName) return null;
 
-  const { percent, missing } = getProfileCompletion(activeAvatar);
+  const { percent, missing } = getProfileCompletion(user.profile);
 
   if (percent === 100) return null;
 

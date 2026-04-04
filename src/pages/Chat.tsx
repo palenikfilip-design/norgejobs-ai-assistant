@@ -57,9 +57,9 @@ function generateResponse(text: string, userName: string, skills: string[], coun
 }
 
 const Chat = () => {
-  const { user, activeAvatar } = useUser();
+  const { user } = useUser();
   const navigate = useNavigate();
-  const avatar = activeAvatar;
+  const avatar = user.profile;
   const firstName = avatar?.fullName.split(" ")[0] || "there";
 
   const [messages, setMessages] = useState<Message[]>([
@@ -85,7 +85,7 @@ const Chat = () => {
     setInput("");
 
     setTimeout(() => {
-      const response = generateResponse(text, firstName, avatar?.skills || [], avatar?.preferredCountries || []);
+      const response = generateResponse(text, firstName, avatar?.skills || [], []);
       setMessages((m) => [...m, { id: (Date.now() + 1).toString(), role: "assistant", content: response }]);
     }, 600);
   };
