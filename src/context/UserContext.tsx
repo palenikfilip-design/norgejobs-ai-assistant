@@ -27,6 +27,7 @@ export interface AvatarProfile {
   id: string;
   name: string; // avatar name like "Norway Avatar"
   fullName: string;
+  gender?: string;
   age?: number;
   country: string;
   languages: LanguageWithLevel[];
@@ -44,6 +45,33 @@ export interface AvatarProfile {
   desiredBonuses: string[];
   matchWeights: MatchWeights;
 }
+
+// Calculate profile completion percentage
+export const getProfileCompletion = (avatar: AvatarProfile): { percent: number; missing: string[] } => {
+  const fields: { key: string; label: string; check: () => boolean }[] = [
+    { key: "fullName", label: "Full Name", check: () => !!avatar.fullName },
+    { key: "gender", label: "Gender", check: () => !!avatar.gender },
+    { key: "age", label: "Age", check: () => !!avatar.age },
+    { key: "country", label: "Country", check: () => !!avatar.country },
+    { key: "languages", label: "Languages", check: () => avatar.languages.length > 0 },
+    { key: "profession", label: "Profession", check: () => !!avatar.profession },
+    { key: "skills", label: "Skills", check: () => avatar.skills.length > 0 },
+    { key: "experienceLevel", label: "Experience Level", check: () => !!avatar.experienceLevel && avatar.experienceLevel !== "any" },
+    { key: "workExperience", label: "Work Experience", check: () => !!avatar.workExperience },
+    { key: "preferredCountries", label: "Preferred Countries", check: () => avatar.preferredCountries.length > 0 },
+    { key: "salaryRange", label: "Salary Expectation", check: () => avatar.salaryMin > 0 || avatar.salaryMax > 0 },
+    { key: "preferredJobType", label: "Job Type", check: () => !!avatar.preferredJobType },
+    { key: "certifications", label: "Certifications", check: () => avatar.certifications.length > 0 },
+    { key: "personality", label: "Communication Tone", check: () => !!avatar.personality },
+    { key: "matchWeights", label: "Match Priorities", check: () => {
+      const t = avatar.matchWeights.skills + avatar.matchWeights.location + avatar.matchWeights.salary + avatar.matchWeights.jobType + avatar.matchWeights.bonus;
+      return t === 100 && (avatar.matchWeights.skills !== 40 || avatar.matchWeights.location !== 20);
+    }},
+  ];
+  const missing = fields.filter(f => !f.check()).map(f => f.label);
+  const filled = fields.length - missing.length;
+  return { percent: Math.round((filled / fields.length) * 100), missing };
+};
 
 interface UserState {
   isAuthenticated: boolean;
