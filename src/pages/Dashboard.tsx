@@ -206,6 +206,11 @@ const Dashboard = () => {
           </motion.div>
         )}
 
+        {/* Profile Completion */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-8">
+          <ProfileCompletion onEditProfile={() => navigate("/profile/edit")} />
+        </motion.div>
+
         {/* Filters */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <JobFiltersPanel
