@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser, defaultProfile, type UserProfile } from "@/context/UserContext";
@@ -398,7 +398,5 @@ function ToggleQuestion({ label, value, onChange }: { label: string; value: bool
     </button>
   );
 }
-
-import React from "react";
 
 export default Onboarding;
