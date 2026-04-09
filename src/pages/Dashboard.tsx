@@ -10,7 +10,8 @@ import CoverLetterDialog from "@/components/CoverLetterDialog";
 import ProfileCompletion from "@/components/ProfileCompletion";
 import JobFiltersPanel from "@/components/JobFiltersPanel";
 import { Button } from "@/components/ui/button";
-import { Bot, MessageCircle, Bell, LogOut, Sparkles, BriefcaseBusiness, Filter } from "lucide-react";
+import { MessageCircle, Bell, LogOut, Sparkles, BriefcaseBusiness, Filter } from "lucide-react";
+import leslieAvatar from "@/assets/leslie-avatar.png";
 import { type JobFilters, defaultFilters } from "@/types/jobFilters";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -116,9 +117,7 @@ const Dashboard = () => {
       <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border/50">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-accent-gradient flex items-center justify-center">
-              <Bot className="w-4 h-4 text-accent-foreground" />
-            </div>
+            <img src={leslieAvatar} alt="Leslie AI" className="w-8 h-8 rounded-lg object-cover" />
             <span className="font-display font-bold text-foreground text-lg">Leslie AI</span>
           </div>
           <div className="flex items-center gap-2">
@@ -144,9 +143,7 @@ const Dashboard = () => {
         {/* AI Message */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="bg-card rounded-2xl p-6 flex items-start gap-4 border border-border shadow-sm">
-            <div className="w-12 h-12 rounded-xl bg-accent-gradient flex items-center justify-center shrink-0">
-              <Bot className="w-6 h-6 text-accent-foreground" />
-            </div>
+            <img src={leslieAvatar} alt="Leslie AI" className="w-12 h-12 rounded-xl object-cover shrink-0" />
             <div>
               <h1 className="text-2xl font-bold text-foreground">Hi {firstName}! 👋</h1>
               <p className="text-muted-foreground mt-1">
