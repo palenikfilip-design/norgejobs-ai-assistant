@@ -5,7 +5,8 @@ import { useUser } from "@/context/UserContext";
 import { mockJobs } from "@/data/mockJobs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Bot, ArrowLeft, Send, User } from "lucide-react";
+import { ArrowLeft, Send, User } from "lucide-react";
+import leslieAvatar from "@/assets/leslie-avatar.png";
 
 interface Message {
   id: string;
@@ -98,9 +99,7 @@ const Chat = () => {
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div className="w-8 h-8 rounded-lg bg-accent-gradient flex items-center justify-center">
-            <Bot className="w-4 h-4 text-accent-foreground" />
-          </div>
+          <img src={leslieAvatar} alt="Leslie AI" className="w-8 h-8 rounded-lg object-cover" />
           <div>
             <p className="font-display font-semibold text-foreground text-sm">Leslie AI</p>
             <p className="text-xs text-muted-foreground">Your job assistant</p>
@@ -120,9 +119,7 @@ const Chat = () => {
               className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}
             >
               {msg.role === "assistant" && (
-                <div className="w-8 h-8 rounded-lg bg-accent-gradient flex items-center justify-center shrink-0 mt-0.5">
-                  <Bot className="w-4 h-4 text-accent-foreground" />
-                </div>
+                <img src={leslieAvatar} alt="Leslie AI" className="w-8 h-8 rounded-lg object-cover shrink-0 mt-0.5" />
               )}
               <div
                 className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-line ${
