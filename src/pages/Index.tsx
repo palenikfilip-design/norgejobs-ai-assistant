@@ -48,46 +48,70 @@ const Index = () => {
           <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-navy-light/40 rounded-full blur-[120px]" />
         </div>
 
-        <div className="relative max-w-5xl mx-auto px-4 py-24 md:py-32 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-          >
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-foreground/10 border border-primary-foreground/10 text-primary-foreground/80 text-sm mb-8">
-              <Sparkles className="w-4 h-4 text-red-accent" />
-              AI-Powered Job Matching
-            </div>
+        <div className="relative max-w-5xl mx-auto px-4 py-20 md:py-28">
+          <div className="flex flex-col md:flex-row items-center gap-10 md:gap-16">
+            {/* Leslie Avatar */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="flex-shrink-0"
+            >
+              <div className="relative">
+                <div className="absolute -inset-3 bg-accent-gradient rounded-full blur-xl opacity-40 animate-pulse" />
+                <img
+                  src={leslieAvatar}
+                  alt="Leslie AI Assistant"
+                  className="relative w-36 h-36 md:w-48 md:h-48 rounded-full object-cover border-4 border-primary-foreground/20 shadow-2xl"
+                />
+                <div className="absolute -bottom-2 -right-2 bg-accent-gradient rounded-full p-2 shadow-lg">
+                  <Sparkles className="w-5 h-5 text-accent-foreground" />
+                </div>
+              </div>
+            </motion.div>
 
-            <h1 className="font-display text-5xl md:text-7xl font-bold text-primary-foreground leading-tight mb-6">
-              Your AI Job
-              <br />
-              <span className="text-gradient-accent">Avatar</span> Awaits
-            </h1>
+            {/* Text content */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7 }}
+              className="text-center md:text-left"
+            >
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-foreground/10 border border-primary-foreground/10 text-primary-foreground/80 text-sm mb-6">
+                <Sparkles className="w-4 h-4 text-red-accent" />
+                Meet Leslie — Your AI Career Assistant
+              </div>
 
-            <p className="text-lg md:text-xl text-primary-foreground/60 max-w-2xl mx-auto mb-10">
-              Create an AI-powered professional avatar that finds the perfect job opportunities abroad — matched to your skills, preferences, and goals.
-            </p>
+              <h1 className="font-display text-4xl md:text-6xl font-bold text-primary-foreground leading-tight mb-5">
+                Hi, I'm <span className="text-gradient-accent">Leslie</span>
+                <br />
+                <span className="text-3xl md:text-5xl">Your job search starts here</span>
+              </h1>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button
-                size="lg"
-                className="bg-accent-gradient text-accent-foreground hover:opacity-90 text-base px-8"
-                onClick={() => navigate("/signup")}
-              >
-                Get Started Free
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-primary-foreground/50 bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20 text-base px-8"
-                onClick={() => navigate("/login")}
-              >
-                Sign In
-              </Button>
-            </div>
-          </motion.div>
+              <p className="text-lg md:text-xl text-primary-foreground/60 max-w-xl mb-8">
+                I'll learn your skills, preferences and goals — then find the best job opportunities abroad, tailored just for you.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
+                <Button
+                  size="lg"
+                  className="bg-accent-gradient text-accent-foreground hover:opacity-90 text-base px-8"
+                  onClick={() => navigate("/signup")}
+                >
+                  Let's Get Started
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-primary-foreground/50 bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20 text-base px-8"
+                  onClick={() => navigate("/login")}
+                >
+                  Sign In
+                </Button>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </section>
 
@@ -127,21 +151,23 @@ const Index = () => {
       {/* CTA */}
       <section className="py-20 bg-navy-gradient">
         <div className="max-w-3xl mx-auto px-4 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-accent-gradient flex items-center justify-center mx-auto mb-6">
-            <BriefcaseBusiness className="w-8 h-8 text-accent-foreground" />
-          </div>
+          <img
+            src={leslieAvatar}
+            alt="Leslie AI"
+            className="w-20 h-20 rounded-full object-cover mx-auto mb-6 border-2 border-primary-foreground/20"
+          />
           <h2 className="font-display text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
             Ready to find your dream job abroad?
           </h2>
           <p className="text-primary-foreground/60 text-lg mb-8">
-            Join thousands of professionals using AI to discover opportunities in Scandinavia and Europe.
+            Let Leslie guide you — from profile to perfect match in minutes.
           </p>
           <Button
             size="lg"
             className="bg-accent-gradient text-accent-foreground hover:opacity-90 text-base px-10"
             onClick={() => navigate("/signup")}
           >
-            Create Your Avatar
+            Create Your Profile
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
         </div>
