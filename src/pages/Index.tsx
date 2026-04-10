@@ -4,6 +4,7 @@ import { useUser } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
 import { Bot, ArrowRight, Sparkles, Globe, BriefcaseBusiness, MessageCircle } from "lucide-react";
 import { useEffect } from "react";
+import leslieAvatar from "@/assets/leslie-avatar.png";
 
 const features = [
   {
