@@ -114,6 +114,15 @@ const ProfileEdit = () => {
   const update = <K extends keyof UserProfile>(key: K, val: UserProfile[K]) =>
     setForm((f) => ({ ...f, [key]: val }));
 
+  const updateDim = (group: keyof CandidateDimensions, field: string, dim: DimensionValue) =>
+    setForm((f) => ({
+      ...f,
+      dimensions: {
+        ...f.dimensions,
+        [group]: { ...(f.dimensions[group] as any), [field]: dim },
+      },
+    }));
+
   const handleSave = () => {
     updateProfile(form);
     toast({ title: "Profile updated!", description: "Your profile has been saved." });
