@@ -1,3 +1,5 @@
+import { type JobDimensions, defaultJobDimensions } from "@/types/candidateDimensions";
+
 export interface Job {
   id: string;
   title: string;
@@ -10,15 +12,14 @@ export interface Job {
   skills: string[];
   matchScore?: number;
   matchReason?: string;
-  // Smart Match fields
   requiredSkills?: string[];
   requiredLanguages?: { language: string; level: string }[];
   experienceRequired?: string;
   certificationsRequired?: string[];
-  // Market Heat fields
   applicants?: number;
   positions?: number;
   avgDaysToFill?: number;
+  dimensions?: JobDimensions;
 }
 
 export const mockJobs: Job[] = [
