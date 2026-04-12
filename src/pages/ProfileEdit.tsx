@@ -11,6 +11,10 @@ import { ArrowLeft, Check, X, Plus, Trash2, Save } from "lucide-react";
 import { COUNTRIES } from "@/constants/countries";
 import { LANGUAGES, LANGUAGE_LEVELS, EXPERIENCE_LEVELS, PROFESSION_CATEGORIES } from "@/constants/jobRequirements";
 import { useToast } from "@/hooks/use-toast";
+import DimensionSlider from "@/components/DimensionSlider";
+import type { CandidateDimensions, DimensionValue } from "@/types/candidateDimensions";
+import { LANGUAGES, LANGUAGE_LEVELS, EXPERIENCE_LEVELS, PROFESSION_CATEGORIES } from "@/constants/jobRequirements";
+import { useToast } from "@/hooks/use-toast";
 
 const GENDERS = ["Male", "Female", "Non-binary", "Prefer not to say"];
 const PERSONALITY_TONES = ["Professional", "Friendly", "Direct"];
@@ -192,6 +196,73 @@ const ProfileEdit = () => {
           <div className="space-y-2">
             <Label>Certifications</Label>
             <SkillInput skills={form.certifications} onChange={(v) => update("certifications", v)} />
+          </div>
+        </section>
+
+        {/* Work Style Dimensions */}
+        <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
+          <h2 className="font-semibold text-foreground">🧠 Work Style</h2>
+          <p className="text-xs text-muted-foreground">How do you work best? Set your confidence level for each.</p>
+          <DimensionSlider label="Independence" description="How much do you prefer working alone?" lowLabel="Team" highLabel="Solo" dimension={form.dimensions.workStyle.independence_level} onChange={(d) => updateDim("workStyle", "independence_level", d)} />
+          <DimensionSlider label="Stress Tolerance" description="How well do you handle pressure?" lowLabel="Low" highLabel="High" dimension={form.dimensions.workStyle.stress_tolerance} onChange={(d) => updateDim("workStyle", "stress_tolerance", d)} />
+          <DimensionSlider label="Routine vs Dynamic" description="Do you prefer predictable or changing tasks?" lowLabel="Routine" highLabel="Dynamic" dimension={form.dimensions.workStyle.routine_vs_dynamic} onChange={(d) => updateDim("workStyle", "routine_vs_dynamic", d)} />
+          <DimensionSlider label="Social Need" description="How important is socializing at work?" lowLabel="Low" highLabel="High" dimension={form.dimensions.workStyle.social_need} onChange={(d) => updateDim("workStyle", "social_need", d)} />
+          <DimensionSlider label="Authority Acceptance" description="How comfortable are you with strict hierarchy?" lowLabel="Flat" highLabel="Hierarchical" dimension={form.dimensions.workStyle.authority_acceptance} onChange={(d) => updateDim("workStyle", "authority_acceptance", d)} />
+        </section>
+
+        {/* Work Preferences */}
+        <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
+          <h2 className="font-semibold text-foreground">⚙️ Work Preferences</h2>
+          <DimensionSlider label="Physical vs Mental" description="What type of work suits you?" lowLabel="Mental" highLabel="Physical" dimension={form.dimensions.workPreferences.physical_vs_mental} onChange={(d) => updateDim("workPreferences", "physical_vs_mental", d)} />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Preferred Shift</Label>
+              <select value={form.dimensions.workPreferences.shift_type} onChange={(e) => setForm(f => ({ ...f, dimensions: { ...f.dimensions, workPreferences: { ...f.dimensions.workPreferences, shift_type: e.target.value as any } } }))} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <option value="day">Day shift</option>
+                <option value="night">Night shift</option>
+                <option value="flexible">Flexible</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Hours per Week</Label>
+              <Input type="number" value={form.dimensions.workPreferences.hours_per_week} onChange={(e) => setForm(f => ({ ...f, dimensions: { ...f.dimensions, workPreferences: { ...f.dimensions.workPreferences, hours_per_week: Number(e.target.value) || 40 } } }))} />
+            </div>
+          </div>
+        </section>
+
+        {/* Lifestyle */}
+        <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
+          <h2 className="font-semibold text-foreground">🌍 Lifestyle</h2>
+          <div className="space-y-2">
+            <Label>Climate Preference</Label>
+            <div className="flex gap-2">
+              {(["cold", "moderate", "warm"] as const).map((c) => (
+                <button key={c} type="button" onClick={() => setForm(f => ({ ...f, dimensions: { ...f.dimensions, lifestyle: { ...f.dimensions.lifestyle, climate_tolerance: c } } }))} className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all capitalize ${form.dimensions.lifestyle.climate_tolerance === c ? "bg-accent-gradient text-accent-foreground shadow-sm" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>{c}</button>
+              ))}
+            </div>
+          </div>
+          <DimensionSlider label="Isolation Tolerance" description="How well do you handle being alone?" lowLabel="Need people" highLabel="Love solitude" dimension={form.dimensions.lifestyle.isolation_tolerance} onChange={(d) => updateDim("lifestyle", "isolation_tolerance", d)} />
+          <DimensionSlider label="Nature vs City" description="Where do you prefer to live?" lowLabel="City" highLabel="Nature" dimension={form.dimensions.lifestyle.nature_vs_city} onChange={(d) => updateDim("lifestyle", "nature_vs_city", d)} />
+          <DimensionSlider label="Nightlife Need" description="How important is social/nightlife?" lowLabel="Not important" highLabel="Very important" dimension={form.dimensions.lifestyle.nightlife_need} onChange={(d) => updateDim("lifestyle", "nightlife_need", d)} />
+        </section>
+
+        {/* Financial */}
+        <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
+          <h2 className="font-semibold text-foreground">💰 Financial Preferences</h2>
+          <DimensionSlider label="Risk Tolerance" description="Are you okay with variable income?" lowLabel="Stable" highLabel="Variable OK" dimension={form.dimensions.financial.risk_tolerance} onChange={(d) => updateDim("financial", "risk_tolerance", d)} />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Monthly Savings Goal (€)</Label>
+              <Input type="number" value={form.dimensions.financial.savings_goal} onChange={(e) => setForm(f => ({ ...f, dimensions: { ...f.dimensions, financial: { ...f.dimensions.financial, savings_goal: Number(e.target.value) || 0 } } }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Spending Pattern</Label>
+              <select value={form.dimensions.financial.spending_pattern} onChange={(e) => setForm(f => ({ ...f, dimensions: { ...f.dimensions, financial: { ...f.dimensions.financial, spending_pattern: e.target.value as any } } }))} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <option value="low">Low spender</option>
+                <option value="medium">Medium</option>
+                <option value="high">High spender</option>
+              </select>
+            </div>
           </div>
         </section>
 
