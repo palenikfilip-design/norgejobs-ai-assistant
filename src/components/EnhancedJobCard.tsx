@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Banknote, Briefcase, Sparkles, ExternalLink, FileText, Heart, ChevronDown, ChevronUp, TrendingUp, TrendingDown } from "lucide-react";
+import { MapPin, Banknote, Briefcase, Sparkles, ExternalLink, FileText, Heart, ChevronDown, ChevronUp, TrendingUp, TrendingDown, AlertTriangle, ShieldCheck } from "lucide-react";
+import { getProfileCompletion } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { EnhancedJob } from "@/utils/jobMatching";
@@ -28,8 +29,11 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
   const [saved, setSaved] = useState(false);
   const [langTestOpen, setLangTestOpen] = useState(false);
   const [langTestLang, setLangTestLang] = useState("English");
-  const { activeAvatars } = useUser();
+  const { activeAvatars, user } = useUser();
   const activeAvatar = activeAvatars[0] ?? null;
+
+  // Confidence score based on profile completion
+  const confidence = useMemo(() => getProfileCompletion(user.profile).percent, [user.profile]);
 
   const scoreColor = job.matchScore >= 80
     ? "text-emerald-500 bg-emerald-500/10 border-emerald-500/30"
@@ -92,8 +96,20 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
             <div className={`flex flex-col items-center px-3 py-2 rounded-lg border ${scoreColor}`}>
               <span className="text-2xl font-bold leading-none">{job.matchScore}%</span>
               <span className="text-[10px] font-medium mt-0.5">{scoreLabel}</span>
+              <span className="text-[9px] text-muted-foreground mt-0.5 flex items-center gap-0.5">
+                <ShieldCheck className="w-2.5 h-2.5" />
+                Conf: {confidence}%
+              </span>
             </div>
           </div>
+
+          {/* Hard filter warning */}
+          {job.hardFiltered && (
+            <div className="flex items-center gap-1.5 mb-2 px-2.5 py-1.5 rounded-lg bg-destructive/10 border border-destructive/20">
+              <AlertTriangle className="w-3.5 h-3.5 text-destructive shrink-0" />
+              <span className="text-xs font-medium text-destructive">Not fully eligible — {job.hardFilterReason}</span>
+            </div>
+          )}
 
           {/* Meta */}
           <div className="flex flex-wrap gap-2 text-sm text-muted-foreground mb-3">
