@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
+import { type CandidateDimensions, defaultCandidateDimensions } from "@/types/candidateDimensions";
 
 export interface LanguageWithLevel {
   language: string;
@@ -36,6 +37,7 @@ export interface UserProfile {
   skills: string[];
   certifications: string[];
   personality?: string;
+  dimensions: CandidateDimensions;
 }
 
 export const defaultProfile: UserProfile = {
@@ -47,6 +49,7 @@ export const defaultProfile: UserProfile = {
   profession: "",
   skills: [],
   certifications: [],
+  dimensions: { ...defaultCandidateDimensions },
 };
 
 /** A saved search preset — multiple per account */
