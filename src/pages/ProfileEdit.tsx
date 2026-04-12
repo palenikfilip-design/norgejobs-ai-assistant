@@ -13,8 +13,6 @@ import { LANGUAGES, LANGUAGE_LEVELS, EXPERIENCE_LEVELS, PROFESSION_CATEGORIES } 
 import { useToast } from "@/hooks/use-toast";
 import DimensionSlider from "@/components/DimensionSlider";
 import type { CandidateDimensions, DimensionValue } from "@/types/candidateDimensions";
-import { LANGUAGES, LANGUAGE_LEVELS, EXPERIENCE_LEVELS, PROFESSION_CATEGORIES } from "@/constants/jobRequirements";
-import { useToast } from "@/hooks/use-toast";
 
 const GENDERS = ["Male", "Female", "Non-binary", "Prefer not to say"];
 const PERSONALITY_TONES = ["Professional", "Friendly", "Direct"];
