@@ -1,3 +1,5 @@
+import { type JobDimensions, defaultJobDimensions } from "@/types/candidateDimensions";
+
 export interface Job {
   id: string;
   title: string;
@@ -10,15 +12,14 @@ export interface Job {
   skills: string[];
   matchScore?: number;
   matchReason?: string;
-  // Smart Match fields
   requiredSkills?: string[];
   requiredLanguages?: { language: string; level: string }[];
   experienceRequired?: string;
   certificationsRequired?: string[];
-  // Market Heat fields
   applicants?: number;
   positions?: number;
   avgDaysToFill?: number;
+  dimensions?: JobDimensions;
 }
 
 export const mockJobs: Job[] = [
@@ -39,6 +40,7 @@ export const mockJobs: Job[] = [
     applicants: 45,
     positions: 2,
     avgDaysToFill: 30,
+    dimensions: { stress_level: 55, isolation_level: 30, physical_demand: 10, environment_type: "city", shift_type: "day", climate: "cold", social_interaction: 60, routine_level: 40 },
   },
   {
     id: "2",
@@ -57,6 +59,7 @@ export const mockJobs: Job[] = [
     applicants: 8,
     positions: 3,
     avgDaysToFill: 14,
+    dimensions: { stress_level: 40, isolation_level: 50, physical_demand: 80, environment_type: "mixed", shift_type: "day", climate: "cold", social_interaction: 40, routine_level: 70 },
   },
   {
     id: "3",
@@ -73,6 +76,7 @@ export const mockJobs: Job[] = [
     applicants: 5,
     positions: 10,
     avgDaysToFill: 7,
+    dimensions: { stress_level: 60, isolation_level: 70, physical_demand: 90, environment_type: "nature", shift_type: "flexible", climate: "cold", social_interaction: 30, routine_level: 80 },
   },
   {
     id: "4",
@@ -89,6 +93,7 @@ export const mockJobs: Job[] = [
     applicants: 22,
     positions: 1,
     avgDaysToFill: 21,
+    dimensions: { stress_level: 45, isolation_level: 15, physical_demand: 20, environment_type: "nature", shift_type: "flexible", climate: "cold", social_interaction: 90, routine_level: 50 },
   },
   {
     id: "5",
@@ -106,6 +111,7 @@ export const mockJobs: Job[] = [
     applicants: 120,
     positions: 3,
     avgDaysToFill: 45,
+    dimensions: { stress_level: 65, isolation_level: 35, physical_demand: 10, environment_type: "city", shift_type: "day", climate: "moderate", social_interaction: 55, routine_level: 35 },
   },
   {
     id: "6",
@@ -124,6 +130,7 @@ export const mockJobs: Job[] = [
     applicants: 12,
     positions: 5,
     avgDaysToFill: 10,
+    dimensions: { stress_level: 55, isolation_level: 40, physical_demand: 90, environment_type: "nature", shift_type: "day", climate: "cold", social_interaction: 50, routine_level: 60 },
   },
   {
     id: "7",
@@ -140,6 +147,7 @@ export const mockJobs: Job[] = [
     applicants: 55,
     positions: 1,
     avgDaysToFill: 35,
+    dimensions: { stress_level: 45, isolation_level: 25, physical_demand: 10, environment_type: "city", shift_type: "day", climate: "moderate", social_interaction: 65, routine_level: 30 },
   },
   {
     id: "8",
@@ -155,6 +163,7 @@ export const mockJobs: Job[] = [
     applicants: 3,
     positions: 8,
     avgDaysToFill: 5,
+    dimensions: { stress_level: 30, isolation_level: 60, physical_demand: 85, environment_type: "nature", shift_type: "day", climate: "moderate", social_interaction: 30, routine_level: 75 },
   },
   {
     id: "9",
@@ -170,6 +179,7 @@ export const mockJobs: Job[] = [
     applicants: 80,
     positions: 5,
     avgDaysToFill: 20,
+    dimensions: { stress_level: 50, isolation_level: 60, physical_demand: 5, environment_type: "city", shift_type: "flexible", climate: "moderate", social_interaction: 70, routine_level: 60 },
   },
   {
     id: "10",
@@ -187,6 +197,7 @@ export const mockJobs: Job[] = [
     applicants: 90,
     positions: 2,
     avgDaysToFill: 28,
+    dimensions: { stress_level: 55, isolation_level: 50, physical_demand: 5, environment_type: "city", shift_type: "flexible", climate: "moderate", social_interaction: 45, routine_level: 30 },
   },
   {
     id: "11",
@@ -202,6 +213,7 @@ export const mockJobs: Job[] = [
     applicants: 15,
     positions: 2,
     avgDaysToFill: 12,
+    dimensions: { stress_level: 25, isolation_level: 35, physical_demand: 10, environment_type: "city", shift_type: "day", climate: "moderate", social_interaction: 30, routine_level: 90 },
   },
   {
     id: "12",
@@ -217,6 +229,7 @@ export const mockJobs: Job[] = [
     applicants: 70,
     positions: 1,
     avgDaysToFill: 40,
+    dimensions: { stress_level: 40, isolation_level: 55, physical_demand: 5, environment_type: "city", shift_type: "flexible", climate: "moderate", social_interaction: 35, routine_level: 35 },
   },
   {
     id: "13",
@@ -232,6 +245,7 @@ export const mockJobs: Job[] = [
     applicants: 18,
     positions: 4,
     avgDaysToFill: 8,
+    dimensions: { stress_level: 45, isolation_level: 65, physical_demand: 60, environment_type: "city", shift_type: "day", climate: "moderate", social_interaction: 20, routine_level: 80 },
   },
   {
     id: "14",
@@ -247,6 +261,7 @@ export const mockJobs: Job[] = [
     applicants: 200,
     positions: 10,
     avgDaysToFill: 15,
+    dimensions: { stress_level: 35, isolation_level: 50, physical_demand: 5, environment_type: "city", shift_type: "flexible", climate: "moderate", social_interaction: 80, routine_level: 40 },
   },
 ];
 export function matchJobsToProfile(

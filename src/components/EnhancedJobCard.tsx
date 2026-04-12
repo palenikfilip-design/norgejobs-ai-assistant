@@ -12,7 +12,11 @@ import SmartMatchScore from "@/components/SmartMatchScore";
 import MarketHeatIndex from "@/components/MarketHeatIndex";
 import SkillBooster from "@/components/SkillBooster";
 import LanguageTestDialog from "@/components/LanguageTestDialog";
+import DimensionBreakdown from "@/components/DimensionBreakdown";
+import UnknownEngine from "@/components/UnknownEngine";
 import { calculateSmartMatch } from "@/utils/smartMatch";
+import { calculateDimensionMatch, detectUnknowns } from "@/utils/dimensionMatching";
+import { defaultJobDimensions } from "@/types/candidateDimensions";
 import { generateBoostSuggestions } from "@/utils/skillBooster";
 import { useUser } from "@/context/UserContext";
 
@@ -67,6 +71,15 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
     if (!smartMatch) return [];
     return generateBoostSuggestions(smartMatch.missingRequirements);
   }, [smartMatch]);
+
+  // Dimension matching
+  const dimMatch = useMemo(() => {
+    const jobDims = job.dimensions ?? defaultJobDimensions;
+    return calculateDimensionMatch(user.profile.dimensions, jobDims);
+  }, [job, user.profile.dimensions]);
+
+  // Unknown fields
+  const unknowns = useMemo(() => detectUnknowns(user.profile.dimensions), [user.profile.dimensions]);
 
   const handleSave = () => {
     setSaved(!saved);
@@ -188,13 +201,21 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
             </div>
           )}
 
-          {/* Expanded: Smart Match Breakdown */}
-          {expanded && smartMatch && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mb-3">
+          {/* Expanded: Smart Match + Dimension Breakdown */}
+          {expanded && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mb-3 space-y-3">
+              {smartMatch && (
+                <div className="bg-secondary/20 rounded-lg p-3 border border-border/20">
+                  <h4 className="text-xs font-semibold text-foreground mb-2">Smart Match Breakdown</h4>
+                  <SmartMatchScore result={smartMatch} />
+                </div>
+              )}
               <div className="bg-secondary/20 rounded-lg p-3 border border-border/20">
-                <h4 className="text-xs font-semibold text-foreground mb-2">Smart Match Breakdown</h4>
-                <SmartMatchScore result={smartMatch} />
+                <DimensionBreakdown categories={dimMatch.categories} overallScore={dimMatch.overallScore} overallConfidence={dimMatch.overallConfidence} />
               </div>
+              {unknowns.length > 0 && (
+                <UnknownEngine unknowns={unknowns} onAnswerQuestion={() => {}} />
+              )}
             </motion.div>
           )}
 
