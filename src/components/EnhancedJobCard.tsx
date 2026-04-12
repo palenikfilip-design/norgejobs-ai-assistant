@@ -12,7 +12,11 @@ import SmartMatchScore from "@/components/SmartMatchScore";
 import MarketHeatIndex from "@/components/MarketHeatIndex";
 import SkillBooster from "@/components/SkillBooster";
 import LanguageTestDialog from "@/components/LanguageTestDialog";
+import DimensionBreakdown from "@/components/DimensionBreakdown";
+import UnknownEngine from "@/components/UnknownEngine";
 import { calculateSmartMatch } from "@/utils/smartMatch";
+import { calculateDimensionMatch, detectUnknowns } from "@/utils/dimensionMatching";
+import { defaultJobDimensions } from "@/types/candidateDimensions";
 import { generateBoostSuggestions } from "@/utils/skillBooster";
 import { useUser } from "@/context/UserContext";
 
@@ -67,6 +71,15 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
     if (!smartMatch) return [];
     return generateBoostSuggestions(smartMatch.missingRequirements);
   }, [smartMatch]);
+
+  // Dimension matching
+  const dimMatch = useMemo(() => {
+    const jobDims = job.dimensions ?? defaultJobDimensions;
+    return calculateDimensionMatch(user.profile.dimensions, jobDims);
+  }, [job, user.profile.dimensions]);
+
+  // Unknown fields
+  const unknowns = useMemo(() => detectUnknowns(user.profile.dimensions), [user.profile.dimensions]);
 
   const handleSave = () => {
     setSaved(!saved);
