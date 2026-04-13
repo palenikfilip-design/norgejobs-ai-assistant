@@ -34,6 +34,7 @@ const App = () => (
             <Route path="/profile/edit" element={<ProfileEdit />} />
             <Route path="/preset/new" element={<PresetEdit />} />
             <Route path="/preset/edit/:id" element={<PresetEdit />} />
+            <Route path="/sources" element={<JobSources />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
