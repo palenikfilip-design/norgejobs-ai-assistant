@@ -10,7 +10,7 @@ import CoverLetterDialog from "@/components/CoverLetterDialog";
 import ProfileCompletion from "@/components/ProfileCompletion";
 import JobFiltersPanel from "@/components/JobFiltersPanel";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, Bell, LogOut, Sparkles, BriefcaseBusiness, Filter } from "lucide-react";
+import { MessageCircle, Bell, LogOut, Sparkles, BriefcaseBusiness, Filter, Globe } from "lucide-react";
 import leslieAvatar from "@/assets/leslie-avatar.png";
 import { type JobFilters, defaultFilters } from "@/types/jobFilters";
 import { useToast } from "@/hooks/use-toast";
@@ -189,6 +189,13 @@ const Dashboard = () => {
                 Create your first search preset to get personalized job matches.
               </p>
             )}
+          </div>
+          {/* Job Sources shortcut */}
+          <div className="mt-3 flex justify-end">
+            <Button variant="outline" size="sm" onClick={() => navigate("/sources")}>
+              <Globe className="w-4 h-4 mr-1.5" />
+              Zdroje práce
+            </Button>
           </div>
         </motion.div>
 

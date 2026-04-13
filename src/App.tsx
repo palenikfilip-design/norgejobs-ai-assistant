@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import Chat from "./pages/Chat";
 import ProfileEdit from "./pages/ProfileEdit";
 import PresetEdit from "./pages/PresetEdit";
+import JobSources from "./pages/JobSources";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/profile/edit" element={<ProfileEdit />} />
             <Route path="/preset/new" element={<PresetEdit />} />
             <Route path="/preset/edit/:id" element={<PresetEdit />} />
+            <Route path="/sources" element={<JobSources />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
