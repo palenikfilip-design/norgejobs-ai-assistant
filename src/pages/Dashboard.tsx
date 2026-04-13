@@ -190,6 +190,13 @@ const Dashboard = () => {
               </p>
             )}
           </div>
+          {/* Job Sources shortcut */}
+          <div className="mt-3 flex justify-end">
+            <Button variant="outline" size="sm" onClick={() => navigate("/sources")}>
+              <Globe className="w-4 h-4 mr-1.5" />
+              Zdroje práce
+            </Button>
+          </div>
         </motion.div>
 
         {/* Profile Completion */}
