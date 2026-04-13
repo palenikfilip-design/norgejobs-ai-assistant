@@ -10,7 +10,7 @@ import CoverLetterDialog from "@/components/CoverLetterDialog";
 import ProfileCompletion from "@/components/ProfileCompletion";
 import JobFiltersPanel from "@/components/JobFiltersPanel";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, Bell, LogOut, Sparkles, BriefcaseBusiness, Filter } from "lucide-react";
+import { MessageCircle, Bell, LogOut, Sparkles, BriefcaseBusiness, Filter, Globe } from "lucide-react";
 import leslieAvatar from "@/assets/leslie-avatar.png";
 import { type JobFilters, defaultFilters } from "@/types/jobFilters";
 import { useToast } from "@/hooks/use-toast";
