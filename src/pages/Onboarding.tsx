@@ -53,9 +53,25 @@ const Onboarding = () => {
   const removeSkill = (s: string) => update("skills", form.skills.filter((x) => x !== s));
 
   const canNext = () => {
-    if (step === 1) return form.fullName.length > 0 && form.country.length > 0;
+    if (step === 1) {
+      return (
+        form.fullName.length > 0 &&
+        form.country.length > 0 &&
+        form.languages.some(l => l.level === "Native") &&
+        form.appLanguage.length > 0 &&
+        form.termsAccepted
+      );
+    }
     return true;
   };
+
+  // Auto-set native language when country changes
+  useEffect(() => {
+    const nativeLang = COUNTRY_NATIVE_LANGUAGES[form.country];
+    if (nativeLang && !form.languages.some(l => l.level === "Native")) {
+      update("languages", [...form.languages, { language: nativeLang, level: "Native" }]);
+    }
+  }, [form.country]);
 
   const handleFinish = () => {
     updateProfile(form);
