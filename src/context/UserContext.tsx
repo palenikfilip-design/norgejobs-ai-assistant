@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { type CandidateDimensions, defaultCandidateDimensions } from "@/types/candidateDimensions";
+import { loadProfileFromDB, saveProfileToDB, loadPresetsFromDB, savePresetToDB, deletePresetFromDB } from "@/hooks/useProfileSync";
 
 export interface LanguageWithLevel {
   language: string;
