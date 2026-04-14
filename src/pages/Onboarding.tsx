@@ -61,6 +61,13 @@ const Onboarding = () => {
     setShowSummary(true);
   };
 
+  const handleSkip = () => {
+    // Save whatever has been filled so far
+    updateProfile(form);
+    setOnboarded();
+    navigate("/dashboard");
+  };
+
   const handleGoToDashboard = () => {
     setOnboarded();
     navigate("/dashboard");
