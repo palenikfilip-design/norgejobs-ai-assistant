@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser, defaultProfile, type UserProfile } from "@/context/UserContext";
@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Bot, Check, X, ChevronRight, ChevronLeft, Sparkles, Plus } from "lucide-react";
-import { COUNTRIES } from "@/constants/countries";
+import { COUNTRIES, COUNTRY_NATIVE_LANGUAGES, NATIVE_LANGUAGES, APP_LANGUAGES } from "@/constants/countries";
 
 const GENDERS = ["Male", "Female", "Non-binary", "Prefer not to say"];
 const LANG_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
@@ -52,9 +53,25 @@ const Onboarding = () => {
   const removeSkill = (s: string) => update("skills", form.skills.filter((x) => x !== s));
 
   const canNext = () => {
-    if (step === 1) return form.fullName.length > 0 && form.country.length > 0;
+    if (step === 1) {
+      return (
+        form.fullName.length > 0 &&
+        form.country.length > 0 &&
+        form.languages.some(l => l.level === "Native") &&
+        form.appLanguage.length > 0 &&
+        form.termsAccepted
+      );
+    }
     return true;
   };
+
+  // Auto-set native language when country changes
+  useEffect(() => {
+    const nativeLang = COUNTRY_NATIVE_LANGUAGES[form.country];
+    if (nativeLang && !form.languages.some(l => l.level === "Native")) {
+      update("languages", [...form.languages, { language: nativeLang, level: "Native" }]);
+    }
+  }, [form.country]);
 
   const handleFinish = () => {
     updateProfile(form);
@@ -116,13 +133,15 @@ const Onboarding = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
-      <Button
-        variant="ghost"
-        onClick={handleSkip}
-        className="absolute top-4 right-4 text-muted-foreground hover:text-foreground text-sm"
-      >
-        Přeskočit
-      </Button>
+      {step > 1 && (
+        <Button
+          variant="ghost"
+          onClick={handleSkip}
+          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground text-sm"
+        >
+          Přeskočit
+        </Button>
+      )}
       <Button
         variant="ghost"
         size="icon"
@@ -181,29 +200,46 @@ const Onboarding = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Native Language(s)</Label>
-                  <div className="flex gap-2">
-                    <Input value={newLang} onChange={(e) => setNewLang(e.target.value)} placeholder="e.g. Czech" className="flex-1" onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        if (!newLang.trim()) return;
-                        update("languages", [...form.languages, { language: newLang.trim(), level: "Native" }]);
-                        setNewLang("");
+                  <Label>Native Language *</Label>
+                  <select
+                    value={form.languages.find(l => l.level === "Native")?.language || ""}
+                    onChange={(e) => {
+                      const filtered = form.languages.filter(l => l.level !== "Native");
+                      if (e.target.value) {
+                        update("languages", [...filtered, { language: e.target.value, level: "Native" }]);
+                      } else {
+                        update("languages", filtered);
                       }
-                    }} />
-                    <Button type="button" size="icon" variant="outline" onClick={() => {
-                      if (!newLang.trim()) return;
-                      update("languages", [...form.languages, { language: newLang.trim(), level: "Native" }]);
-                      setNewLang("");
-                    }}><Plus className="w-4 h-4" /></Button>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {form.languages.filter(l => l.level === "Native").map((l, i) => (
-                      <Badge key={i} variant="secondary" className="cursor-pointer" onClick={() => update("languages", form.languages.filter((_, idx) => idx !== form.languages.indexOf(l)))}>
-                        {l.language} (Native) <X className="w-3 h-3 ml-1" />
-                      </Badge>
+                    }}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="">Select native language</option>
+                    {NATIVE_LANGUAGES.map((lang) => (
+                      <option key={lang} value={lang}>{lang}</option>
                     ))}
-                  </div>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>App Language *</Label>
+                  <select
+                    value={form.appLanguage}
+                    onChange={(e) => update("appLanguage", e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {APP_LANGUAGES.map((lang) => (
+                      <option key={lang.value} value={lang.value}>{lang.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-start gap-3 pt-2">
+                  <Checkbox
+                    id="terms"
+                    checked={form.termsAccepted}
+                    onCheckedChange={(checked) => update("termsAccepted", checked === true)}
+                  />
+                  <label htmlFor="terms" className="text-sm text-muted-foreground leading-tight cursor-pointer">
+                    I agree to the <span className="text-accent underline">Terms & Conditions</span> and <span className="text-accent underline">Privacy Policy</span> *
+                  </label>
                 </div>
               </div>
             )}
