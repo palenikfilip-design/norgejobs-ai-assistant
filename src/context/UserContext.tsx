@@ -39,6 +39,8 @@ export interface UserProfile {
   certifications: string[];
   personality?: string;
   dimensions: CandidateDimensions;
+  appLanguage: string;
+  termsAccepted: boolean;
 }
 
 export const defaultProfile: UserProfile = {
@@ -51,6 +53,8 @@ export const defaultProfile: UserProfile = {
   skills: [],
   certifications: [],
   dimensions: { ...defaultCandidateDimensions },
+  appLanguage: "en",
+  termsAccepted: false,
 };
 
 /** A saved search preset — multiple per account */
