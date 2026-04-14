@@ -318,23 +318,39 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     setUser(defaultUser);
   };
 
-  const updateProfile = (profile: UserProfile) => setUser((u) => ({ ...u, profile }));
-  const setOnboarded = () => setUser((u) => ({ ...u, hasCompletedOnboarding: true }));
+  const updateProfile = (profile: UserProfile) => {
+    setUser((u) => ({ ...u, profile }));
+    if (supabaseUser) saveProfileToDB(supabaseUser.id, profile, user.hasCompletedOnboarding);
+  };
 
-  const addPreset = (preset: SearchPreset) =>
+  const setOnboarded = () => {
+    setUser((u) => ({ ...u, hasCompletedOnboarding: true }));
+    if (supabaseUser) saveProfileToDB(supabaseUser.id, user.profile, true);
+  };
+
+  const addPreset = (preset: SearchPreset) => {
     setUser((u) => ({ ...u, presets: [...u.presets, preset] }));
+    if (supabaseUser) savePresetToDB(supabaseUser.id, preset);
+  };
 
-  const updatePreset = (preset: SearchPreset) =>
+  const updatePreset = (preset: SearchPreset) => {
     setUser((u) => ({ ...u, presets: u.presets.map((p) => (p.id === preset.id ? preset : p)) }));
+    if (supabaseUser) savePresetToDB(supabaseUser.id, preset);
+  };
 
-  const deletePreset = (id: string) =>
+  const deletePreset = (id: string) => {
     setUser((u) => ({ ...u, presets: u.presets.filter((p) => p.id !== id) }));
+    deletePresetFromDB(id);
+  };
 
-  const togglePreset = (id: string) =>
-    setUser((u) => ({
-      ...u,
-      presets: u.presets.map((p) => (p.id === id ? { ...p, active: !p.active } : p)),
-    }));
+  const togglePreset = (id: string) => {
+    setUser((u) => {
+      const updated = u.presets.map((p) => (p.id === id ? { ...p, active: !p.active } : p));
+      const toggled = updated.find((p) => p.id === id);
+      if (supabaseUser && toggled) savePresetToDB(supabaseUser.id, toggled);
+      return { ...u, presets: updated };
+    });
+  };
 
   const clearNotifications = () => setUser((u) => ({ ...u, notifications: 0 }));
 
