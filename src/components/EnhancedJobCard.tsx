@@ -49,11 +49,11 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
   const scoreLabel = job.matchScore >= 80 ? "Great Match" : job.matchScore >= 60 ? "Good Match" : "Low Match";
 
   const parsed = parseSalaryRange(job.salary);
-  const userCurrencyConversion = parsed && userCurrency !== parsed.currency
-    ? `${formatCurrency(convertCurrency(parsed.min, parsed.currency, userCurrency), userCurrency)} – ${formatCurrency(convertCurrency(parsed.max, parsed.currency, userCurrency), userCurrency)}/year`
+  const monthlyLocal = parsed
+    ? `${formatCurrency(parsed.min / 12, parsed.currency)} – ${formatCurrency(parsed.max / 12, parsed.currency)}/month`
     : null;
-  const userMonthlySalary = parsed && userCurrency
-    ? `≈ ${formatCurrency(convertCurrency((parsed.min + parsed.max) / 2 / 12, parsed.currency, userCurrency), userCurrency)}/month`
+  const monthlyConverted = parsed && userCurrency !== parsed.currency
+    ? `≈ ${formatCurrency(convertCurrency(parsed.min / 12, parsed.currency, userCurrency), userCurrency)} – ${formatCurrency(convertCurrency(parsed.max / 12, parsed.currency, userCurrency), userCurrency)}/month`
     : null;
 
   const costInsight = useMemo(() => {
