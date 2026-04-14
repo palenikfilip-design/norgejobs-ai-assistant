@@ -1,5 +1,6 @@
 import { TrendingUp, BookOpen, Award, Languages, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import InfoTooltip from "@/components/InfoTooltip";
 import type { BoostSuggestion } from "@/utils/skillBooster";
 
 interface SkillBoosterProps {
@@ -22,6 +23,7 @@ const SkillBooster = ({ suggestions, onTestLanguage }: SkillBoosterProps) => {
       <div className="flex items-center gap-1.5 mb-2">
         <TrendingUp className="w-4 h-4 text-accent" />
         <span className="font-medium text-foreground text-sm">Increase your chances</span>
+        <InfoTooltip content="Skill Booster analyzuje, jaké dovednosti, jazyky nebo certifikace ti chybí pro tuto pozici, a navrhne konkrétní kroky ke zlepšení." />
       </div>
       <div className="space-y-2">
         {suggestions.map((s, i) => {
