@@ -35,3 +35,54 @@ export const COUNTRIES = [
 export const COUNTRY_FLAGS: Record<string, string> = Object.fromEntries(
   COUNTRIES.map(c => [c.value, c.flag])
 );
+
+/** Map country to its primary native language */
+export const COUNTRY_NATIVE_LANGUAGES: Record<string, string> = {
+  "Norway": "Norwegian",
+  "Germany": "German",
+  "Austria": "German",
+  "Switzerland": "German",
+  "Netherlands": "Dutch",
+  "Iceland": "Icelandic",
+  "Poland": "Polish",
+  "Canada": "English",
+  "Australia": "English",
+  "New Zealand": "English",
+  "Italy": "Italian",
+  "France": "French",
+  "Greece": "Greek",
+  "Great Britain": "English",
+  "Ireland": "English",
+  "Sweden": "Swedish",
+  "Denmark": "Danish",
+  "Finland": "Finnish",
+  "Belgium": "French",
+  "Luxembourg": "French",
+  "Czech Republic": "Czech",
+  "Slovakia": "Slovak",
+  "Hungary": "Hungarian",
+  "Spain": "Spanish",
+  "Portugal": "Portuguese",
+  "USA": "English",
+  "United Arab Emirates": "Arabic",
+  "Singapore": "English",
+  "Japan": "Japanese",
+  "Qatar": "Arabic",
+};
+
+/** Available languages for native language dropdown */
+export const NATIVE_LANGUAGES = [
+  "Arabic", "Czech", "Danish", "Dutch", "English", "Finnish", "French",
+  "German", "Greek", "Hungarian", "Icelandic", "Italian", "Japanese",
+  "Norwegian", "Polish", "Portuguese", "Romanian", "Russian", "Serbian",
+  "Slovak", "Spanish", "Swedish", "Turkish", "Ukrainian", "Vietnamese",
+];
+
+/** App display languages */
+export const APP_LANGUAGES = [
+  { value: "en", label: "🇬🇧 English" },
+  { value: "cs", label: "🇨🇿 Čeština" },
+  { value: "de", label: "🇩🇪 Deutsch" },
+  { value: "pl", label: "🇵🇱 Polski" },
+  { value: "sk", label: "🇸🇰 Slovenčina" },
+];
