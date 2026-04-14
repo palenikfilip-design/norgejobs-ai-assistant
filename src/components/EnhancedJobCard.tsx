@@ -49,11 +49,11 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
   const scoreLabel = job.matchScore >= 80 ? "Great Match" : job.matchScore >= 60 ? "Good Match" : "Low Match";
 
   const parsed = parseSalaryRange(job.salary);
-  const userCurrencyConversion = parsed && userCurrency !== parsed.currency
-    ? `${formatCurrency(convertCurrency(parsed.min, parsed.currency, userCurrency), userCurrency)} – ${formatCurrency(convertCurrency(parsed.max, parsed.currency, userCurrency), userCurrency)}/year`
+  const monthlyLocal = parsed
+    ? `${formatCurrency(parsed.min / 12, parsed.currency)} – ${formatCurrency(parsed.max / 12, parsed.currency)}/month`
     : null;
-  const userMonthlySalary = parsed && userCurrency
-    ? `≈ ${formatCurrency(convertCurrency((parsed.min + parsed.max) / 2 / 12, parsed.currency, userCurrency), userCurrency)}/month`
+  const monthlyConverted = parsed && userCurrency !== parsed.currency
+    ? `≈ ${formatCurrency(convertCurrency(parsed.min / 12, parsed.currency, userCurrency), userCurrency)} – ${formatCurrency(convertCurrency(parsed.max / 12, parsed.currency, userCurrency), userCurrency)}/month`
     : null;
 
   const costInsight = useMemo(() => {
@@ -150,14 +150,11 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
           <div className="bg-secondary/50 rounded-lg p-3 mb-3">
             <div className="flex items-center gap-1.5 mb-1">
               <Banknote className="w-4 h-4 text-accent" />
-              <span className="font-medium text-foreground text-sm">{job.salary}</span>
-              <InfoTooltip content="Plat zobrazený v originální měně inzerátu. Přepočet do tvé měny a měsíční odhad jsou uvedeny níže." />
+              <span className="font-medium text-foreground text-sm">{monthlyLocal ?? job.salary}</span>
+              <InfoTooltip content="Měsíční plat v originální měně inzerátu. Pokud se tvá měna liší, přepočet je uveden níže." />
             </div>
-            {userCurrencyConversion && (
-              <p className="text-sm font-medium text-accent ml-5.5">≈ {userCurrencyConversion}</p>
-            )}
-            {userMonthlySalary && (
-              <p className="text-xs text-muted-foreground ml-5.5">{userMonthlySalary}</p>
+            {monthlyConverted && (
+              <p className="text-sm font-medium text-accent ml-5.5">{monthlyConverted}</p>
             )}
           </div>
 
