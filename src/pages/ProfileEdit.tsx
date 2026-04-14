@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUser, UserProfile, defaultProfile } from "@/context/UserContext";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Check, X, Plus, Trash2, Save } from "lucide-react";
+import { ArrowLeft, Check, X, Plus, Trash2, Save, Upload, FileText, Loader2 } from "lucide-react";
 import { COUNTRIES } from "@/constants/countries";
 import { LANGUAGES, LANGUAGE_LEVELS, EXPERIENCE_LEVELS, PROFESSION_CATEGORIES } from "@/constants/jobRequirements";
 import { useToast } from "@/hooks/use-toast";
@@ -83,20 +83,86 @@ const LanguageSelector = ({ languages, onChange }: { languages: LanguageWithLeve
   const addLanguage = () => onChange([...languages, { language: "", level: "B1" }]);
   const updateLang = (i: number, field: keyof LanguageWithLevel, val: string) => { const u = [...languages]; u[i] = { ...u[i], [field]: val }; onChange(u); };
   const removeLang = (i: number) => onChange(languages.filter((_, idx) => idx !== i));
+  const [uploading, setUploading] = useState<number | null>(null);
+  const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const handleUpload = async (i: number, file: File) => {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    setUploading(i);
+    const ext = file.name.split(".").pop();
+    const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("language-certificates").upload(path, file);
+    if (!error) {
+      const u = [...languages];
+      u[i] = { ...u[i], certificateUrl: path, certificateName: file.name };
+      onChange(u);
+    }
+    setUploading(null);
+  };
+
+  const handleRemoveCert = async (i: number) => {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const lang = languages[i];
+    if (lang.certificateUrl) {
+      await supabase.storage.from("language-certificates").remove([lang.certificateUrl]);
+    }
+    const u = [...languages];
+    u[i] = { ...u[i], certificateUrl: undefined, certificateName: undefined };
+    onChange(u);
+  };
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {languages.map((lang, i) => (
-        <div key={i} className="flex gap-2 items-center">
-          <select value={lang.language} onChange={(e) => updateLang(i, "language", e.target.value)}
-            className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring flex-1">
-            <option value="">Select language</option>
-            {LANGUAGES.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
-          </select>
-          <select value={lang.level} onChange={(e) => updateLang(i, "level", e.target.value)}
-            className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring w-48">
-            {LANGUAGE_LEVELS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
-          </select>
-          <Button type="button" variant="ghost" size="icon" onClick={() => removeLang(i)}><Trash2 className="w-4 h-4 text-muted-foreground" /></Button>
+        <div key={i} className="space-y-2 p-3 rounded-lg border border-border/50 bg-secondary/10">
+          <div className="flex gap-2 items-center">
+            <select value={lang.language} onChange={(e) => updateLang(i, "language", e.target.value)}
+              className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring flex-1">
+              <option value="">Select language</option>
+              {LANGUAGES.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+            </select>
+            <select value={lang.level} onChange={(e) => updateLang(i, "level", e.target.value)}
+              className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring w-48">
+              {LANGUAGE_LEVELS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+            </select>
+            <Button type="button" variant="ghost" size="icon" onClick={() => removeLang(i)}><Trash2 className="w-4 h-4 text-muted-foreground" /></Button>
+          </div>
+          {/* Certificate upload */}
+          <div className="flex items-center gap-2 pl-1">
+            {lang.certificateUrl ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary/30 rounded-md px-2 py-1">
+                <FileText className="w-3.5 h-3.5 text-accent" />
+                <span className="truncate max-w-[180px]">{lang.certificateName || "Certificate"}</span>
+                <button type="button" onClick={() => handleRemoveCert(i)} className="text-destructive hover:text-destructive/80">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <>
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.webp"
+                  className="hidden"
+                  ref={(el) => { fileRefs.current[i] = el; }}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(i, f); }}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-muted-foreground h-7"
+                  disabled={uploading === i}
+                  onClick={() => fileRefs.current[i]?.click()}
+                >
+                  {uploading === i ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Upload className="w-3.5 h-3.5 mr-1" />}
+                  {uploading === i ? "Uploading..." : "Add certificate"}
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       ))}
       <Button type="button" variant="outline" size="sm" onClick={addLanguage}><Plus className="w-4 h-4 mr-1" /> Add Language</Button>
