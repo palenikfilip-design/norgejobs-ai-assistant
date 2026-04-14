@@ -8,8 +8,6 @@ const ProfileCompletion = ({ onEditProfile }: { onEditProfile?: () => void }) =>
   const { user } = useUser();
   const [expanded, setExpanded] = useState(false);
 
-  if (!user.profile.fullName) return null;
-
   const { percent, missing } = getProfileCompletion(user.profile);
 
   if (percent === 100) return null;

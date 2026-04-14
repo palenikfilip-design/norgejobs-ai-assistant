@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { type CandidateDimensions, defaultCandidateDimensions } from "@/types/candidateDimensions";
+import { loadProfileFromDB, saveProfileToDB, loadPresetsFromDB, savePresetToDB, deletePresetFromDB } from "@/hooks/useProfileSync";
 
 export interface LanguageWithLevel {
   language: string;
@@ -252,11 +253,29 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     return defaultUser;
   });
 
+  // Load profile from DB when authenticated
+  const loadFromDB = useCallback(async (userId: string, email: string) => {
+    const profileData = await loadProfileFromDB(userId);
+    const presets = await loadPresetsFromDB(userId);
+    if (profileData) {
+      setUser((u) => ({
+        ...u,
+        isAuthenticated: true,
+        email,
+        profile: profileData.profile,
+        hasCompletedOnboarding: profileData.hasCompletedOnboarding,
+        presets,
+      }));
+    } else {
+      setUser((u) => ({ ...u, isAuthenticated: true, email, presets }));
+    }
+  }, []);
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSupabaseUser(session?.user ?? null);
       if (session?.user) {
-        setUser((u) => ({ ...u, isAuthenticated: true, email: session.user.email ?? "" }));
+        loadFromDB(session.user.id, session.user.email ?? "");
       } else {
         setUser(defaultUser);
         localStorage.removeItem("leslieUser");
@@ -266,12 +285,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSupabaseUser(session?.user ?? null);
       if (session?.user) {
-        setUser((u) => ({ ...u, isAuthenticated: true, email: session.user.email ?? "" }));
+        loadFromDB(session.user.id, session.user.email ?? "");
       }
       setLoading(false);
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [loadFromDB]);
 
   useEffect(() => {
     localStorage.setItem("leslieUser", JSON.stringify(user));
@@ -299,23 +318,39 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     setUser(defaultUser);
   };
 
-  const updateProfile = (profile: UserProfile) => setUser((u) => ({ ...u, profile }));
-  const setOnboarded = () => setUser((u) => ({ ...u, hasCompletedOnboarding: true }));
+  const updateProfile = (profile: UserProfile) => {
+    setUser((u) => ({ ...u, profile }));
+    if (supabaseUser) saveProfileToDB(supabaseUser.id, profile, user.hasCompletedOnboarding);
+  };
 
-  const addPreset = (preset: SearchPreset) =>
+  const setOnboarded = () => {
+    setUser((u) => ({ ...u, hasCompletedOnboarding: true }));
+    if (supabaseUser) saveProfileToDB(supabaseUser.id, user.profile, true);
+  };
+
+  const addPreset = (preset: SearchPreset) => {
     setUser((u) => ({ ...u, presets: [...u.presets, preset] }));
+    if (supabaseUser) savePresetToDB(supabaseUser.id, preset);
+  };
 
-  const updatePreset = (preset: SearchPreset) =>
+  const updatePreset = (preset: SearchPreset) => {
     setUser((u) => ({ ...u, presets: u.presets.map((p) => (p.id === preset.id ? preset : p)) }));
+    if (supabaseUser) savePresetToDB(supabaseUser.id, preset);
+  };
 
-  const deletePreset = (id: string) =>
+  const deletePreset = (id: string) => {
     setUser((u) => ({ ...u, presets: u.presets.filter((p) => p.id !== id) }));
+    deletePresetFromDB(id);
+  };
 
-  const togglePreset = (id: string) =>
-    setUser((u) => ({
-      ...u,
-      presets: u.presets.map((p) => (p.id === id ? { ...p, active: !p.active } : p)),
-    }));
+  const togglePreset = (id: string) => {
+    setUser((u) => {
+      const updated = u.presets.map((p) => (p.id === id ? { ...p, active: !p.active } : p));
+      const toggled = updated.find((p) => p.id === id);
+      if (supabaseUser && toggled) savePresetToDB(supabaseUser.id, toggled);
+      return { ...u, presets: updated };
+    });
+  };
 
   const clearNotifications = () => setUser((u) => ({ ...u, notifications: 0 }));
 

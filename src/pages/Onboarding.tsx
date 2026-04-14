@@ -61,6 +61,13 @@ const Onboarding = () => {
     setShowSummary(true);
   };
 
+  const handleSkip = () => {
+    // Save whatever has been filled so far
+    updateProfile(form);
+    setOnboarded();
+    navigate("/dashboard");
+  };
+
   const handleGoToDashboard = () => {
     setOnboarded();
     navigate("/dashboard");
@@ -109,6 +116,13 @@ const Onboarding = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
+      <Button
+        variant="ghost"
+        onClick={handleSkip}
+        className="absolute top-4 right-4 text-muted-foreground hover:text-foreground text-sm"
+      >
+        Přeskočit
+      </Button>
       <Button
         variant="ghost"
         size="icon"

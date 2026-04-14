@@ -14,7 +14,114 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          age: number | null
+          certifications: Json
+          country: string
+          created_at: string
+          dimensions: Json
+          experience_level: string
+          full_name: string
+          gender: string | null
+          has_completed_onboarding: boolean
+          id: string
+          languages: Json
+          personality: string | null
+          profession: string
+          skills: Json
+          updated_at: string
+          user_id: string
+          work_experience: string
+        }
+        Insert: {
+          age?: number | null
+          certifications?: Json
+          country?: string
+          created_at?: string
+          dimensions?: Json
+          experience_level?: string
+          full_name?: string
+          gender?: string | null
+          has_completed_onboarding?: boolean
+          id?: string
+          languages?: Json
+          personality?: string | null
+          profession?: string
+          skills?: Json
+          updated_at?: string
+          user_id: string
+          work_experience?: string
+        }
+        Update: {
+          age?: number | null
+          certifications?: Json
+          country?: string
+          created_at?: string
+          dimensions?: Json
+          experience_level?: string
+          full_name?: string
+          gender?: string | null
+          has_completed_onboarding?: boolean
+          id?: string
+          languages?: Json
+          personality?: string | null
+          profession?: string
+          skills?: Json
+          updated_at?: string
+          user_id?: string
+          work_experience?: string
+        }
+        Relationships: []
+      }
+      user_presets: {
+        Row: {
+          active: boolean
+          created_at: string
+          desired_bonuses: Json
+          housing_preference: boolean
+          id: string
+          match_weights: Json
+          name: string
+          preferred_countries: Json
+          preferred_job_type: string
+          salary_max: number
+          salary_min: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          desired_bonuses?: Json
+          housing_preference?: boolean
+          id?: string
+          match_weights?: Json
+          name?: string
+          preferred_countries?: Json
+          preferred_job_type?: string
+          salary_max?: number
+          salary_min?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          desired_bonuses?: Json
+          housing_preference?: boolean
+          id?: string
+          match_weights?: Json
+          name?: string
+          preferred_countries?: Json
+          preferred_job_type?: string
+          salary_max?: number
+          salary_min?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
