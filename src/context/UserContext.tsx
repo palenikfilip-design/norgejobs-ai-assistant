@@ -253,11 +253,29 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     return defaultUser;
   });
 
+  // Load profile from DB when authenticated
+  const loadFromDB = useCallback(async (userId: string, email: string) => {
+    const profileData = await loadProfileFromDB(userId);
+    const presets = await loadPresetsFromDB(userId);
+    if (profileData) {
+      setUser((u) => ({
+        ...u,
+        isAuthenticated: true,
+        email,
+        profile: profileData.profile,
+        hasCompletedOnboarding: profileData.hasCompletedOnboarding,
+        presets,
+      }));
+    } else {
+      setUser((u) => ({ ...u, isAuthenticated: true, email, presets }));
+    }
+  }, []);
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSupabaseUser(session?.user ?? null);
       if (session?.user) {
-        setUser((u) => ({ ...u, isAuthenticated: true, email: session.user.email ?? "" }));
+        loadFromDB(session.user.id, session.user.email ?? "");
       } else {
         setUser(defaultUser);
         localStorage.removeItem("leslieUser");
@@ -267,12 +285,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSupabaseUser(session?.user ?? null);
       if (session?.user) {
-        setUser((u) => ({ ...u, isAuthenticated: true, email: session.user.email ?? "" }));
+        loadFromDB(session.user.id, session.user.email ?? "");
       }
       setLoading(false);
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [loadFromDB]);
 
   useEffect(() => {
     localStorage.setItem("leslieUser", JSON.stringify(user));
