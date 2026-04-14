@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { type CandidateDimensions, defaultCandidateDimensions } from "@/types/candidateDimensions";
 import { loadProfileFromDB, saveProfileToDB, loadPresetsFromDB, savePresetToDB, deletePresetFromDB } from "@/hooks/useProfileSync";
-import { normalizeCandidateDimensions } from "@/utils/candidateDimensions";
 
 export interface LanguageWithLevel {
   language: string;

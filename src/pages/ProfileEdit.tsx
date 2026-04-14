@@ -278,7 +278,7 @@ const ProfileEdit = () => {
       ...current,
       dimensions: {
         ...current.dimensions,
-        [group]: { ...(current.dimensions[group] as Record<string, unknown>), [field]: dimension },
+        [group]: { ...((current.dimensions[group] ?? {}) as any), [field]: dimension },
       },
     }));
 
