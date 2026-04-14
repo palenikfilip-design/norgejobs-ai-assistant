@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUser, UserProfile, defaultProfile } from "@/context/UserContext";
@@ -13,6 +13,7 @@ import { LANGUAGES, LANGUAGE_LEVELS, EXPERIENCE_LEVELS, PROFESSION_CATEGORIES } 
 import { useToast } from "@/hooks/use-toast";
 import DimensionSlider from "@/components/DimensionSlider";
 import type { CandidateDimensions, DimensionValue } from "@/types/candidateDimensions";
+import { normalizeCandidateDimensions } from "@/utils/candidateDimensions";
 
 const GENDERS = ["Male", "Female", "Non-binary", "Prefer not to say"];
 const PERSONALITY_TONES = ["Professional", "Friendly", "Direct"];
@@ -32,10 +33,17 @@ const SimpleTagSelector = ({
     {options.map((opt) => {
       const active = selected.includes(opt);
       return (
-        <button key={opt} type="button"
-          onClick={() => { if (single) onChange(active ? [] : [opt]); else onChange(active ? selected.filter((s) => s !== opt) : [...selected, opt]); }}
-          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${active ? "bg-accent-gradient text-accent-foreground shadow-sm" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>
-          {opt}{active && <Check className="w-3 h-3 inline ml-1" />}
+        <button
+          key={opt}
+          type="button"
+          onClick={() => {
+            if (single) onChange(active ? [] : [opt]);
+            else onChange(active ? selected.filter((s) => s !== opt) : [...selected, opt]);
+          }}
+          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${active ? "bg-accent-gradient text-accent-foreground shadow-sm" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}
+        >
+          {opt}
+          {active && <Check className="w-3 h-3 inline ml-1" />}
         </button>
       );
     })}
@@ -43,16 +51,31 @@ const SimpleTagSelector = ({
 );
 
 const TagSelector = ({
-  options, selected, onChange, single = false,
-}: { options: { value: string; label: string }[]; selected: string[]; onChange: (val: string[]) => void; single?: boolean }) => (
+  options,
+  selected,
+  onChange,
+  single = false,
+}: {
+  options: { value: string; label: string }[];
+  selected: string[];
+  onChange: (val: string[]) => void;
+  single?: boolean;
+}) => (
   <div className="flex flex-wrap gap-2">
     {options.map((opt) => {
       const active = selected.includes(opt.value);
       return (
-        <button key={opt.value} type="button"
-          onClick={() => { if (single) onChange(active ? [] : [opt.value]); else onChange(active ? selected.filter((s) => s !== opt.value) : [...selected, opt.value]); }}
-          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${active ? "bg-accent-gradient text-accent-foreground shadow-sm" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>
-          {opt.label}{active && <Check className="w-3 h-3 inline ml-1" />}
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => {
+            if (single) onChange(active ? [] : [opt.value]);
+            else onChange(active ? selected.filter((s) => s !== opt.value) : [...selected, opt.value]);
+          }}
+          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${active ? "bg-accent-gradient text-accent-foreground shadow-sm" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}
+        >
+          {opt.label}
+          {active && <Check className="w-3 h-3 inline ml-1" />}
         </button>
       );
     })}
@@ -61,17 +84,35 @@ const TagSelector = ({
 
 const SkillInput = ({ skills, onChange }: { skills: string[]; onChange: (val: string[]) => void }) => {
   const [input, setInput] = useState("");
-  const addSkill = () => { const t = input.trim(); if (t && !skills.includes(t)) { onChange([...skills, t]); setInput(""); } };
+
+  const addSkill = () => {
+    const trimmed = input.trim();
+    if (trimmed && !skills.includes(trimmed)) {
+      onChange([...skills, trimmed]);
+      setInput("");
+    }
+  };
+
   return (
     <div>
       <div className="flex gap-2 mb-2">
-        <Input placeholder="e.g. React, Welding, Driving..." value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addSkill())} />
-        <Button type="button" variant="outline" size="sm" onClick={addSkill}>Add</Button>
+        <Input
+          placeholder="e.g. React, Welding, Driving..."
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addSkill())}
+        />
+        <Button type="button" variant="outline" size="sm" onClick={addSkill}>
+          Add
+        </Button>
       </div>
       <div className="flex flex-wrap gap-1.5">
-        {skills.map((s) => (
-          <span key={s} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-secondary text-secondary-foreground">
-            {s}<button type="button" onClick={() => onChange(skills.filter((sk) => sk !== s))}><X className="w-3 h-3" /></button>
+        {skills.map((skill) => (
+          <span key={skill} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-secondary text-secondary-foreground">
+            {skill}
+            <button type="button" onClick={() => onChange(skills.filter((current) => current !== skill))}>
+              <X className="w-3 h-3" />
+            </button>
           </span>
         ))}
       </div>
@@ -80,63 +121,93 @@ const SkillInput = ({ skills, onChange }: { skills: string[]; onChange: (val: st
 };
 
 const LanguageSelector = ({ languages, onChange }: { languages: LanguageWithLevel[]; onChange: (val: LanguageWithLevel[]) => void }) => {
-  const addLanguage = () => onChange([...languages, { language: "", level: "B1" }]);
-  const updateLang = (i: number, field: keyof LanguageWithLevel, val: string) => { const u = [...languages]; u[i] = { ...u[i], [field]: val }; onChange(u); };
-  const removeLang = (i: number) => onChange(languages.filter((_, idx) => idx !== i));
   const [uploading, setUploading] = useState<number | null>(null);
   const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const handleUpload = async (i: number, file: File) => {
+  const addLanguage = () => onChange([...languages, { language: "", level: "B1" }]);
+
+  const updateLang = (index: number, field: keyof LanguageWithLevel, value: string) => {
+    const updated = [...languages];
+    updated[index] = { ...updated[index], [field]: value };
+    onChange(updated);
+  };
+
+  const removeLang = (index: number) => onChange(languages.filter((_, currentIndex) => currentIndex !== index));
+
+  const handleUpload = async (index: number, file: File) => {
     const { supabase } = await import("@/integrations/supabase/client");
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (!user) return;
 
-    setUploading(i);
-    const ext = file.name.split(".").pop();
-    const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+    setUploading(index);
+    const extension = file.name.split(".").pop();
+    const path = `${user.id}/${crypto.randomUUID()}.${extension}`;
     const { error } = await supabase.storage.from("language-certificates").upload(path, file);
+
     if (!error) {
-      const u = [...languages];
-      u[i] = { ...u[i], certificateUrl: path, certificateName: file.name };
-      onChange(u);
+      const updated = [...languages];
+      updated[index] = { ...updated[index], certificateUrl: path, certificateName: file.name };
+      onChange(updated);
     }
+
     setUploading(null);
   };
 
-  const handleRemoveCert = async (i: number) => {
+  const handleRemoveCert = async (index: number) => {
     const { supabase } = await import("@/integrations/supabase/client");
-    const lang = languages[i];
-    if (lang.certificateUrl) {
-      await supabase.storage.from("language-certificates").remove([lang.certificateUrl]);
+    const language = languages[index];
+
+    if (language.certificateUrl) {
+      await supabase.storage.from("language-certificates").remove([language.certificateUrl]);
     }
-    const u = [...languages];
-    u[i] = { ...u[i], certificateUrl: undefined, certificateName: undefined };
-    onChange(u);
+
+    const updated = [...languages];
+    updated[index] = { ...updated[index], certificateUrl: undefined, certificateName: undefined };
+    onChange(updated);
   };
 
   return (
     <div className="space-y-3">
-      {languages.map((lang, i) => (
-        <div key={i} className="space-y-2 p-3 rounded-lg border border-border/50 bg-secondary/10">
+      {languages.map((lang, index) => (
+        <div key={index} className="space-y-2 p-3 rounded-lg border border-border/50 bg-secondary/10">
           <div className="flex gap-2 items-center">
-            <select value={lang.language} onChange={(e) => updateLang(i, "language", e.target.value)}
-              className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring flex-1">
+            <select
+              value={lang.language}
+              onChange={(e) => updateLang(index, "language", e.target.value)}
+              className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring flex-1"
+            >
               <option value="">Select language</option>
-              {LANGUAGES.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+              {LANGUAGES.map((language) => (
+                <option key={language.value} value={language.value}>
+                  {language.label}
+                </option>
+              ))}
             </select>
-            <select value={lang.level} onChange={(e) => updateLang(i, "level", e.target.value)}
-              className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring w-48">
-              {LANGUAGE_LEVELS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+            <select
+              value={lang.level}
+              onChange={(e) => updateLang(index, "level", e.target.value)}
+              className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring w-48"
+            >
+              {LANGUAGE_LEVELS.map((level) => (
+                <option key={level.value} value={level.value}>
+                  {level.label}
+                </option>
+              ))}
             </select>
-            <Button type="button" variant="ghost" size="icon" onClick={() => removeLang(i)}><Trash2 className="w-4 h-4 text-muted-foreground" /></Button>
+            <Button type="button" variant="ghost" size="icon" onClick={() => removeLang(index)}>
+              <Trash2 className="w-4 h-4 text-muted-foreground" />
+            </Button>
           </div>
-          {/* Certificate upload */}
+
           <div className="flex items-center gap-2 pl-1">
             {lang.certificateUrl ? (
               <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary/30 rounded-md px-2 py-1">
                 <FileText className="w-3.5 h-3.5 text-accent" />
                 <span className="truncate max-w-[180px]">{lang.certificateName || "Certificate"}</span>
-                <button type="button" onClick={() => handleRemoveCert(i)} className="text-destructive hover:text-destructive/80">
+                <button type="button" onClick={() => handleRemoveCert(index)} className="text-destructive hover:text-destructive/80">
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -146,54 +217,84 @@ const LanguageSelector = ({ languages, onChange }: { languages: LanguageWithLeve
                   type="file"
                   accept=".pdf,.jpg,.jpeg,.png,.webp"
                   className="hidden"
-                  ref={(el) => { fileRefs.current[i] = el; }}
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(i, f); }}
+                  ref={(element) => {
+                    fileRefs.current[index] = element;
+                  }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleUpload(index, file);
+                  }}
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   className="text-xs text-muted-foreground h-7"
-                  disabled={uploading === i}
-                  onClick={() => fileRefs.current[i]?.click()}
+                  disabled={uploading === index}
+                  onClick={() => fileRefs.current[index]?.click()}
                 >
-                  {uploading === i ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Upload className="w-3.5 h-3.5 mr-1" />}
-                  {uploading === i ? "Uploading..." : "Add certificate"}
+                  {uploading === index ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Upload className="w-3.5 h-3.5 mr-1" />}
+                  {uploading === index ? "Uploading..." : "Add certificate"}
                 </Button>
               </>
             )}
           </div>
         </div>
       ))}
-      <Button type="button" variant="outline" size="sm" onClick={addLanguage}><Plus className="w-4 h-4 mr-1" /> Add Language</Button>
+      <Button type="button" variant="outline" size="sm" onClick={addLanguage}>
+        <Plus className="w-4 h-4 mr-1" /> Add Language
+      </Button>
     </div>
   );
 };
 
+const normalizeProfile = (profile?: UserProfile): UserProfile => ({
+  ...defaultProfile,
+  ...(profile ?? defaultProfile),
+  dimensions: normalizeCandidateDimensions(profile?.dimensions),
+  languages: profile?.languages ?? [],
+  skills: profile?.skills ?? [],
+  certifications: profile?.certifications ?? [],
+});
+
 const ProfileEdit = () => {
-  const { user, updateProfile } = useUser();
+  const { user, updateProfile, loading } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [form, setForm] = useState<UserProfile>({ ...user.profile });
+  const [form, setForm] = useState<UserProfile>(() => normalizeProfile(user.profile));
 
-  const update = <K extends keyof UserProfile>(key: K, val: UserProfile[K]) =>
-    setForm((f) => ({ ...f, [key]: val }));
+  useEffect(() => {
+    if (!loading) {
+      setForm(normalizeProfile(user.profile));
+    }
+  }, [loading, user.profile]);
 
-  const updateDim = (group: keyof CandidateDimensions, field: string, dim: DimensionValue) =>
-    setForm((f) => ({
-      ...f,
+  const update = <K extends keyof UserProfile>(key: K, value: UserProfile[K]) =>
+    setForm((current) => ({ ...current, [key]: value }));
+
+  const updateDim = (group: keyof CandidateDimensions, field: string, dimension: DimensionValue) =>
+    setForm((current) => ({
+      ...current,
       dimensions: {
-        ...f.dimensions,
-        [group]: { ...(f.dimensions[group] as any), [field]: dim },
+        ...current.dimensions,
+        [group]: { ...(current.dimensions[group] as Record<string, unknown>), [field]: dimension },
       },
     }));
 
   const handleSave = () => {
-    updateProfile(form);
+    updateProfile(normalizeProfile(form));
     toast({ title: "Profile updated!", description: "Your profile has been saved." });
     navigate("/dashboard");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <p className="text-sm text-muted-foreground">Loading profile...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -214,7 +315,6 @@ const ProfileEdit = () => {
           <p className="text-muted-foreground text-sm">Your personal info & skills — shared across all search presets</p>
         </motion.div>
 
-        {/* Basic Info */}
         <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
           <h2 className="font-semibold text-foreground">Basic Information</h2>
           <div className="grid grid-cols-2 gap-4">
@@ -224,16 +324,23 @@ const ProfileEdit = () => {
             </div>
             <div className="space-y-2">
               <Label>Country of Origin</Label>
-              <select value={form.country} onChange={(e) => update("country", e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <select
+                value={form.country}
+                onChange={(e) => update("country", e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
                 <option value="">Select country</option>
-                {COUNTRIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                {COUNTRIES.map((country) => (
+                  <option key={country.value} value={country.value}>
+                    {country.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
           <div className="space-y-2">
             <Label>Gender</Label>
-            <SimpleTagSelector options={GENDERS} selected={form.gender ? [form.gender] : []} onChange={(v) => update("gender", v[v.length - 1] || undefined)} single />
+            <SimpleTagSelector options={GENDERS} selected={form.gender ? [form.gender] : []} onChange={(value) => update("gender", value[value.length - 1] || undefined)} single />
           </div>
           <div className="space-y-2 w-32">
             <Label>Age</Label>
@@ -241,22 +348,20 @@ const ProfileEdit = () => {
           </div>
         </section>
 
-        {/* Languages */}
         <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
           <h2 className="font-semibold text-foreground">Languages</h2>
-          <LanguageSelector languages={form.languages} onChange={(v) => update("languages", v)} />
+          <LanguageSelector languages={form.languages} onChange={(value) => update("languages", value)} />
         </section>
 
-        {/* Experience & Skills */}
         <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
           <h2 className="font-semibold text-foreground">Experience & Skills</h2>
           <div className="space-y-2">
             <Label>Profession Category</Label>
-            <TagSelector options={PROFESSION_CATEGORIES} selected={form.profession ? [form.profession] : []} onChange={(v) => update("profession", v[v.length - 1] || "")} single />
+            <TagSelector options={PROFESSION_CATEGORIES} selected={form.profession ? [form.profession] : []} onChange={(value) => update("profession", value[value.length - 1] || "")} single />
           </div>
           <div className="space-y-2">
             <Label>Experience Level</Label>
-            <TagSelector options={EXPERIENCE_LEVELS} selected={[form.experienceLevel]} onChange={(v) => update("experienceLevel", v[v.length - 1] || "any")} single />
+            <TagSelector options={EXPERIENCE_LEVELS} selected={[form.experienceLevel]} onChange={(value) => update("experienceLevel", value[value.length - 1] || "any")} single />
           </div>
           <div className="space-y-2">
             <Label>Work Experience</Label>
@@ -264,33 +369,43 @@ const ProfileEdit = () => {
           </div>
           <div className="space-y-2">
             <Label>Skills</Label>
-            <SkillInput skills={form.skills} onChange={(v) => update("skills", v)} />
+            <SkillInput skills={form.skills} onChange={(value) => update("skills", value)} />
           </div>
           <div className="space-y-2">
             <Label>Certifications</Label>
-            <SkillInput skills={form.certifications} onChange={(v) => update("certifications", v)} />
+            <SkillInput skills={form.certifications} onChange={(value) => update("certifications", value)} />
           </div>
         </section>
 
-        {/* Work Style Dimensions */}
         <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
           <h2 className="font-semibold text-foreground">🧠 Work Style</h2>
           <p className="text-xs text-muted-foreground">How do you work best? Set your confidence level for each.</p>
-          <DimensionSlider label="Independence" description="How much do you prefer working alone?" lowLabel="Team" highLabel="Solo" dimension={form.dimensions.workStyle.independence_level} onChange={(d) => updateDim("workStyle", "independence_level", d)} />
-          <DimensionSlider label="Stress Tolerance" description="How well do you handle pressure?" lowLabel="Low" highLabel="High" dimension={form.dimensions.workStyle.stress_tolerance} onChange={(d) => updateDim("workStyle", "stress_tolerance", d)} />
-          <DimensionSlider label="Routine vs Dynamic" description="Do you prefer predictable or changing tasks?" lowLabel="Routine" highLabel="Dynamic" dimension={form.dimensions.workStyle.routine_vs_dynamic} onChange={(d) => updateDim("workStyle", "routine_vs_dynamic", d)} />
-          <DimensionSlider label="Social Need" description="How important is socializing at work?" lowLabel="Low" highLabel="High" dimension={form.dimensions.workStyle.social_need} onChange={(d) => updateDim("workStyle", "social_need", d)} />
-          <DimensionSlider label="Authority Acceptance" description="How comfortable are you with strict hierarchy?" lowLabel="Flat" highLabel="Hierarchical" dimension={form.dimensions.workStyle.authority_acceptance} onChange={(d) => updateDim("workStyle", "authority_acceptance", d)} />
+          <DimensionSlider label="Independence" description="How much do you prefer working alone?" lowLabel="Team" highLabel="Solo" dimension={form.dimensions.workStyle.independence_level} onChange={(value) => updateDim("workStyle", "independence_level", value)} />
+          <DimensionSlider label="Stress Tolerance" description="How well do you handle pressure?" lowLabel="Low" highLabel="High" dimension={form.dimensions.workStyle.stress_tolerance} onChange={(value) => updateDim("workStyle", "stress_tolerance", value)} />
+          <DimensionSlider label="Routine vs Dynamic" description="Do you prefer predictable or changing tasks?" lowLabel="Routine" highLabel="Dynamic" dimension={form.dimensions.workStyle.routine_vs_dynamic} onChange={(value) => updateDim("workStyle", "routine_vs_dynamic", value)} />
+          <DimensionSlider label="Social Need" description="How important is socializing at work?" lowLabel="Low" highLabel="High" dimension={form.dimensions.workStyle.social_need} onChange={(value) => updateDim("workStyle", "social_need", value)} />
+          <DimensionSlider label="Authority Acceptance" description="How comfortable are you with strict hierarchy?" lowLabel="Flat" highLabel="Hierarchical" dimension={form.dimensions.workStyle.authority_acceptance} onChange={(value) => updateDim("workStyle", "authority_acceptance", value)} />
         </section>
 
-        {/* Work Preferences */}
         <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
           <h2 className="font-semibold text-foreground">⚙️ Work Preferences</h2>
-          <DimensionSlider label="Physical vs Mental" description="What type of work suits you?" lowLabel="Mental" highLabel="Physical" dimension={form.dimensions.workPreferences.physical_vs_mental} onChange={(d) => updateDim("workPreferences", "physical_vs_mental", d)} />
+          <DimensionSlider label="Physical vs Mental" description="What type of work suits you?" lowLabel="Mental" highLabel="Physical" dimension={form.dimensions.workPreferences.physical_vs_mental} onChange={(value) => updateDim("workPreferences", "physical_vs_mental", value)} />
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Preferred Shift</Label>
-              <select value={form.dimensions.workPreferences.shift_type} onChange={(e) => setForm(f => ({ ...f, dimensions: { ...f.dimensions, workPreferences: { ...f.dimensions.workPreferences, shift_type: e.target.value as any } } }))} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+              <select
+                value={form.dimensions.workPreferences.shift_type}
+                onChange={(e) =>
+                  setForm((current) => ({
+                    ...current,
+                    dimensions: {
+                      ...current.dimensions,
+                      workPreferences: { ...current.dimensions.workPreferences, shift_type: e.target.value as any },
+                    },
+                  }))
+                }
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
                 <option value="day">Day shift</option>
                 <option value="night">Night shift</option>
                 <option value="flexible">Flexible</option>
@@ -298,39 +413,94 @@ const ProfileEdit = () => {
             </div>
             <div className="space-y-2">
               <Label>Hours per Week</Label>
-              <Input type="number" value={form.dimensions.workPreferences.hours_per_week} onChange={(e) => setForm(f => ({ ...f, dimensions: { ...f.dimensions, workPreferences: { ...f.dimensions.workPreferences, hours_per_week: Number(e.target.value) || 40 } } }))} />
+              <Input
+                type="number"
+                value={form.dimensions.workPreferences.hours_per_week}
+                onChange={(e) =>
+                  setForm((current) => ({
+                    ...current,
+                    dimensions: {
+                      ...current.dimensions,
+                      workPreferences: {
+                        ...current.dimensions.workPreferences,
+                        hours_per_week: Number(e.target.value) || 40,
+                      },
+                    },
+                  }))
+                }
+              />
             </div>
           </div>
         </section>
 
-        {/* Lifestyle */}
         <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
           <h2 className="font-semibold text-foreground">🌍 Lifestyle</h2>
           <div className="space-y-2">
             <Label>Climate Preference</Label>
             <div className="flex gap-2">
-              {(["cold", "moderate", "warm"] as const).map((c) => (
-                <button key={c} type="button" onClick={() => setForm(f => ({ ...f, dimensions: { ...f.dimensions, lifestyle: { ...f.dimensions.lifestyle, climate_tolerance: c } } }))} className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all capitalize ${form.dimensions.lifestyle.climate_tolerance === c ? "bg-accent-gradient text-accent-foreground shadow-sm" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>{c}</button>
+              {(["cold", "moderate", "warm"] as const).map((climate) => (
+                <button
+                  key={climate}
+                  type="button"
+                  onClick={() =>
+                    setForm((current) => ({
+                      ...current,
+                      dimensions: {
+                        ...current.dimensions,
+                        lifestyle: { ...current.dimensions.lifestyle, climate_tolerance: climate },
+                      },
+                    }))
+                  }
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all capitalize ${form.dimensions.lifestyle.climate_tolerance === climate ? "bg-accent-gradient text-accent-foreground shadow-sm" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}
+                >
+                  {climate}
+                </button>
               ))}
             </div>
           </div>
-          <DimensionSlider label="Isolation Tolerance" description="How well do you handle being alone?" lowLabel="Need people" highLabel="Love solitude" dimension={form.dimensions.lifestyle.isolation_tolerance} onChange={(d) => updateDim("lifestyle", "isolation_tolerance", d)} />
-          <DimensionSlider label="Nature vs City" description="Where do you prefer to live?" lowLabel="City" highLabel="Nature" dimension={form.dimensions.lifestyle.nature_vs_city} onChange={(d) => updateDim("lifestyle", "nature_vs_city", d)} />
-          <DimensionSlider label="Nightlife Need" description="How important is social/nightlife?" lowLabel="Not important" highLabel="Very important" dimension={form.dimensions.lifestyle.nightlife_need} onChange={(d) => updateDim("lifestyle", "nightlife_need", d)} />
+          <DimensionSlider label="Isolation Tolerance" description="How well do you handle being alone?" lowLabel="Need people" highLabel="Love solitude" dimension={form.dimensions.lifestyle.isolation_tolerance} onChange={(value) => updateDim("lifestyle", "isolation_tolerance", value)} />
+          <DimensionSlider label="Nature vs City" description="Where do you prefer to live?" lowLabel="City" highLabel="Nature" dimension={form.dimensions.lifestyle.nature_vs_city} onChange={(value) => updateDim("lifestyle", "nature_vs_city", value)} />
+          <DimensionSlider label="Nightlife Need" description="How important is social/nightlife?" lowLabel="Not important" highLabel="Very important" dimension={form.dimensions.lifestyle.nightlife_need} onChange={(value) => updateDim("lifestyle", "nightlife_need", value)} />
         </section>
 
-        {/* Financial */}
         <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
           <h2 className="font-semibold text-foreground">💰 Financial Preferences</h2>
-          <DimensionSlider label="Risk Tolerance" description="Are you okay with variable income?" lowLabel="Stable" highLabel="Variable OK" dimension={form.dimensions.financial.risk_tolerance} onChange={(d) => updateDim("financial", "risk_tolerance", d)} />
+          <DimensionSlider label="Risk Tolerance" description="Are you okay with variable income?" lowLabel="Stable" highLabel="Variable OK" dimension={form.dimensions.financial.risk_tolerance} onChange={(value) => updateDim("financial", "risk_tolerance", value)} />
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Monthly Savings Goal (€)</Label>
-              <Input type="number" value={form.dimensions.financial.savings_goal} onChange={(e) => setForm(f => ({ ...f, dimensions: { ...f.dimensions, financial: { ...f.dimensions.financial, savings_goal: Number(e.target.value) || 0 } } }))} />
+              <Input
+                type="number"
+                value={form.dimensions.financial.savings_goal}
+                onChange={(e) =>
+                  setForm((current) => ({
+                    ...current,
+                    dimensions: {
+                      ...current.dimensions,
+                      financial: {
+                        ...current.dimensions.financial,
+                        savings_goal: Number(e.target.value) || 0,
+                      },
+                    },
+                  }))
+                }
+              />
             </div>
             <div className="space-y-2">
               <Label>Spending Pattern</Label>
-              <select value={form.dimensions.financial.spending_pattern} onChange={(e) => setForm(f => ({ ...f, dimensions: { ...f.dimensions, financial: { ...f.dimensions.financial, spending_pattern: e.target.value as any } } }))} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+              <select
+                value={form.dimensions.financial.spending_pattern}
+                onChange={(e) =>
+                  setForm((current) => ({
+                    ...current,
+                    dimensions: {
+                      ...current.dimensions,
+                      financial: { ...current.dimensions.financial, spending_pattern: e.target.value as any },
+                    },
+                  }))
+                }
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
                 <option value="low">Low spender</option>
                 <option value="medium">Medium</option>
                 <option value="high">High spender</option>
@@ -339,10 +509,9 @@ const ProfileEdit = () => {
           </div>
         </section>
 
-        {/* Tone */}
         <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
           <h2 className="font-semibold text-foreground">Communication Tone</h2>
-          <SimpleTagSelector options={PERSONALITY_TONES} selected={form.personality ? [form.personality] : []} onChange={(v) => update("personality", v[v.length - 1] || undefined)} single />
+          <SimpleTagSelector options={PERSONALITY_TONES} selected={form.personality ? [form.personality] : []} onChange={(value) => update("personality", value[value.length - 1] || undefined)} single />
         </section>
 
         <div className="flex justify-end pb-8">
