@@ -183,6 +183,7 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
             <div className="flex items-center gap-1.5 mb-2">
               <Sparkles className="w-4 h-4 text-accent" />
               <span className="font-medium text-foreground text-sm">Why this job fits you</span>
+              <InfoTooltip content="AI analýza shrnuje klíčové důvody, proč ti tato pozice sedí (zelené) a kde mohou být slabší stránky (oranžové)." />
             </div>
             <ul className="space-y-1">
               {job.matchReasons.slice(0, 3).map((r, i) => (
