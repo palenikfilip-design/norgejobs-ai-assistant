@@ -181,18 +181,26 @@ const Onboarding = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Languages</Label>
+                  <Label>Native Language(s)</Label>
                   <div className="flex gap-2">
-                    <Input value={newLang} onChange={(e) => setNewLang(e.target.value)} placeholder="e.g. English" className="flex-1" onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addLanguage())} />
-                    <select value={newLangLevel} onChange={(e) => setNewLangLevel(e.target.value)} className="w-20 rounded-md border border-input bg-background px-2 text-sm">
-                      {LANG_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
-                    </select>
-                    <Button type="button" size="icon" variant="outline" onClick={addLanguage}><Plus className="w-4 h-4" /></Button>
+                    <Input value={newLang} onChange={(e) => setNewLang(e.target.value)} placeholder="e.g. Czech" className="flex-1" onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (!newLang.trim()) return;
+                        update("languages", [...form.languages, { language: newLang.trim(), level: "Native" }]);
+                        setNewLang("");
+                      }
+                    }} />
+                    <Button type="button" size="icon" variant="outline" onClick={() => {
+                      if (!newLang.trim()) return;
+                      update("languages", [...form.languages, { language: newLang.trim(), level: "Native" }]);
+                      setNewLang("");
+                    }}><Plus className="w-4 h-4" /></Button>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {form.languages.map((l, i) => (
-                      <Badge key={i} variant="secondary" className="cursor-pointer" onClick={() => removeLanguage(i)}>
-                        {l.language} ({l.level}) <X className="w-3 h-3 ml-1" />
+                    {form.languages.filter(l => l.level === "Native").map((l, i) => (
+                      <Badge key={i} variant="secondary" className="cursor-pointer" onClick={() => update("languages", form.languages.filter((_, idx) => idx !== form.languages.indexOf(l)))}>
+                        {l.language} (Native) <X className="w-3 h-3 ml-1" />
                       </Badge>
                     ))}
                   </div>
