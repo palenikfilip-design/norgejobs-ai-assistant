@@ -151,6 +151,7 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
             <div className="flex items-center gap-1.5 mb-1">
               <Banknote className="w-4 h-4 text-accent" />
               <span className="font-medium text-foreground text-sm">{job.salary}</span>
+              <InfoTooltip content="Plat zobrazený v originální měně inzerátu. Přepočet do tvé měny a měsíční odhad jsou uvedeny níže." />
             </div>
             {userCurrencyConversion && (
               <p className="text-sm font-medium text-accent ml-5.5">≈ {userCurrencyConversion}</p>
