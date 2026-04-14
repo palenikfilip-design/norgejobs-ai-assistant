@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Check, X, Plus, Trash2, Save } from "lucide-react";
+import { ArrowLeft, Check, X, Plus, Trash2, Save, Upload, FileText, Loader2 } from "lucide-react";
 import { COUNTRIES } from "@/constants/countries";
 import { LANGUAGES, LANGUAGE_LEVELS, EXPERIENCE_LEVELS, PROFESSION_CATEGORIES } from "@/constants/jobRequirements";
 import { useToast } from "@/hooks/use-toast";

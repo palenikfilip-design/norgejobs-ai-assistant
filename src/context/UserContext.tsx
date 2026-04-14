@@ -7,6 +7,8 @@ import { loadProfileFromDB, saveProfileToDB, loadPresetsFromDB, savePresetToDB, 
 export interface LanguageWithLevel {
   language: string;
   level: string;
+  certificateUrl?: string;
+  certificateName?: string;
 }
 
 export interface MatchWeights {
