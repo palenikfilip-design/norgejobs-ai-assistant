@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import type { UserProfile, SearchPreset } from "@/context/UserContext";
 import { defaultProfile, DEFAULT_MATCH_WEIGHTS } from "@/context/UserContext";
-import { defaultCandidateDimensions } from "@/types/candidateDimensions";
+import { normalizeCandidateDimensions } from "@/utils/candidateDimensions";
 
 /** Load profile from database */
 export async function loadProfileFromDB(userId: string): Promise<{
@@ -31,10 +31,7 @@ export async function loadProfileFromDB(userId: string): Promise<{
       workExperience: data.work_experience || "",
       certifications: (data.certifications as string[]) || [],
       personality: data.personality || undefined,
-      dimensions: {
-        ...defaultCandidateDimensions,
-        ...((data.dimensions as any) || {}),
-      },
+      dimensions: normalizeCandidateDimensions(data.dimensions as any),
       appLanguage: (data.dimensions as any)?.appLanguage || "en",
       termsAccepted: (data.dimensions as any)?.termsAccepted || false,
     },
@@ -59,7 +56,7 @@ export async function saveProfileToDB(userId: string, profile: UserProfile, hasC
       work_experience: profile.workExperience,
       certifications: profile.certifications as any,
       personality: profile.personality || null,
-      dimensions: profile.dimensions as any,
+      dimensions: normalizeCandidateDimensions(profile.dimensions) as any,
       has_completed_onboarding: hasCompletedOnboarding,
     }, { onConflict: "user_id" });
 
