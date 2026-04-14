@@ -35,6 +35,8 @@ export async function loadProfileFromDB(userId: string): Promise<{
         ...defaultCandidateDimensions,
         ...((data.dimensions as any) || {}),
       },
+      appLanguage: (data.dimensions as any)?.appLanguage || "en",
+      termsAccepted: (data.dimensions as any)?.termsAccepted || false,
     },
     hasCompletedOnboarding: data.has_completed_onboarding || false,
   };
