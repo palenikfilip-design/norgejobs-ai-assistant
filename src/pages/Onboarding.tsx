@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser, defaultProfile, type UserProfile } from "@/context/UserContext";
@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Bot, Check, X, ChevronRight, ChevronLeft, Sparkles, Plus } from "lucide-react";
-import { COUNTRIES } from "@/constants/countries";
+import { COUNTRIES, COUNTRY_NATIVE_LANGUAGES, NATIVE_LANGUAGES, APP_LANGUAGES } from "@/constants/countries";
 
 const GENDERS = ["Male", "Female", "Non-binary", "Prefer not to say"];
 const LANG_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
