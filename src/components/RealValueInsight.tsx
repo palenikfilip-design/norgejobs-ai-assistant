@@ -1,6 +1,7 @@
 import { TrendingUp, TrendingDown, Minus, PiggyBank, BarChart3 } from "lucide-react";
 import type { CostOfLivingInsight } from "@/utils/costOfLiving";
 import { formatCurrency, type CurrencyCode } from "@/utils/currency";
+import InfoTooltip from "@/components/InfoTooltip";
 
 interface RealValueInsightProps {
   insight: CostOfLivingInsight;
@@ -29,6 +30,7 @@ const RealValueInsight = ({ insight }: RealValueInsightProps) => {
       <div className="flex items-center gap-1.5">
         <PiggyBank className="w-4 h-4 text-accent" />
         <span className="font-medium text-foreground text-sm">Real Value Insight</span>
+        <InfoTooltip content="Real Value Insight porovnává plat s náklady na život v dané zemi. Ukazuje, kolik reálně ušetříš a jak je plat ve srovnání s průměrem trhu." />
       </div>
 
       {/* Savings estimate */}
