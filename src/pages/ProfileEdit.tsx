@@ -668,7 +668,6 @@ const ProfileEdit = () => {
               Stay on page
             </AlertDialogCancel>
             <AlertDialogAction
-              variant="destructive"
               onClick={() => blocker.proceed?.()}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
