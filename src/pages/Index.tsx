@@ -98,7 +98,7 @@ const Index = () => {
                   className="bg-accent-gradient text-accent-foreground hover:opacity-90 text-base px-8"
                   onClick={() => navigate("/signup")}
                 >
-                  Let's Get Started
+                  Create Free Account
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
                 <Button
@@ -107,7 +107,7 @@ const Index = () => {
                   className="border-primary-foreground/50 bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20 text-base px-8"
                   onClick={() => navigate("/login")}
                 >
-                  Sign In
+                  I Already Have an Account
                 </Button>
               </div>
             </motion.div>
