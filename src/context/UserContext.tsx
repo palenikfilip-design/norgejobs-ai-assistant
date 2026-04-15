@@ -241,6 +241,8 @@ function migrateState(saved: any): UserState {
         desiredBonuses: av.desiredBonuses || [],
         matchWeights: av.matchWeights || { ...DEFAULT_MATCH_WEIGHTS },
         active: true,
+        useLifestyleMatching: false,
+        lifestyleWeight: 20,
       });
     });
   }
