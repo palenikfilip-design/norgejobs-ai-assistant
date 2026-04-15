@@ -116,6 +116,20 @@ const Dashboard = () => {
     toast({ title: `${job.title} saved!`, description: "You can find it in your saved jobs." });
   };
 
+  const handleJobCardClick = (jobId: string) => {
+    if (viewedJobIds.has(jobId) || access.isPremium) return;
+    setViewedJobIds(prev => new Set(prev).add(jobId));
+    recordJobView();
+  };
+
+  const handleUnlockWithFree = async (jobId: string) => {
+    const ok = await useFreedUnlock();
+    if (ok) {
+      setViewedJobIds(prev => new Set(prev).add(jobId));
+      toast({ title: "Job unlocked!", description: "You used a free unlock." });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
