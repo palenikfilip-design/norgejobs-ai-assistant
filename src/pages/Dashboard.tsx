@@ -19,17 +19,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserAccess } from "@/hooks/useUserAccess";
 
 const Dashboard = () => {
-  const { user, activeAvatars, activePresets, logout } = useUser();
+  const { user, activeAvatars, activePresets, logout, supabaseUser } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
   const profile = user.profile;
   const firstName = profile.fullName.split(" ")[0] || "there";
+
+  const { access, canViewJob, remainingViews, recordJobView, useFreedUnlock } = useUserAccess(supabaseUser?.id ?? null);
 
   const [filters, setFilters] = useState<JobFilters>(defaultFilters);
   const [coverLetterOpen, setCoverLetterOpen] = useState(false);
   const [coverLetter, setCoverLetter] = useState("");
   const [coverLetterLoading, setCoverLetterLoading] = useState(false);
   const [coverLetterJobTitle, setCoverLetterJobTitle] = useState("");
+  const [viewedJobIds, setViewedJobIds] = useState<Set<string>>(new Set());
 
   // Match jobs using all active presets, deduplicate by job id, keep best score
   const matchedJobs = useMemo((): EnhancedJob[] => {
