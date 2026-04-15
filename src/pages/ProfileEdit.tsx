@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useNavigate, useBlocker } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUser, UserProfile, defaultProfile } from "@/context/UserContext";
 import type { LanguageWithLevel } from "@/context/UserContext";
@@ -268,12 +268,35 @@ const ProfileEdit = () => {
   const { toast } = useToast();
 
   const [form, setForm] = useState<UserProfile>(() => normalizeProfile(user.profile));
+  const [saved, setSaved] = useState(false);
+
+  const savedProfile = useMemo(() => normalizeProfile(user.profile), [user.profile, loading]);
 
   useEffect(() => {
     if (!loading) {
       setForm(normalizeProfile(user.profile));
+      setSaved(false);
     }
   }, [loading, user.profile]);
+
+  const isDirty = useMemo(() => {
+    return JSON.stringify(form) !== JSON.stringify(savedProfile);
+  }, [form, savedProfile]);
+
+  // Browser tab close / refresh guard
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
+  // React Router navigation guard
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => {
+    return isDirty && !saved && currentLocation.pathname !== nextLocation.pathname;
+  });
 
   const update = <K extends keyof UserProfile>(key: K, value: UserProfile[K]) =>
     setForm((current) => ({ ...current, [key]: value }));
@@ -288,6 +311,7 @@ const ProfileEdit = () => {
     }));
 
   const handleSave = () => {
+    setSaved(true);
     updateProfile(normalizeProfile(form));
     toast({ title: "Profile updated!", description: "Your profile has been saved." });
     navigate("/dashboard");
