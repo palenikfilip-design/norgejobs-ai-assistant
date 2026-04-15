@@ -18,6 +18,16 @@ import type { LifestyleProfile } from "@/types/lifestyleProfile";
 import { defaultLifestyleProfile } from "@/types/lifestyleProfile";
 import { Switch } from "@/components/ui/switch";
 import InfoTooltip from "@/components/InfoTooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const GENDERS = ["Male", "Female", "Non-binary", "Prefer not to say"];
 const PERSONALITY_TONES = ["Professional", "Friendly", "Direct"];
