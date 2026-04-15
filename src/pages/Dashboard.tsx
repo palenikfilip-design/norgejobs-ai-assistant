@@ -5,16 +5,18 @@ import { useUser, mergeProfilePreset } from "@/context/UserContext";
 import { mockJobs } from "@/data/mockJobs";
 import { matchJobsEnhanced, type EnhancedJob } from "@/utils/jobMatching";
 import EnhancedJobCard from "@/components/EnhancedJobCard";
+import BlurredJobCard from "@/components/BlurredJobCard";
 import PresetSwitcher from "@/components/PresetSwitcher";
 import CoverLetterDialog from "@/components/CoverLetterDialog";
 import ProfileCompletion from "@/components/ProfileCompletion";
 import JobFiltersPanel from "@/components/JobFiltersPanel";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, Bell, LogOut, Sparkles, BriefcaseBusiness, Filter, Globe } from "lucide-react";
+import { MessageCircle, Bell, LogOut, Sparkles, BriefcaseBusiness, Filter, Globe, Crown, Eye } from "lucide-react";
 import leslieAvatar from "@/assets/leslie-avatar.png";
 import { type JobFilters, defaultFilters } from "@/types/jobFilters";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserAccess } from "@/hooks/useUserAccess";
 
 const Dashboard = () => {
   const { user, activeAvatars, activePresets, logout } = useUser();
