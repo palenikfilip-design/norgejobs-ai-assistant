@@ -4,6 +4,7 @@ import type { User } from "@supabase/supabase-js";
 import type { UserProfile, SearchPreset } from "@/context/UserContext";
 import { defaultProfile, DEFAULT_MATCH_WEIGHTS } from "@/context/UserContext";
 import { normalizeCandidateDimensions } from "@/utils/candidateDimensions";
+import { defaultLifestyleProfile } from "@/types/lifestyleProfile";
 
 /** Load profile from database */
 export async function loadProfileFromDB(userId: string): Promise<{
@@ -32,6 +33,7 @@ export async function loadProfileFromDB(userId: string): Promise<{
       certifications: (data.certifications as string[]) || [],
       personality: data.personality || undefined,
       dimensions: normalizeCandidateDimensions(data.dimensions as any),
+      lifestyleProfile: (data.dimensions as any)?.lifestyleProfile || { ...defaultLifestyleProfile },
       appLanguage: (data.dimensions as any)?.appLanguage || "en",
       termsAccepted: (data.dimensions as any)?.termsAccepted || false,
     },
@@ -83,6 +85,8 @@ export async function loadPresetsFromDB(userId: string): Promise<SearchPreset[]>
     desiredBonuses: (p.desired_bonuses as string[]) || [],
     matchWeights: { ...DEFAULT_MATCH_WEIGHTS, ...((p.match_weights as any) || {}) },
     active: p.active,
+    useLifestyleMatching: (p.match_weights as any)?.useLifestyleMatching ?? false,
+    lifestyleWeight: (p.match_weights as any)?.lifestyleWeight ?? 20,
   }));
 }
 
