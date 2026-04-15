@@ -113,8 +113,10 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
                 <InfoTooltip content="Match Score ukazuje, jak dobře tato pozice odpovídá tvému profilu. 80%+ = skvělý match, 60-79% = dobrý match, pod 60% = nízká shoda." />
               </div>
               <span className="text-[10px] font-medium mt-0.5">{scoreLabel}</span>
-              <span className="text-[9px] text-muted-foreground mt-0.5 flex items-center gap-0.5">
-                <ShieldCheck className="w-2.5 h-2.5" />
+              <span className={`text-[9px] mt-0.5 flex items-center gap-0.5 font-medium ${
+                confidence < 70 ? "text-destructive" : confidence < 100 ? "text-yellow-500" : "text-muted-foreground"
+              }`}>
+                {confidence < 100 ? <AlertTriangle className="w-2.5 h-2.5" /> : <ShieldCheck className="w-2.5 h-2.5" />}
                 Conf: {confidence}%
                 <InfoTooltip content="Confidence (spolehlivost) ukazuje, kolik tvého profilu je vyplněno. Čím víc informací vyplníš, tím přesnější bude match skóre." />
               </span>
