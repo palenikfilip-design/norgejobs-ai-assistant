@@ -300,8 +300,8 @@ export function calculateMatchScore(job: Job, avatar: AvatarProfile): {
   const lifestyle = scoreLifestyle(job, avatar);
   const expCheck = checkExperienceHardFilter(job, avatar);
 
-  // Weighted score (weights from spec: 0.3, 0.2, 0.15, 0.15, 0.1, 0.1)
-  let totalScore = Math.round(
+  // Base score (weights: 0.3, 0.2, 0.15, 0.15, 0.1, 0.1)
+  let baseScore = Math.round(
     skills.score * 0.3 +
     salary.score * 0.2 +
     location.score * 0.15 +
@@ -309,6 +309,18 @@ export function calculateMatchScore(job: Job, avatar: AvatarProfile): {
     jobType.score * 0.1 +
     lifestyle.score * 0.1
   );
+
+  // Lifestyle layer (optional)
+  const useLifestyle = avatar.useLifestyleMatching && hasLifestyleData(avatar.lifestyleProfile) && avatar.lifestyleWeight > 0;
+  const lifestyleLayer = useLifestyle ? scoreLifestyleLayer(job, avatar.lifestyleProfile) : null;
+
+  let totalScore: number;
+  if (lifestyleLayer && useLifestyle) {
+    const w = avatar.lifestyleWeight / 100; // 0–0.5
+    totalScore = Math.round(baseScore * (1 - w) + lifestyleLayer.score * w);
+  } else {
+    totalScore = baseScore;
+  }
 
   // Hard filter logic
   let hardFiltered = false;
@@ -338,8 +350,13 @@ export function calculateMatchScore(job: Job, avatar: AvatarProfile): {
     { category: "Lifestyle", points: Math.round(lifestyle.score * 0.1), maxPoints: 10, reason: lifestyle.reasons[0] || lifestyle.negatives[0] || "Lifestyle factors" },
   ];
 
-  const reasons = [...skills.reasons, ...salary.reasons, ...location.reasons, ...language.reasons, ...jobType.reasons, ...lifestyle.reasons];
-  const negatives = [...skills.negatives, ...salary.negatives, ...location.negatives, ...language.negatives, ...jobType.negatives, ...lifestyle.negatives];
+  if (lifestyleLayer && useLifestyle) {
+    const lifestylePoints = Math.round(lifestyleLayer.score * (avatar.lifestyleWeight / 100));
+    details.push({ category: "Life Match", points: lifestylePoints, maxPoints: Math.round(avatar.lifestyleWeight / 2), reason: lifestyleLayer.reasons[0] || lifestyleLayer.negatives[0] || "Lifestyle compatibility" });
+  }
+
+  const reasons = [...skills.reasons, ...salary.reasons, ...location.reasons, ...language.reasons, ...jobType.reasons, ...lifestyle.reasons, ...(lifestyleLayer?.reasons ?? [])];
+  const negatives = [...skills.negatives, ...salary.negatives, ...location.negatives, ...language.negatives, ...jobType.negatives, ...lifestyle.negatives, ...(lifestyleLayer?.negatives ?? [])];
 
   if (hardFiltered) {
     negatives.unshift(`⚠️ ${hardFilterReason}`);
