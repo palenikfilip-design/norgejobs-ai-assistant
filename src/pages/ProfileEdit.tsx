@@ -14,6 +14,10 @@ import { useToast } from "@/hooks/use-toast";
 import DimensionSlider from "@/components/DimensionSlider";
 import type { CandidateDimensions, DimensionValue } from "@/types/candidateDimensions";
 import { normalizeCandidateDimensions } from "@/utils/candidateDimensions";
+import type { LifestyleProfile } from "@/types/lifestyleProfile";
+import { defaultLifestyleProfile } from "@/types/lifestyleProfile";
+import { Switch } from "@/components/ui/switch";
+import InfoTooltip from "@/components/InfoTooltip";
 
 const GENDERS = ["Male", "Female", "Non-binary", "Prefer not to say"];
 const PERSONALITY_TONES = ["Professional", "Friendly", "Direct"];
@@ -252,6 +256,7 @@ const normalizeProfile = (profile?: UserProfile): UserProfile => ({
   ...defaultProfile,
   ...(profile ?? defaultProfile),
   dimensions: normalizeCandidateDimensions(profile?.dimensions),
+  lifestyleProfile: { ...defaultLifestyleProfile, ...(profile?.lifestyleProfile ?? {}) },
   languages: profile?.languages ?? [],
   skills: profile?.skills ?? [],
   certifications: profile?.certifications ?? [],
