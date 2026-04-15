@@ -6,10 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Check, Save, Info } from "lucide-react";
 import { COUNTRIES } from "@/constants/countries";
 import { JOB_BONUSES } from "@/constants/jobRequirements";
 import { useToast } from "@/hooks/use-toast";
+import { hasLifestyleData } from "@/types/lifestyleProfile";
+import InfoTooltip from "@/components/InfoTooltip";
 
 const JOB_TYPES = ["Full-time", "Part-time", "Seasonal", "Remote"];
 
@@ -115,6 +118,7 @@ const MatchWeightsEditor = ({ weights, onChange }: { weights: typeof DEFAULT_MAT
 
 const PresetEdit = () => {
   const { user, addPreset, updatePreset } = useUser();
+  const hasLifestyle = hasLifestyleData(user.profile.lifestyleProfile);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { id } = useParams<{ id: string }>();
@@ -210,6 +214,41 @@ const PresetEdit = () => {
               {form.housingPreference ? "Yes, I need housing" : "No, I have my own"}
             </button>
           </div>
+        </section>
+
+        {/* Lifestyle Matching */}
+        <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
+          <div className="flex items-center gap-2">
+            <h2 className="font-semibold text-foreground">🧬 Lifestyle Matching</h2>
+            <InfoTooltip content="When enabled, your lifestyle data (family, availability, flexibility) influences job match scores. Set the weight to control how much it matters." />
+          </div>
+          {!hasLifestyle && (
+            <p className="text-xs text-yellow-500">⚠️ Fill your lifestyle profile first to enable this feature.</p>
+          )}
+          <div className="flex items-center gap-3">
+            <Switch
+              checked={form.useLifestyleMatching && hasLifestyle}
+              disabled={!hasLifestyle}
+              onCheckedChange={(v) => update("useLifestyleMatching", v)}
+            />
+            <span className="text-sm text-foreground">Include lifestyle data in matching</span>
+          </div>
+          {form.useLifestyleMatching && hasLifestyle && (
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Lifestyle importance</span>
+                <span className="text-sm font-bold text-foreground">{form.lifestyleWeight}%</span>
+              </div>
+              <Slider
+                value={[form.lifestyleWeight]}
+                onValueChange={([val]) => update("lifestyleWeight", val)}
+                max={50}
+                min={0}
+                step={5}
+              />
+              <p className="text-xs text-muted-foreground">0% = ignored, 50% = half of match score comes from lifestyle fit</p>
+            </div>
+          )}
         </section>
 
         {/* Match Weights */}

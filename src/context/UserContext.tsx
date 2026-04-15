@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { type CandidateDimensions, defaultCandidateDimensions } from "@/types/candidateDimensions";
+import { type LifestyleProfile, defaultLifestyleProfile } from "@/types/lifestyleProfile";
 import { loadProfileFromDB, saveProfileToDB, loadPresetsFromDB, savePresetToDB, deletePresetFromDB } from "@/hooks/useProfileSync";
 
 export interface LanguageWithLevel {
@@ -41,6 +42,7 @@ export interface UserProfile {
   certifications: string[];
   personality?: string;
   dimensions: CandidateDimensions;
+  lifestyleProfile: LifestyleProfile;
   appLanguage: string;
   termsAccepted: boolean;
 }
@@ -55,6 +57,7 @@ export const defaultProfile: UserProfile = {
   skills: [],
   certifications: [],
   dimensions: { ...defaultCandidateDimensions },
+  lifestyleProfile: { ...defaultLifestyleProfile },
   appLanguage: "en",
   termsAccepted: false,
 };
@@ -71,6 +74,8 @@ export interface SearchPreset {
   desiredBonuses: string[];
   matchWeights: MatchWeights;
   active: boolean; // whether currently used for matching
+  useLifestyleMatching: boolean;
+  lifestyleWeight: number; // 0–50 (percentage)
 }
 
 export const defaultPreset: Omit<SearchPreset, "id"> = {
@@ -83,6 +88,8 @@ export const defaultPreset: Omit<SearchPreset, "id"> = {
   desiredBonuses: [],
   matchWeights: { ...DEFAULT_MATCH_WEIGHTS },
   active: true,
+  useLifestyleMatching: false,
+  lifestyleWeight: 20,
 };
 
 /**
@@ -110,6 +117,9 @@ export interface AvatarProfile {
   certifications: string[];
   desiredBonuses: string[];
   matchWeights: MatchWeights;
+  lifestyleProfile: LifestyleProfile;
+  useLifestyleMatching: boolean;
+  lifestyleWeight: number;
 }
 
 export function mergeProfilePreset(profile: UserProfile, preset: SearchPreset): AvatarProfile {
@@ -134,6 +144,9 @@ export function mergeProfilePreset(profile: UserProfile, preset: SearchPreset): 
     housingPreference: preset.housingPreference,
     desiredBonuses: preset.desiredBonuses,
     matchWeights: preset.matchWeights,
+    lifestyleProfile: profile.lifestyleProfile,
+    useLifestyleMatching: preset.useLifestyleMatching,
+    lifestyleWeight: preset.lifestyleWeight,
   };
 }
 
@@ -228,6 +241,8 @@ function migrateState(saved: any): UserState {
         desiredBonuses: av.desiredBonuses || [],
         matchWeights: av.matchWeights || { ...DEFAULT_MATCH_WEIGHTS },
         active: true,
+        useLifestyleMatching: false,
+        lifestyleWeight: 20,
       });
     });
   }

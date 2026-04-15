@@ -14,6 +14,10 @@ import { useToast } from "@/hooks/use-toast";
 import DimensionSlider from "@/components/DimensionSlider";
 import type { CandidateDimensions, DimensionValue } from "@/types/candidateDimensions";
 import { normalizeCandidateDimensions } from "@/utils/candidateDimensions";
+import type { LifestyleProfile } from "@/types/lifestyleProfile";
+import { defaultLifestyleProfile } from "@/types/lifestyleProfile";
+import { Switch } from "@/components/ui/switch";
+import InfoTooltip from "@/components/InfoTooltip";
 
 const GENDERS = ["Male", "Female", "Non-binary", "Prefer not to say"];
 const PERSONALITY_TONES = ["Professional", "Friendly", "Direct"];
@@ -252,6 +256,7 @@ const normalizeProfile = (profile?: UserProfile): UserProfile => ({
   ...defaultProfile,
   ...(profile ?? defaultProfile),
   dimensions: normalizeCandidateDimensions(profile?.dimensions),
+  lifestyleProfile: { ...defaultLifestyleProfile, ...(profile?.lifestyleProfile ?? {}) },
   languages: profile?.languages ?? [],
   skills: profile?.skills ?? [],
   certifications: profile?.certifications ?? [],
@@ -505,6 +510,101 @@ const ProfileEdit = () => {
                 <option value="medium">Medium</option>
                 <option value="high">High spender</option>
               </select>
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
+          <div className="flex items-center gap-2">
+            <h2 className="font-semibold text-foreground">👨‍👩‍👧 Lifestyle & Availability</h2>
+            <InfoTooltip content="Lifestyle data helps match you with jobs that fit your personal life. This is optional and can be toggled per search preset." />
+          </div>
+          <p className="text-xs text-muted-foreground">Optional — helps find jobs compatible with your life situation.</p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Relationship Status</Label>
+              <select
+                value={form.lifestyleProfile.relationshipStatus}
+                onChange={(e) => setForm(f => ({ ...f, lifestyleProfile: { ...f.lifestyleProfile, relationshipStatus: e.target.value as any } }))}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="single">Single</option>
+                <option value="relationship">In a relationship</option>
+                <option value="married">Married</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Weekend Availability</Label>
+              <select
+                value={form.lifestyleProfile.weekendAvailability}
+                onChange={(e) => setForm(f => ({ ...f, lifestyleProfile: { ...f.lifestyleProfile, weekendAvailability: e.target.value as any } }))}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="full">Fully available</option>
+                <option value="limited">Limited</option>
+                <option value="none">Not available</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <label className="flex items-center gap-2 text-sm">
+              <Switch
+                checked={form.lifestyleProfile.hasChildren}
+                onCheckedChange={(v) => setForm(f => ({ ...f, lifestyleProfile: { ...f.lifestyleProfile, hasChildren: v, childrenCount: v ? Math.max(1, f.lifestyleProfile.childrenCount) : 0 } }))}
+              />
+              Has children
+            </label>
+          </div>
+
+          {form.lifestyleProfile.hasChildren && (
+            <div className="grid grid-cols-2 gap-4 pl-2 border-l-2 border-accent/30">
+              <div className="space-y-2">
+                <Label>Number of children</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={form.lifestyleProfile.childrenCount}
+                  onChange={(e) => setForm(f => ({ ...f, lifestyleProfile: { ...f.lifestyleProfile, childrenCount: Number(e.target.value) || 1 } }))}
+                  className="w-20"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Youngest child age</Label>
+                <select
+                  value={form.lifestyleProfile.youngestChildAge}
+                  onChange={(e) => setForm(f => ({ ...f, lifestyleProfile: { ...f.lifestyleProfile, youngestChildAge: e.target.value as any } }))}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Select...</option>
+                  <option value="0-3">0–3 years</option>
+                  <option value="4-10">4–10 years</option>
+                  <option value="11+">11+ years</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <Label>Work flexibility</Label>
+            <div className="flex flex-wrap gap-4">
+              {[
+                { key: "canWorkShifts" as const, label: "Can work shifts" },
+                { key: "canWorkNights" as const, label: "Can work nights" },
+                { key: "willingToRelocate" as const, label: "Willing to relocate" },
+                { key: "prefersStableSchedule" as const, label: "Prefers stable schedule" },
+                { key: "openToSeasonalJobs" as const, label: "Open to seasonal jobs" },
+              ].map(({ key, label }) => (
+                <label key={key} className="flex items-center gap-2 text-sm">
+                  <Switch
+                    checked={form.lifestyleProfile[key]}
+                    onCheckedChange={(v) => setForm(f => ({ ...f, lifestyleProfile: { ...f.lifestyleProfile, [key]: v } }))}
+                  />
+                  {label}
+                </label>
+              ))}
             </div>
           </div>
         </section>

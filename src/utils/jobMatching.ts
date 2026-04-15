@@ -1,6 +1,8 @@
 import type { Job } from "@/data/mockJobs";
 import type { AvatarProfile } from "@/context/UserContext";
 import { parseSalaryRange, convertCurrency, type CurrencyCode } from "./currency";
+import type { LifestyleProfile } from "@/types/lifestyleProfile";
+import { hasLifestyleData } from "@/types/lifestyleProfile";
 
 export interface MatchDetail {
   category: string;
@@ -172,6 +174,97 @@ function scoreLifestyle(job: Job, avatar: AvatarProfile): { score: number; reaso
   return { score: Math.min(100, Math.max(0, score)), reasons, negatives };
 }
 
+/** Lifestyle layer scoring — only used when enabled */
+function scoreLifestyleLayer(job: Job, lp: LifestyleProfile): { score: number; reasons: string[]; negatives: string[] } {
+  let score = 50;
+  const reasons: string[] = [];
+  const negatives: string[] = [];
+  const desc = job.description.toLowerCase();
+  const dims = job.dimensions;
+
+  // Children-related scoring
+  if (lp.hasChildren) {
+    if (dims?.shift_type === "night" || desc.includes("night shift")) {
+      score -= 15;
+      negatives.push("Night shifts — not ideal with children");
+    }
+    if (dims?.routine_level && dims.routine_level < 40) {
+      score -= 10;
+      negatives.push("Unpredictable schedule may conflict with family life");
+    }
+    if (dims?.routine_level && dims.routine_level >= 60) {
+      score += 15;
+      reasons.push("Stable schedule — suitable for parents");
+    }
+    if (lp.youngestChildAge === "0-3") {
+      if (job.type.toLowerCase() === "seasonal") {
+        score -= 10;
+        negatives.push("Seasonal work can be challenging with a toddler");
+      }
+    }
+  }
+
+  // Shift work
+  if (!lp.canWorkShifts && dims?.shift_type === "flexible") {
+    score -= 10;
+    negatives.push("Requires shift flexibility");
+  }
+  if (!lp.canWorkNights && (dims?.shift_type === "night" || desc.includes("night"))) {
+    score -= 15;
+    negatives.push("Night work required — you prefer daytime");
+  }
+  if (lp.canWorkNights && dims?.shift_type === "night") {
+    score += 10;
+    reasons.push("Night shift — matches your availability");
+  }
+
+  // Weekend
+  if (lp.weekendAvailability === "none" && (desc.includes("weekend") || desc.includes("saturday") || desc.includes("sunday"))) {
+    score -= 15;
+    negatives.push("May require weekend work");
+  }
+
+  // Relocation
+  if (lp.willingToRelocate && job.country.toLowerCase() !== "remote") {
+    score += 5;
+    reasons.push("Suitable for relocation");
+  }
+  if (!lp.willingToRelocate && job.country.toLowerCase() !== "remote") {
+    score -= 10;
+    negatives.push("Requires relocation — you prefer not to move");
+  }
+
+  // Stable schedule
+  if (lp.prefersStableSchedule) {
+    if (dims?.routine_level && dims.routine_level >= 60) {
+      score += 10;
+      reasons.push("Stable, predictable schedule");
+    }
+    if (dims?.routine_level && dims.routine_level < 30) {
+      score -= 10;
+      negatives.push("Unpredictable schedule");
+    }
+  }
+
+  // Seasonal
+  if (!lp.openToSeasonalJobs && job.type.toLowerCase() === "seasonal") {
+    score -= 15;
+    negatives.push("Seasonal job — you prefer permanent positions");
+  }
+  if (lp.openToSeasonalJobs && job.type.toLowerCase() === "seasonal") {
+    score += 5;
+    reasons.push("Open to seasonal work");
+  }
+
+  // Single & flexible bonus
+  if (lp.relationshipStatus === "single" && !lp.hasChildren && lp.willingToRelocate) {
+    score += 5;
+    reasons.push("Flexible lifestyle — good fit for any location");
+  }
+
+  return { score: Math.min(100, Math.max(0, score)), reasons, negatives };
+}
+
 // --- Hard filter: experience check ---
 function checkExperienceHardFilter(job: Job, avatar: AvatarProfile): { pass: boolean; reason?: string } {
   const expMap: Record<string, number> = {
@@ -207,8 +300,8 @@ export function calculateMatchScore(job: Job, avatar: AvatarProfile): {
   const lifestyle = scoreLifestyle(job, avatar);
   const expCheck = checkExperienceHardFilter(job, avatar);
 
-  // Weighted score (weights from spec: 0.3, 0.2, 0.15, 0.15, 0.1, 0.1)
-  let totalScore = Math.round(
+  // Base score (weights: 0.3, 0.2, 0.15, 0.15, 0.1, 0.1)
+  let baseScore = Math.round(
     skills.score * 0.3 +
     salary.score * 0.2 +
     location.score * 0.15 +
@@ -216,6 +309,18 @@ export function calculateMatchScore(job: Job, avatar: AvatarProfile): {
     jobType.score * 0.1 +
     lifestyle.score * 0.1
   );
+
+  // Lifestyle layer (optional)
+  const useLifestyle = avatar.useLifestyleMatching && hasLifestyleData(avatar.lifestyleProfile) && avatar.lifestyleWeight > 0;
+  const lifestyleLayer = useLifestyle ? scoreLifestyleLayer(job, avatar.lifestyleProfile) : null;
+
+  let totalScore: number;
+  if (lifestyleLayer && useLifestyle) {
+    const w = avatar.lifestyleWeight / 100; // 0–0.5
+    totalScore = Math.round(baseScore * (1 - w) + lifestyleLayer.score * w);
+  } else {
+    totalScore = baseScore;
+  }
 
   // Hard filter logic
   let hardFiltered = false;
@@ -245,8 +350,13 @@ export function calculateMatchScore(job: Job, avatar: AvatarProfile): {
     { category: "Lifestyle", points: Math.round(lifestyle.score * 0.1), maxPoints: 10, reason: lifestyle.reasons[0] || lifestyle.negatives[0] || "Lifestyle factors" },
   ];
 
-  const reasons = [...skills.reasons, ...salary.reasons, ...location.reasons, ...language.reasons, ...jobType.reasons, ...lifestyle.reasons];
-  const negatives = [...skills.negatives, ...salary.negatives, ...location.negatives, ...language.negatives, ...jobType.negatives, ...lifestyle.negatives];
+  if (lifestyleLayer && useLifestyle) {
+    const lifestylePoints = Math.round(lifestyleLayer.score * (avatar.lifestyleWeight / 100));
+    details.push({ category: "Life Match", points: lifestylePoints, maxPoints: Math.round(avatar.lifestyleWeight / 2), reason: lifestyleLayer.reasons[0] || lifestyleLayer.negatives[0] || "Lifestyle compatibility" });
+  }
+
+  const reasons = [...skills.reasons, ...salary.reasons, ...location.reasons, ...language.reasons, ...jobType.reasons, ...lifestyle.reasons, ...(lifestyleLayer?.reasons ?? [])];
+  const negatives = [...skills.negatives, ...salary.negatives, ...location.negatives, ...language.negatives, ...jobType.negatives, ...lifestyle.negatives, ...(lifestyleLayer?.negatives ?? [])];
 
   if (hardFiltered) {
     negatives.unshift(`⚠️ ${hardFilterReason}`);
