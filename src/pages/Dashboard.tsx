@@ -228,15 +228,73 @@ const Dashboard = () => {
           <JobFiltersPanel filters={filters} onFiltersChange={setFilters} onSearch={handleSearch} totalResults={filteredJobs.length} totalJobsCount={mockJobs.length} />
         </motion.div>
 
+        {/* Daily limit banner */}
+        {!access.isPremium && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="mb-6">
+            <div className="bg-card rounded-xl border border-border p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Eye className="w-5 h-5 text-accent" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    {remainingViews > 0
+                      ? `${remainingViews} full job view${remainingViews !== 1 ? "s" : ""} remaining today`
+                      : "You've used all free views for today"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {remainingViews > 0
+                      ? "Click on a job to use a view"
+                      : "Upgrade to Premium for unlimited access"}
+                  </p>
+                </div>
+              </div>
+              <Button size="sm" className="bg-accent-gradient text-accent-foreground" onClick={() => navigate("/premium")}>
+                <Crown className="w-4 h-4 mr-1" />
+                Premium
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Job Matches */}
         <div className="mb-6 flex items-center gap-2">
           <BriefcaseBusiness className="w-5 h-5 text-accent" />
           <h2 className="text-xl font-bold text-foreground">Top Job Matches</h2>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          {filteredJobs.map((job, i) => (
-            <EnhancedJobCard key={job.id} job={job} index={i} userCurrency="CZK" onGenerateCoverLetter={handleGenerateCoverLetter} onSaveJob={handleSaveJob} />
-          ))}
+          {filteredJobs.map((job, i) => {
+            const isViewed = viewedJobIds.has(job.id);
+            const isWithinLimit = i < access.dailyViewLimit || access.isPremium;
+            const showFull = access.isPremium || isViewed || (isWithinLimit && i < (access.jobsViewedToday + viewedJobIds.size));
+
+            // First N jobs are always visible (already viewed today)
+            if (access.isPremium || i < access.jobsViewedToday || isViewed) {
+              return (
+                <div key={job.id} onClick={() => handleJobCardClick(job.id)}>
+                  <EnhancedJobCard job={job} index={i} userCurrency="CZK" onGenerateCoverLetter={handleGenerateCoverLetter} onSaveJob={handleSaveJob} />
+                </div>
+              );
+            }
+
+            // Jobs within remaining limit — show full but record on click
+            if (canViewJob && !isViewed) {
+              return (
+                <div key={job.id} onClick={() => handleJobCardClick(job.id)}>
+                  <EnhancedJobCard job={job} index={i} userCurrency="CZK" onGenerateCoverLetter={handleGenerateCoverLetter} onSaveJob={handleSaveJob} />
+                </div>
+              );
+            }
+
+            // Over limit — blurred
+            return (
+              <BlurredJobCard
+                key={job.id}
+                job={job}
+                index={i}
+                freeUnlocksAvailable={access.freeUnlocksAvailable}
+                onUnlockWithFree={() => handleUnlockWithFree(job.id)}
+              />
+            );
+          })}
           {filteredJobs.length === 0 && (
             <div className="col-span-2 text-center py-12 text-muted-foreground">
               No jobs match your current filters. Try adjusting your search criteria.
