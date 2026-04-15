@@ -1,6 +1,8 @@
 import type { Job } from "@/data/mockJobs";
 import type { AvatarProfile } from "@/context/UserContext";
 import { parseSalaryRange, convertCurrency, type CurrencyCode } from "./currency";
+import type { LifestyleProfile } from "@/types/lifestyleProfile";
+import { hasLifestyleData } from "@/types/lifestyleProfile";
 
 export interface MatchDetail {
   category: string;
@@ -167,6 +169,97 @@ function scoreLifestyle(job: Job, avatar: AvatarProfile): { score: number; reaso
   if (job.skills.some(s => s.toLowerCase() === "english") || desc.includes("no language required")) {
     reasons.push("No local language required");
     score += 5;
+  }
+
+  return { score: Math.min(100, Math.max(0, score)), reasons, negatives };
+}
+
+/** Lifestyle layer scoring — only used when enabled */
+function scoreLifestyleLayer(job: Job, lp: LifestyleProfile): { score: number; reasons: string[]; negatives: string[] } {
+  let score = 50;
+  const reasons: string[] = [];
+  const negatives: string[] = [];
+  const desc = job.description.toLowerCase();
+  const dims = job.dimensions;
+
+  // Children-related scoring
+  if (lp.hasChildren) {
+    if (dims?.shift_type === "night" || desc.includes("night shift")) {
+      score -= 15;
+      negatives.push("Night shifts — not ideal with children");
+    }
+    if (dims?.routine_level && dims.routine_level < 40) {
+      score -= 10;
+      negatives.push("Unpredictable schedule may conflict with family life");
+    }
+    if (dims?.routine_level && dims.routine_level >= 60) {
+      score += 15;
+      reasons.push("Stable schedule — suitable for parents");
+    }
+    if (lp.youngestChildAge === "0-3") {
+      if (job.type.toLowerCase() === "seasonal") {
+        score -= 10;
+        negatives.push("Seasonal work can be challenging with a toddler");
+      }
+    }
+  }
+
+  // Shift work
+  if (!lp.canWorkShifts && dims?.shift_type === "flexible") {
+    score -= 10;
+    negatives.push("Requires shift flexibility");
+  }
+  if (!lp.canWorkNights && (dims?.shift_type === "night" || desc.includes("night"))) {
+    score -= 15;
+    negatives.push("Night work required — you prefer daytime");
+  }
+  if (lp.canWorkNights && dims?.shift_type === "night") {
+    score += 10;
+    reasons.push("Night shift — matches your availability");
+  }
+
+  // Weekend
+  if (lp.weekendAvailability === "none" && (desc.includes("weekend") || desc.includes("saturday") || desc.includes("sunday"))) {
+    score -= 15;
+    negatives.push("May require weekend work");
+  }
+
+  // Relocation
+  if (lp.willingToRelocate && job.country.toLowerCase() !== "remote") {
+    score += 5;
+    reasons.push("Suitable for relocation");
+  }
+  if (!lp.willingToRelocate && job.country.toLowerCase() !== "remote") {
+    score -= 10;
+    negatives.push("Requires relocation — you prefer not to move");
+  }
+
+  // Stable schedule
+  if (lp.prefersStableSchedule) {
+    if (dims?.routine_level && dims.routine_level >= 60) {
+      score += 10;
+      reasons.push("Stable, predictable schedule");
+    }
+    if (dims?.routine_level && dims.routine_level < 30) {
+      score -= 10;
+      negatives.push("Unpredictable schedule");
+    }
+  }
+
+  // Seasonal
+  if (!lp.openToSeasonalJobs && job.type.toLowerCase() === "seasonal") {
+    score -= 15;
+    negatives.push("Seasonal job — you prefer permanent positions");
+  }
+  if (lp.openToSeasonalJobs && job.type.toLowerCase() === "seasonal") {
+    score += 5;
+    reasons.push("Open to seasonal work");
+  }
+
+  // Single & flexible bonus
+  if (lp.relationshipStatus === "single" && !lp.hasChildren && lp.willingToRelocate) {
+    score += 5;
+    reasons.push("Flexible lifestyle — good fit for any location");
   }
 
   return { score: Math.min(100, Math.max(0, score)), reasons, negatives };
