@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate, useParams, useBlocker } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUser, SearchPreset, DEFAULT_MATCH_WEIGHTS, defaultPreset } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,16 @@ import { JOB_BONUSES } from "@/constants/jobRequirements";
 import { useToast } from "@/hooks/use-toast";
 import { hasLifestyleData } from "@/types/lifestyleProfile";
 import InfoTooltip from "@/components/InfoTooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const JOB_TYPES = ["Full-time", "Part-time", "Seasonal", "Remote"];
 
@@ -132,6 +142,24 @@ const PresetEdit = () => {
       ...defaultPreset,
     }
   );
+  const [saved, setSaved] = useState(false);
+
+  const initialForm = useMemo(() => existing || { id: form.id, ...defaultPreset }, []);
+
+  const isDirty = useMemo(() => {
+    return JSON.stringify(form) !== JSON.stringify(initialForm);
+  }, [form, initialForm]);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => {
+    return isDirty && !saved && currentLocation.pathname !== nextLocation.pathname;
+  });
 
   const update = <K extends keyof SearchPreset>(key: K, val: SearchPreset[K]) =>
     setForm((f) => ({ ...f, [key]: val }));
@@ -139,6 +167,7 @@ const PresetEdit = () => {
   const canSave = form.name.length > 0;
 
   const handleSave = () => {
+    setSaved(true);
     if (isNew || !existing) {
       addPreset(form);
       toast({ title: "Preset created!", description: `"${form.name}" has been added to your library.` });
@@ -264,6 +293,37 @@ const PresetEdit = () => {
           </Button>
         </div>
       </main>
+
+      <AlertDialog open={blocker.state === "blocked"}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes. Do you want to save before leaving?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => blocker.reset?.()}>
+              Stay on page
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => blocker.proceed?.()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Discard changes
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => {
+                handleSave();
+                blocker.proceed?.();
+              }}
+              className="bg-accent-gradient text-accent-foreground hover:opacity-90"
+            >
+              Save & leave
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
