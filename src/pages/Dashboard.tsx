@@ -5,29 +5,34 @@ import { useUser, mergeProfilePreset } from "@/context/UserContext";
 import { mockJobs } from "@/data/mockJobs";
 import { matchJobsEnhanced, type EnhancedJob } from "@/utils/jobMatching";
 import EnhancedJobCard from "@/components/EnhancedJobCard";
+import BlurredJobCard from "@/components/BlurredJobCard";
 import PresetSwitcher from "@/components/PresetSwitcher";
 import CoverLetterDialog from "@/components/CoverLetterDialog";
 import ProfileCompletion from "@/components/ProfileCompletion";
 import JobFiltersPanel from "@/components/JobFiltersPanel";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, Bell, LogOut, Sparkles, BriefcaseBusiness, Filter, Globe } from "lucide-react";
+import { MessageCircle, Bell, LogOut, Sparkles, BriefcaseBusiness, Filter, Globe, Crown, Eye } from "lucide-react";
 import leslieAvatar from "@/assets/leslie-avatar.png";
 import { type JobFilters, defaultFilters } from "@/types/jobFilters";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserAccess } from "@/hooks/useUserAccess";
 
 const Dashboard = () => {
-  const { user, activeAvatars, activePresets, logout } = useUser();
+  const { user, activeAvatars, activePresets, logout, supabaseUser } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
   const profile = user.profile;
   const firstName = profile.fullName.split(" ")[0] || "there";
+
+  const { access, canViewJob, remainingViews, recordJobView, useFreedUnlock } = useUserAccess(supabaseUser?.id ?? null);
 
   const [filters, setFilters] = useState<JobFilters>(defaultFilters);
   const [coverLetterOpen, setCoverLetterOpen] = useState(false);
   const [coverLetter, setCoverLetter] = useState("");
   const [coverLetterLoading, setCoverLetterLoading] = useState(false);
   const [coverLetterJobTitle, setCoverLetterJobTitle] = useState("");
+  const [viewedJobIds, setViewedJobIds] = useState<Set<string>>(new Set());
 
   // Match jobs using all active presets, deduplicate by job id, keep best score
   const matchedJobs = useMemo((): EnhancedJob[] => {
@@ -109,6 +114,20 @@ const Dashboard = () => {
 
   const handleSaveJob = (job: EnhancedJob) => {
     toast({ title: `${job.title} saved!`, description: "You can find it in your saved jobs." });
+  };
+
+  const handleJobCardClick = (jobId: string) => {
+    if (viewedJobIds.has(jobId) || access.isPremium) return;
+    setViewedJobIds(prev => new Set(prev).add(jobId));
+    recordJobView();
+  };
+
+  const handleUnlockWithFree = async (jobId: string) => {
+    const ok = await useFreedUnlock();
+    if (ok) {
+      setViewedJobIds(prev => new Set(prev).add(jobId));
+      toast({ title: "Job unlocked!", description: "You used a free unlock." });
+    }
   };
 
   return (
@@ -209,15 +228,73 @@ const Dashboard = () => {
           <JobFiltersPanel filters={filters} onFiltersChange={setFilters} onSearch={handleSearch} totalResults={filteredJobs.length} totalJobsCount={mockJobs.length} />
         </motion.div>
 
+        {/* Daily limit banner */}
+        {!access.isPremium && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="mb-6">
+            <div className="bg-card rounded-xl border border-border p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Eye className="w-5 h-5 text-accent" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    {remainingViews > 0
+                      ? `${remainingViews} full job view${remainingViews !== 1 ? "s" : ""} remaining today`
+                      : "You've used all free views for today"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {remainingViews > 0
+                      ? "Click on a job to use a view"
+                      : "Upgrade to Premium for unlimited access"}
+                  </p>
+                </div>
+              </div>
+              <Button size="sm" className="bg-accent-gradient text-accent-foreground" onClick={() => navigate("/premium")}>
+                <Crown className="w-4 h-4 mr-1" />
+                Premium
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Job Matches */}
         <div className="mb-6 flex items-center gap-2">
           <BriefcaseBusiness className="w-5 h-5 text-accent" />
           <h2 className="text-xl font-bold text-foreground">Top Job Matches</h2>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          {filteredJobs.map((job, i) => (
-            <EnhancedJobCard key={job.id} job={job} index={i} userCurrency="CZK" onGenerateCoverLetter={handleGenerateCoverLetter} onSaveJob={handleSaveJob} />
-          ))}
+          {filteredJobs.map((job, i) => {
+            const isViewed = viewedJobIds.has(job.id);
+            const isWithinLimit = i < access.dailyViewLimit || access.isPremium;
+            const showFull = access.isPremium || isViewed || (isWithinLimit && i < (access.jobsViewedToday + viewedJobIds.size));
+
+            // First N jobs are always visible (already viewed today)
+            if (access.isPremium || i < access.jobsViewedToday || isViewed) {
+              return (
+                <div key={job.id} onClick={() => handleJobCardClick(job.id)}>
+                  <EnhancedJobCard job={job} index={i} userCurrency="CZK" onGenerateCoverLetter={handleGenerateCoverLetter} onSaveJob={handleSaveJob} />
+                </div>
+              );
+            }
+
+            // Jobs within remaining limit — show full but record on click
+            if (canViewJob && !isViewed) {
+              return (
+                <div key={job.id} onClick={() => handleJobCardClick(job.id)}>
+                  <EnhancedJobCard job={job} index={i} userCurrency="CZK" onGenerateCoverLetter={handleGenerateCoverLetter} onSaveJob={handleSaveJob} />
+                </div>
+              );
+            }
+
+            // Over limit — blurred
+            return (
+              <BlurredJobCard
+                key={job.id}
+                job={job}
+                index={i}
+                freeUnlocksAvailable={access.freeUnlocksAvailable}
+                onUnlockWithFree={() => handleUnlockWithFree(job.id)}
+              />
+            );
+          })}
           {filteredJobs.length === 0 && (
             <div className="col-span-2 text-center py-12 text-muted-foreground">
               No jobs match your current filters. Try adjusting your search criteria.

@@ -6,6 +6,7 @@
 - Supabase auth (Google, Apple, email) via `@lovable.dev/cloud-auth-js`.
 - LocalStorage persistence (`leslieUser` in `UserContext`) split into `UserProfile` and `SearchPreset`.
 - Target markets: NO, DE, AT, CZ, SK with remote support.
+- Free tier: 4 full job views/day, rest blurred. Premium = unlimited.
 
 ## Memories
 - [Project Vision](mem://project/vision) — Architecture concept separating user identity (Avatar) from multiple Search Presets
@@ -32,4 +33,5 @@
 - [Dimensional Profiling](mem://features/dimensional-profiling) — Profile structure (Work style, Lifestyle, Finance) with confidence levels
 - [Unknown Engine](mem://features/unknown-engine) — Missing data handling and dynamic question generation
 - [Job Sources Module](mem://features/job-sources-module) — Managing external job portals and URL detection
-- [Lifestyle Matching](mem://features/lifestyle-matching) — Optional lifestyle layer (family, shifts, relocation) with per-preset toggle and 0-50% weight
+- [Lifestyle Matching](mem://features/lifestyle-matching) — Optional lifestyle data in job matching with configurable weight
+- [Paywall System](mem://features/paywall-system) — Free tier daily limit, blurred cards, Premium upgrade, free unlocks

@@ -74,6 +74,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_access: {
+        Row: {
+          created_at: string
+          daily_view_limit: number
+          free_unlocks_available: number
+          free_unlocks_used: number
+          id: string
+          is_premium: boolean
+          jobs_viewed_today: number
+          last_reset_date: string
+          premium_since: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily_view_limit?: number
+          free_unlocks_available?: number
+          free_unlocks_used?: number
+          id?: string
+          is_premium?: boolean
+          jobs_viewed_today?: number
+          last_reset_date?: string
+          premium_since?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          daily_view_limit?: number
+          free_unlocks_available?: number
+          free_unlocks_used?: number
+          id?: string
+          is_premium?: boolean
+          jobs_viewed_today?: number
+          last_reset_date?: string
+          premium_since?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_presets: {
         Row: {
           active: boolean
