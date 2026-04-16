@@ -15,6 +15,7 @@ import LanguageTestDialog from "@/components/LanguageTestDialog";
 import DimensionBreakdown from "@/components/DimensionBreakdown";
 import UnknownEngine from "@/components/UnknownEngine";
 import InfoTooltip from "@/components/InfoTooltip";
+import JobActionBar from "@/components/JobActionBar";
 import { calculateSmartMatch } from "@/utils/smartMatch";
 import { calculateDimensionMatch, detectUnknowns } from "@/utils/dimensionMatching";
 import { defaultJobDimensions } from "@/types/candidateDimensions";
