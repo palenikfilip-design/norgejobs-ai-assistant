@@ -14,6 +14,99 @@ export type Database = {
   }
   public: {
     Tables: {
+      job_preferences: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          job_id: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          job_id: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      job_snapshots: {
+        Row: {
+          company: string | null
+          country: string | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          id: string
+          is_original_available: boolean | null
+          job_type: string | null
+          location: string | null
+          original_job_id: string
+          raw_data: Json | null
+          salary_max: number | null
+          salary_min: number | null
+          source: string | null
+          title: string
+          updated_at: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          company?: string | null
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          is_original_available?: boolean | null
+          job_type?: string | null
+          location?: string | null
+          original_job_id: string
+          raw_data?: Json | null
+          salary_max?: number | null
+          salary_min?: number | null
+          source?: string | null
+          title: string
+          updated_at?: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          company?: string | null
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          is_original_available?: boolean | null
+          job_type?: string | null
+          location?: string | null
+          original_job_id?: string
+          raw_data?: Json | null
+          salary_max?: number | null
+          salary_min?: number | null
+          source?: string | null
+          title?: string
+          updated_at?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           age: number | null
@@ -159,6 +252,102 @@ export type Database = {
           jobs_viewed_today?: number
           last_reset_date?: string
           premium_since?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_job_interactions: {
+        Row: {
+          action_type: string
+          created_at: string
+          id: string
+          job_id: string
+          metadata: Json | null
+          time_spent: number | null
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          id?: string
+          job_id: string
+          metadata?: Json | null
+          time_spent?: number | null
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+          metadata?: Json | null
+          time_spent?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_preference_profile: {
+        Row: {
+          conflicts: Json | null
+          created_at: string
+          environment_confidence: number | null
+          isolation_confidence: number | null
+          isolation_preference: number | null
+          job_type_confidence: number | null
+          last_computed_at: string | null
+          patterns: Json | null
+          preferred_environment: string | null
+          preferred_job_type: string | null
+          preferred_salary_max: number | null
+          preferred_salary_min: number | null
+          preferred_shift_type: string | null
+          salary_confidence: number | null
+          shift_confidence: number | null
+          stress_confidence: number | null
+          stress_tolerance: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          conflicts?: Json | null
+          created_at?: string
+          environment_confidence?: number | null
+          isolation_confidence?: number | null
+          isolation_preference?: number | null
+          job_type_confidence?: number | null
+          last_computed_at?: string | null
+          patterns?: Json | null
+          preferred_environment?: string | null
+          preferred_job_type?: string | null
+          preferred_salary_max?: number | null
+          preferred_salary_min?: number | null
+          preferred_shift_type?: string | null
+          salary_confidence?: number | null
+          shift_confidence?: number | null
+          stress_confidence?: number | null
+          stress_tolerance?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          conflicts?: Json | null
+          created_at?: string
+          environment_confidence?: number | null
+          isolation_confidence?: number | null
+          isolation_preference?: number | null
+          job_type_confidence?: number | null
+          last_computed_at?: string | null
+          patterns?: Json | null
+          preferred_environment?: string | null
+          preferred_job_type?: string | null
+          preferred_salary_max?: number | null
+          preferred_salary_min?: number | null
+          preferred_shift_type?: string | null
+          salary_confidence?: number | null
+          shift_confidence?: number | null
+          stress_confidence?: number | null
+          stress_tolerance?: number | null
           updated_at?: string
           user_id?: string
         }
