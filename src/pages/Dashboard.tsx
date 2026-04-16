@@ -31,6 +31,9 @@ const Dashboard = () => {
   const firstName = profile.fullName.split(" ")[0] || "there";
 
   const { access, canViewJob, remainingViews, recordJobView, useFreedUnlock } = useUserAccess(supabaseUser?.id ?? null);
+  const { isActive: isPremium } = useSubscription(supabaseUser?.id ?? null);
+  const { track } = useJobInteractions(supabaseUser?.id ?? null);
+  const { interactions, preferences } = usePreferenceProfile(supabaseUser?.id ?? null, mockJobs);
 
   const [filters, setFilters] = useState<JobFilters>(defaultFilters);
   const [coverLetterOpen, setCoverLetterOpen] = useState(false);
@@ -62,8 +65,19 @@ const Dashboard = () => {
         }
       });
     });
-    return Array.from(jobMap.values()).sort((a, b) => b.matchScore - a.matchScore);
-  }, [activeAvatars]);
+    const arr = Array.from(jobMap.values());
+    if (!isPremium || (interactions.length === 0 && preferences.length === 0)) {
+      return arr.sort((a, b) => b.matchScore - a.matchScore);
+    }
+    // Behavior-aware re-ranking (Premium): blend match (70%) + behavior (30%)
+    return arr
+      .map((j) => {
+        const bScore = computeBehaviorScore(j, interactions, preferences, mockJobs);
+        const finalScore = Math.round(j.matchScore * 0.7 + bScore * 0.3);
+        return { ...j, matchScore: finalScore };
+      })
+      .sort((a, b) => b.matchScore - a.matchScore);
+  }, [activeAvatars, isPremium, interactions, preferences]);
 
   const filteredJobs = useMemo(() => {
     let jobs = matchedJobs;
@@ -122,8 +136,13 @@ const Dashboard = () => {
   };
 
   const handleJobCardClick = (jobId: string) => {
-    if (viewedJobIds.has(jobId) || access.isPremium) return;
+    void track(jobId, "click");
+    if (viewedJobIds.has(jobId) || access.isPremium) {
+      void track(jobId, "view");
+      return;
+    }
     setViewedJobIds(prev => new Set(prev).add(jobId));
+    void track(jobId, "view");
     recordJobView();
   };
 
@@ -152,6 +171,9 @@ const Dashboard = () => {
                   {user.notifications}
                 </span>
               )}
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => navigate("/saved")} aria-label="Saved Jobs">
+              <Bookmark className="w-5 h-5" />
             </Button>
             <Button variant="ghost" size="icon" onClick={() => navigate("/chat")}>
               <MessageCircle className="w-5 h-5" />
@@ -226,6 +248,11 @@ const Dashboard = () => {
         {/* Profile Completion */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-8">
           <ProfileCompletion onEditProfile={() => navigate("/profile/edit")} />
+        </motion.div>
+
+        {/* Pattern insights — Behavior Learning */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }} className="mb-6">
+          <PatternInsightsPanel />
         </motion.div>
 
         {/* Filters */}
