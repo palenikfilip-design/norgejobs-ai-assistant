@@ -11,12 +11,17 @@ import CoverLetterDialog from "@/components/CoverLetterDialog";
 import ProfileCompletion from "@/components/ProfileCompletion";
 import JobFiltersPanel from "@/components/JobFiltersPanel";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, Bell, LogOut, Sparkles, BriefcaseBusiness, Filter, Globe, Crown, Eye } from "lucide-react";
+import { MessageCircle, Bell, LogOut, Sparkles, BriefcaseBusiness, Filter, Globe, Crown, Eye, Bookmark } from "lucide-react";
 import leslieAvatar from "@/assets/leslie-avatar.png";
 import { type JobFilters, defaultFilters } from "@/types/jobFilters";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserAccess } from "@/hooks/useUserAccess";
+import { useJobInteractions } from "@/hooks/useJobInteractions";
+import { usePreferenceProfile } from "@/hooks/usePreferenceProfile";
+import { useSubscription } from "@/hooks/useSubscription";
+import { computeBehaviorScore } from "@/utils/behaviorLearning";
+import PatternInsightsPanel from "@/components/PatternInsightsPanel";
 
 const Dashboard = () => {
   const { user, activeAvatars, activePresets, logout, supabaseUser } = useUser();
