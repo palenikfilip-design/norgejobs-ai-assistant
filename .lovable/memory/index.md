@@ -33,5 +33,6 @@
 - [Dimensional Profiling](mem://features/dimensional-profiling) — Profile structure (Work style, Lifestyle, Finance) with confidence levels
 - [Unknown Engine](mem://features/unknown-engine) — Missing data handling and dynamic question generation
 - [Job Sources Module](mem://features/job-sources-module) — Managing external job portals and URL detection
+- [Behavior Learning](mem://features/behavior-learning) — Premium tracking, explicit prefs, snapshots, derived profile, re-ranking
 - [Lifestyle Matching](mem://features/lifestyle-matching) — Optional lifestyle data in job matching with configurable weight
 - [Paywall System](mem://features/paywall-system) — Free tier daily limit, blurred cards, Premium upgrade, free unlocks
