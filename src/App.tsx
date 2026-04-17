@@ -15,6 +15,7 @@ import PresetEdit from "./pages/PresetEdit";
 import JobSources from "./pages/JobSources";
 import Premium from "./pages/Premium";
 import SavedJobs from "./pages/SavedJobs";
+import DailyInsights from "./pages/DailyInsights";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/sources" element={<JobSources />} />
             <Route path="/premium" element={<Premium />} />
             <Route path="/saved" element={<SavedJobs />} />
+            <Route path="/insights" element={<DailyInsights />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
