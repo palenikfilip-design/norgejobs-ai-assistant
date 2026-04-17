@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useNavigate, useParams, useBlocker } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUser, SearchPreset, DEFAULT_MATCH_WEIGHTS, defaultPreset } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
@@ -157,9 +157,9 @@ const PresetEdit = () => {
     return () => window.removeEventListener("beforeunload", handler);
   }, [isDirty]);
 
-  const blocker = useBlocker(({ currentLocation, nextLocation }) => {
-    return isDirty && !saved && currentLocation.pathname !== nextLocation.pathname;
-  });
+  // Note: in-app navigation blocking requires a data router; we keep only the
+  // browser-level beforeunload guard above. Dialog stays unused for now.
+  const blocker = { state: "unblocked" as const, reset: () => {}, proceed: () => {} };
 
   const update = <K extends keyof SearchPreset>(key: K, val: SearchPreset[K]) =>
     setForm((f) => ({ ...f, [key]: val }));
@@ -294,7 +294,7 @@ const PresetEdit = () => {
         </div>
       </main>
 
-      <AlertDialog open={blocker.state === "blocked"}>
+      <AlertDialog open={false}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
