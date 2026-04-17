@@ -32,10 +32,14 @@ const NotificationsPopover = ({ topJobs, unreadCount, onOpen }: NotificationsPop
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
-        <div className="p-3 border-b border-border flex items-center gap-2">
+        <button
+          onClick={() => navigate("/insights")}
+          className="w-full p-3 border-b border-border flex items-center gap-2 hover:bg-secondary/50 transition-colors text-left"
+        >
           <Sparkles className="w-4 h-4 text-accent" />
-          <h3 className="font-semibold text-sm text-foreground">Daily highlights</h3>
-        </div>
+          <h3 className="font-semibold text-sm text-foreground flex-1">Daily highlights</h3>
+          <span className="text-xs text-accent">Open →</span>
+        </button>
 
         <div className="p-3 space-y-3 max-h-[420px] overflow-y-auto">
           <div>
