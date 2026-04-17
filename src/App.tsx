@@ -15,6 +15,7 @@ import PresetEdit from "./pages/PresetEdit";
 import JobSources from "./pages/JobSources";
 import Premium from "./pages/Premium";
 import SavedJobs from "./pages/SavedJobs";
+import DailyInsights from "./pages/DailyInsights";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
