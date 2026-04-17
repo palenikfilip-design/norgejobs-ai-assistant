@@ -11,7 +11,8 @@ import CoverLetterDialog from "@/components/CoverLetterDialog";
 import ProfileCompletion from "@/components/ProfileCompletion";
 import JobFiltersPanel from "@/components/JobFiltersPanel";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, Bell, LogOut, Sparkles, BriefcaseBusiness, Filter, Globe, Crown, Eye, Bookmark } from "lucide-react";
+import { MessageCircle, LogOut, Sparkles, BriefcaseBusiness, Filter, Globe, Crown, Eye, Bookmark } from "lucide-react";
+import NotificationsPopover from "@/components/NotificationsPopover";
 import leslieAvatar from "@/assets/leslie-avatar.png";
 import { type JobFilters, defaultFilters } from "@/types/jobFilters";
 import { useToast } from "@/hooks/use-toast";
@@ -164,14 +165,12 @@ const Dashboard = () => {
             <span className="font-display font-bold text-foreground text-lg">Leslie AI</span>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="relative" onClick={() => {}}>
-              <Bell className="w-5 h-5" />
-              {user.notifications > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-accent-gradient text-[10px] text-accent-foreground flex items-center justify-center font-bold">
-                  {user.notifications}
-                </span>
-              )}
-            </Button>
+            <NotificationsPopover
+              topJobs={filteredJobs}
+              unreadCount={user.notifications}
+              onOpen={() => {}}
+            />
+
             <Button variant="ghost" size="icon" onClick={() => navigate("/saved")} aria-label="Saved Jobs">
               <Bookmark className="w-5 h-5" />
             </Button>
