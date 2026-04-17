@@ -50,11 +50,11 @@ export function useSubscription(userId: string | null) {
 
     fetchSub();
 
-    // Listen for realtime changes
-    const channel = supabase
-      .channel(`subscription-${userId}`)
+    // Listen for realtime changes — unique channel per mount to avoid re-using a subscribed channel
+    const channel = supabase.channel(`subscription-${userId}-${Math.random().toString(36).slice(2)}`);
+    channel
       .on(
-        "postgres_changes",
+        "postgres_changes" as any,
         {
           event: "*",
           schema: "public",
