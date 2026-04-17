@@ -294,7 +294,7 @@ const PresetEdit = () => {
         </div>
       </main>
 
-      <AlertDialog open={blocker.state === "blocked"}>
+      <AlertDialog open={false}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
