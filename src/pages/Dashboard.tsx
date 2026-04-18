@@ -11,6 +11,7 @@ import CoverLetterDialog from "@/components/CoverLetterDialog";
 import ProfileCompletion from "@/components/ProfileCompletion";
 import JobFiltersPanel from "@/components/JobFiltersPanel";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MessageCircle, LogOut, Sparkles, BriefcaseBusiness, Filter, Globe, Crown, Eye, Bookmark } from "lucide-react";
 import NotificationsPopover from "@/components/NotificationsPopover";
 import leslieAvatar from "@/assets/leslie-avatar.png";
@@ -42,6 +43,8 @@ const Dashboard = () => {
   const [coverLetterLoading, setCoverLetterLoading] = useState(false);
   const [coverLetterJobTitle, setCoverLetterJobTitle] = useState("");
   const [viewedJobIds, setViewedJobIds] = useState<Set<string>>(new Set());
+  const [highlightPresetId, setHighlightPresetId] = useState<string>("all");
+
 
   // Match jobs using all active presets, deduplicate by job id, keep best score
   const matchedJobs = useMemo((): EnhancedJob[] => {
@@ -104,6 +107,15 @@ const Dashboard = () => {
     }
     return jobs;
   }, [matchedJobs, filters]);
+
+  // Jobs scoped to selected preset (or all active) for the greeting summary
+  const highlightJobs = useMemo((): EnhancedJob[] => {
+    if (highlightPresetId === "all") return filteredJobs;
+    const preset = activePresets.find((p) => p.id === highlightPresetId);
+    if (!preset) return filteredJobs;
+    const avatar = mergeProfilePreset(profile, preset);
+    return matchJobsEnhanced(mockJobs, avatar).sort((a, b) => b.matchScore - a.matchScore);
+  }, [highlightPresetId, filteredJobs, activePresets, profile]);
 
   const handleSearch = useCallback(() => {}, []);
 
@@ -185,22 +197,41 @@ const Dashboard = () => {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="bg-card rounded-2xl p-6 flex items-start gap-4 border border-border shadow-sm">
             <img src={leslieAvatar} alt="Leslie AI" className="w-12 h-12 rounded-xl object-cover shrink-0" />
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Hi {firstName}! 👋</h1>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h1 className="text-2xl font-bold text-foreground">Hi {firstName}! 👋</h1>
+                {activePresets.length > 1 && (
+                  <Select value={highlightPresetId} onValueChange={setHighlightPresetId}>
+                    <SelectTrigger className="w-[200px] h-8 text-xs">
+                      <SelectValue placeholder="Highlight scope" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All presets (combined)</SelectItem>
+                      {activePresets.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name || "Untitled preset"}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
               {(() => {
-                const total = filteredJobs.length;
+                const scope = highlightPresetId === "all"
+                  ? null
+                  : activePresets.find((p) => p.id === highlightPresetId);
+                const total = highlightJobs.length;
                 if (total === 0) {
                   return (
                     <p className="text-muted-foreground mt-1">
-                      No new matches today. Try adjusting your search presets to broaden the results.
+                      No new matches{scope ? ` for "${scope.name}"` : ""} today. Try adjusting your search presets.
                     </p>
                   );
                 }
-                const high = filteredJobs.filter((j) => j.matchScore >= 80).length;
-                const best = filteredJobs[0];
-                const avg = Math.round(filteredJobs.reduce((s, j) => s + j.matchScore, 0) / total);
+                const high = highlightJobs.filter((j) => j.matchScore >= 80).length;
+                const best = highlightJobs[0];
+                const avg = Math.round(highlightJobs.reduce((s, j) => s + j.matchScore, 0) / total);
                 return (
                   <p className="text-muted-foreground mt-1 leading-relaxed">
+                    {scope ? <>For <span className="font-semibold text-foreground">{scope.name}</span>: </> : null}
                     Today you have <span className="text-accent font-semibold">{total} new job{total === 1 ? "" : "s"}</span>, <span className="font-semibold text-foreground">{high} above 80% match</span>.{" "}
                     Your best fit is <span className="font-semibold text-foreground">{best.title}</span> at {best.company} ({best.matchScore}%).{" "}
                     {avg >= 70
@@ -214,7 +245,7 @@ const Dashboard = () => {
                   <MessageCircle className="w-4 h-4 mr-1.5" />
                   Chat with Leslie AI
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => navigate("/insights")}>
+                <Button variant="outline" size="sm" onClick={() => navigate(`/insights${highlightPresetId !== "all" ? `?presetId=${highlightPresetId}` : ""}`)}>
                   <Sparkles className="w-4 h-4 mr-1.5" />
                   Daily highlights
                 </Button>

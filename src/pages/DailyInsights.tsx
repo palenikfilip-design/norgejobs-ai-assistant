@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -17,13 +17,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useUser } from "@/context/UserContext";
+import { useUser, mergeProfilePreset } from "@/context/UserContext";
 import { mockJobs } from "@/data/mockJobs";
 import { matchJobsEnhanced, type EnhancedJob } from "@/utils/jobMatching";
 import { calculateSmartMatch } from "@/utils/smartMatch";
 import { generateBoostSuggestions } from "@/utils/skillBooster";
 import { usePreferenceProfile } from "@/hooks/usePreferenceProfile";
 import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   PieChart,
   Pie,
@@ -71,15 +72,35 @@ const SNAPSHOT_KEY = "dailyInsightsSnapshot";
 
 const DailyInsights = () => {
   const navigate = useNavigate();
-  const { activeAvatars } = useUser();
+  const { activeAvatars, activePresets, user } = useUser();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [userId, setUserId] = useState<string | null>(null);
+
+  const presetIdParam = searchParams.get("presetId") ?? "all";
+  const setPresetId = (id: string) => {
+    if (id === "all") setSearchParams({});
+    else setSearchParams({ presetId: id });
+  };
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
   }, []);
 
+  // Avatars to use for matching: scoped to single preset OR all active
+  const scopedAvatars = useMemo(() => {
+    if (presetIdParam === "all") return activeAvatars;
+    const p = activePresets.find((x) => x.id === presetIdParam);
+    if (!p) return activeAvatars;
+    return [mergeProfilePreset(user.profile, p)];
+  }, [presetIdParam, activeAvatars, activePresets, user.profile]);
+
+  const scopeLabel = useMemo(() => {
+    if (presetIdParam === "all") return null;
+    return activePresets.find((x) => x.id === presetIdParam)?.name ?? null;
+  }, [presetIdParam, activePresets]);
+
   const matchedJobs = useMemo((): EnhancedJob[] => {
-    if (activeAvatars.length === 0) {
+    if (scopedAvatars.length === 0) {
       return mockJobs.map((j) => ({
         ...j,
         matchScore: 70,
@@ -91,14 +112,14 @@ const DailyInsights = () => {
       }));
     }
     const map = new Map<string, EnhancedJob>();
-    activeAvatars.forEach((a) => {
+    scopedAvatars.forEach((a) => {
       matchJobsEnhanced(mockJobs, a).forEach((j) => {
         const ex = map.get(j.id);
         if (!ex || j.matchScore > ex.matchScore) map.set(j.id, j);
       });
     });
     return Array.from(map.values()).sort((a, b) => b.matchScore - a.matchScore);
-  }, [activeAvatars]);
+  }, [scopedAvatars]);
 
   const { profile: behaviorProfile } = usePreferenceProfile(userId, mockJobs);
 
@@ -107,14 +128,14 @@ const DailyInsights = () => {
 
   // Build "why it matches" reason for each top job
   const topReasons = useMemo(() => {
-    if (activeAvatars.length === 0) return new Map<string, string>();
+    if (scopedAvatars.length === 0) return new Map<string, string>();
     const m = new Map<string, string>();
     top5.forEach((job) => {
-      const r = calculateSmartMatch(job, activeAvatars[0]);
+      const r = calculateSmartMatch(job, scopedAvatars[0]);
       m.set(job.id, r.topReasons.slice(0, 3).join(" + ") || "Strong overall fit");
     });
     return m;
-  }, [top5, activeAvatars]);
+  }, [top5, scopedAvatars]);
 
   const industryData = useMemo(() => {
     const counts = new Map<string, number>();
@@ -167,10 +188,10 @@ const DailyInsights = () => {
 
   // Skill gap suggestions from top job's missing reqs
   const skillSuggestions = useMemo(() => {
-    if (activeAvatars.length === 0 || top5.length === 0) return [];
-    const r = calculateSmartMatch(top5[0], activeAvatars[0]);
+    if (scopedAvatars.length === 0 || top5.length === 0) return [];
+    const r = calculateSmartMatch(top5[0], scopedAvatars[0]);
     return generateBoostSuggestions(r.missingRequirements).slice(0, 2);
-  }, [top5, activeAvatars]);
+  }, [top5, scopedAvatars]);
 
   // Opportunity alerts
   const expiringHigh = useMemo(
@@ -219,13 +240,30 @@ const DailyInsights = () => {
             </Button>
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-accent" />
-              <h1 className="font-display font-bold text-lg text-foreground">Daily Highlights</h1>
+              <h1 className="font-display font-bold text-lg text-foreground">
+                Daily Highlights{scopeLabel ? <span className="text-muted-foreground font-normal"> · {scopeLabel}</span> : null}
+              </h1>
             </div>
           </div>
-          <Badge variant="outline" className="hidden sm:inline-flex">
-            <CalendarDays className="w-3 h-3 mr-1" />
-            {new Date().toLocaleDateString()}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {activePresets.length > 1 && (
+              <Select value={presetIdParam} onValueChange={setPresetId}>
+                <SelectTrigger className="w-[200px] h-8 text-xs">
+                  <SelectValue placeholder="Scope" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All presets (combined)</SelectItem>
+                  {activePresets.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.name || "Untitled preset"}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Badge variant="outline" className="hidden sm:inline-flex">
+              <CalendarDays className="w-3 h-3 mr-1" />
+              {new Date().toLocaleDateString()}
+            </Badge>
+          </div>
         </div>
       </header>
 
