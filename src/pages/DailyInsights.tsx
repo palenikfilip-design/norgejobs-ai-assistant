@@ -128,12 +128,14 @@ const DailyInsights = () => {
 
   // Build "why it matches" reason for each top job
   const topReasons = useMemo(() => {
-    if (activeAvatars.length === 0) return new Map<string, string>();
+    if (scopedAvatars.length === 0) return new Map<string, string>();
     const m = new Map<string, string>();
     top5.forEach((job) => {
-      const r = calculateSmartMatch(job, activeAvatars[0]);
+      const r = calculateSmartMatch(job, scopedAvatars[0]);
       m.set(job.id, r.topReasons.slice(0, 3).join(" + ") || "Strong overall fit");
     });
+    return m;
+  }, [top5, scopedAvatars]);
     return m;
   }, [top5, activeAvatars]);
 
@@ -188,10 +190,10 @@ const DailyInsights = () => {
 
   // Skill gap suggestions from top job's missing reqs
   const skillSuggestions = useMemo(() => {
-    if (activeAvatars.length === 0 || top5.length === 0) return [];
-    const r = calculateSmartMatch(top5[0], activeAvatars[0]);
+    if (scopedAvatars.length === 0 || top5.length === 0) return [];
+    const r = calculateSmartMatch(top5[0], scopedAvatars[0]);
     return generateBoostSuggestions(r.missingRequirements).slice(0, 2);
-  }, [top5, activeAvatars]);
+  }, [top5, scopedAvatars]);
 
   // Opportunity alerts
   const expiringHigh = useMemo(
