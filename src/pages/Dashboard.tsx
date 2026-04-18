@@ -42,6 +42,17 @@ const Dashboard = () => {
   const [coverLetterLoading, setCoverLetterLoading] = useState(false);
   const [coverLetterJobTitle, setCoverLetterJobTitle] = useState("");
   const [viewedJobIds, setViewedJobIds] = useState<Set<string>>(new Set());
+  const [highlightPresetId, setHighlightPresetId] = useState<string>("all");
+
+  // Jobs scoped to selected preset (or all active) for the greeting summary
+  const highlightJobs = useMemo((): EnhancedJob[] => {
+    if (highlightPresetId === "all") return filteredJobs;
+    const preset = activePresets.find((p) => p.id === highlightPresetId);
+    if (!preset) return filteredJobs;
+    const avatar = mergeProfilePreset(profile, preset);
+    return matchJobsEnhanced(mockJobs, avatar).sort((a, b) => b.matchScore - a.matchScore);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightPresetId, filteredJobs, activePresets, profile]);
 
   // Match jobs using all active presets, deduplicate by job id, keep best score
   const matchedJobs = useMemo((): EnhancedJob[] => {
