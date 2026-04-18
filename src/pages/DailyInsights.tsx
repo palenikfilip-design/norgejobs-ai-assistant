@@ -17,13 +17,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useUser } from "@/context/UserContext";
+import { useUser, mergeProfilePreset } from "@/context/UserContext";
 import { mockJobs } from "@/data/mockJobs";
 import { matchJobsEnhanced, type EnhancedJob } from "@/utils/jobMatching";
 import { calculateSmartMatch } from "@/utils/smartMatch";
 import { generateBoostSuggestions } from "@/utils/skillBooster";
 import { usePreferenceProfile } from "@/hooks/usePreferenceProfile";
 import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   PieChart,
   Pie,
@@ -71,15 +72,35 @@ const SNAPSHOT_KEY = "dailyInsightsSnapshot";
 
 const DailyInsights = () => {
   const navigate = useNavigate();
-  const { activeAvatars } = useUser();
+  const { activeAvatars, activePresets, user } = useUser();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [userId, setUserId] = useState<string | null>(null);
+
+  const presetIdParam = searchParams.get("presetId") ?? "all";
+  const setPresetId = (id: string) => {
+    if (id === "all") setSearchParams({});
+    else setSearchParams({ presetId: id });
+  };
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
   }, []);
 
+  // Avatars to use for matching: scoped to single preset OR all active
+  const scopedAvatars = useMemo(() => {
+    if (presetIdParam === "all") return activeAvatars;
+    const p = activePresets.find((x) => x.id === presetIdParam);
+    if (!p) return activeAvatars;
+    return [mergeProfilePreset(user.profile, p)];
+  }, [presetIdParam, activeAvatars, activePresets, user.profile]);
+
+  const scopeLabel = useMemo(() => {
+    if (presetIdParam === "all") return null;
+    return activePresets.find((x) => x.id === presetIdParam)?.name ?? null;
+  }, [presetIdParam, activePresets]);
+
   const matchedJobs = useMemo((): EnhancedJob[] => {
-    if (activeAvatars.length === 0) {
+    if (scopedAvatars.length === 0) {
       return mockJobs.map((j) => ({
         ...j,
         matchScore: 70,
@@ -91,14 +112,14 @@ const DailyInsights = () => {
       }));
     }
     const map = new Map<string, EnhancedJob>();
-    activeAvatars.forEach((a) => {
+    scopedAvatars.forEach((a) => {
       matchJobsEnhanced(mockJobs, a).forEach((j) => {
         const ex = map.get(j.id);
         if (!ex || j.matchScore > ex.matchScore) map.set(j.id, j);
       });
     });
     return Array.from(map.values()).sort((a, b) => b.matchScore - a.matchScore);
-  }, [activeAvatars]);
+  }, [scopedAvatars]);
 
   const { profile: behaviorProfile } = usePreferenceProfile(userId, mockJobs);
 
