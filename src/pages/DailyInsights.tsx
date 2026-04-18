@@ -136,8 +136,6 @@ const DailyInsights = () => {
     });
     return m;
   }, [top5, scopedAvatars]);
-    return m;
-  }, [top5, activeAvatars]);
 
   const industryData = useMemo(() => {
     const counts = new Map<string, number>();
