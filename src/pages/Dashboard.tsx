@@ -165,11 +165,7 @@ const Dashboard = () => {
             <span className="font-display font-bold text-foreground text-lg">Leslie AI</span>
           </div>
           <div className="flex items-center gap-2">
-            <NotificationsPopover
-              topJobs={filteredJobs}
-              unreadCount={user.notifications}
-              onOpen={() => {}}
-            />
+            <NotificationsPopover topJobs={filteredJobs} />
 
             <Button variant="ghost" size="icon" onClick={() => navigate("/saved")} aria-label="Saved Jobs">
               <Bookmark className="w-5 h-5" />

@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Bell, Sparkles, TrendingUp, Lightbulb } from "lucide-react";
@@ -6,28 +7,60 @@ import type { EnhancedJob } from "@/utils/jobMatching";
 
 interface NotificationsPopoverProps {
   topJobs: EnhancedJob[];
-  unreadCount: number;
-  onOpen: () => void;
 }
 
-const NotificationsPopover = ({ topJobs, unreadCount, onOpen }: NotificationsPopoverProps) => {
+const SEEN_KEY = "dailyNotificationSeen"; // value = YYYY-MM-DD of last seen
+
+const todayStr = () => new Date().toISOString().slice(0, 10);
+
+const NotificationsPopover = ({ topJobs }: NotificationsPopoverProps) => {
   const navigate = useNavigate();
   const top3 = topJobs.slice(0, 3);
 
-  // Pick a skill suggestion from the top job's missing requirements (if any)
+  // One notification per day. Unread until user opens popover today.
+  const [unread, setUnread] = useState(false);
+  useEffect(() => {
+    setUnread(localStorage.getItem(SEEN_KEY) !== todayStr());
+  }, []);
+
+  const markSeen = () => {
+    localStorage.setItem(SEEN_KEY, todayStr());
+    setUnread(false);
+  };
+
+  // 2–3 sentence daily summary built from today's matches
+  const summary = useMemo(() => {
+    if (topJobs.length === 0) {
+      return "No new matches today. Try adjusting your search presets to broaden the results.";
+    }
+    const total = topJobs.length;
+    const high = topJobs.filter((j) => j.matchScore >= 80).length;
+    const best = topJobs[0];
+    const avg = Math.round(topJobs.reduce((s, j) => s + j.matchScore, 0) / total);
+
+    const parts: string[] = [];
+    parts.push(
+      `Today you have ${total} new job${total === 1 ? "" : "s"}, ${high} above 80% match.`
+    );
+    parts.push(
+      `Your best fit is ${best.title} at ${best.company} (${best.matchScore}%).`
+    );
+    if (avg >= 70) parts.push(`Overall match quality is strong (avg ${avg}%).`);
+    else parts.push(`Average match quality sits at ${avg}% — refining your profile could help.`);
+    return parts.join(" ");
+  }, [topJobs]);
+
   const skillTip = top3
     .flatMap((j) => j.matchDetails ?? [])
     .find((d: any) => d?.matched === false && typeof d?.label === "string");
 
   return (
-    <Popover onOpenChange={(open) => open && onOpen()}>
+    <Popover onOpenChange={(open) => open && markSeen()}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
           <Bell className="w-5 h-5" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-accent-gradient text-[10px] text-accent-foreground flex items-center justify-center font-bold">
-              {unreadCount}
-            </span>
+          {unread && (
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-accent-gradient ring-2 ring-card" />
           )}
         </Button>
       </PopoverTrigger>
@@ -40,6 +73,11 @@ const NotificationsPopover = ({ topJobs, unreadCount, onOpen }: NotificationsPop
           <h3 className="font-semibold text-sm text-foreground flex-1">Daily highlights</h3>
           <span className="text-xs text-accent">Open →</span>
         </button>
+
+        {/* Daily summary (2-3 sentences) */}
+        <div className="p-3 border-b border-border bg-secondary/20">
+          <p className="text-xs text-foreground leading-relaxed">{summary}</p>
+        </div>
 
         <div className="p-3 space-y-3 max-h-[420px] overflow-y-auto">
           <div>
@@ -101,13 +139,8 @@ const NotificationsPopover = ({ topJobs, unreadCount, onOpen }: NotificationsPop
         </div>
 
         <div className="p-2 border-t border-border">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full text-xs"
-            onClick={() => navigate("/saved")}
-          >
-            View saved jobs
+          <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => navigate("/insights")}>
+            See full daily overview →
           </Button>
         </div>
       </PopoverContent>
