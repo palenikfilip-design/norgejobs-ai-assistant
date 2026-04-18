@@ -107,6 +107,15 @@ const Dashboard = () => {
     return jobs;
   }, [matchedJobs, filters]);
 
+  // Jobs scoped to selected preset (or all active) for the greeting summary
+  const highlightJobs = useMemo((): EnhancedJob[] => {
+    if (highlightPresetId === "all") return filteredJobs;
+    const preset = activePresets.find((p) => p.id === highlightPresetId);
+    if (!preset) return filteredJobs;
+    const avatar = mergeProfilePreset(profile, preset);
+    return matchJobsEnhanced(mockJobs, avatar).sort((a, b) => b.matchScore - a.matchScore);
+  }, [highlightPresetId, filteredJobs, activePresets, profile]);
+
   const handleSearch = useCallback(() => {}, []);
 
   const handleGenerateCoverLetter = async (job: EnhancedJob) => {
