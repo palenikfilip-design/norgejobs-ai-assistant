@@ -240,13 +240,30 @@ const DailyInsights = () => {
             </Button>
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-accent" />
-              <h1 className="font-display font-bold text-lg text-foreground">Daily Highlights</h1>
+              <h1 className="font-display font-bold text-lg text-foreground">
+                Daily Highlights{scopeLabel ? <span className="text-muted-foreground font-normal"> · {scopeLabel}</span> : null}
+              </h1>
             </div>
           </div>
-          <Badge variant="outline" className="hidden sm:inline-flex">
-            <CalendarDays className="w-3 h-3 mr-1" />
-            {new Date().toLocaleDateString()}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {activePresets.length > 1 && (
+              <Select value={presetIdParam} onValueChange={setPresetId}>
+                <SelectTrigger className="w-[200px] h-8 text-xs">
+                  <SelectValue placeholder="Scope" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All presets (combined)</SelectItem>
+                  {activePresets.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.name || "Untitled preset"}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Badge variant="outline" className="hidden sm:inline-flex">
+              <CalendarDays className="w-3 h-3 mr-1" />
+              {new Date().toLocaleDateString()}
+            </Badge>
+          </div>
         </div>
       </header>
 
