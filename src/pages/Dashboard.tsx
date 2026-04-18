@@ -187,18 +187,38 @@ const Dashboard = () => {
             <img src={leslieAvatar} alt="Leslie AI" className="w-12 h-12 rounded-xl object-cover shrink-0" />
             <div>
               <h1 className="text-2xl font-bold text-foreground">Hi {firstName}! 👋</h1>
-              <p className="text-muted-foreground mt-1">
-                I found <span className="text-accent font-semibold">{filteredJobs.length} job{filteredJobs.length !== 1 ? "s" : ""}</span> that match your search presets.
-                {filteredJobs.length > 0 && (
-                  <span className="ml-1">
-                    Your top match is <span className="font-semibold text-foreground">{filteredJobs[0]?.title}</span> with a {filteredJobs[0]?.matchScore}% match score!
-                  </span>
-                )}
-              </p>
-              <Button variant="outline" size="sm" className="mt-3" onClick={() => navigate("/chat")}>
-                <MessageCircle className="w-4 h-4 mr-1.5" />
-                Chat with Leslie AI
-              </Button>
+              {(() => {
+                const total = filteredJobs.length;
+                if (total === 0) {
+                  return (
+                    <p className="text-muted-foreground mt-1">
+                      No new matches today. Try adjusting your search presets to broaden the results.
+                    </p>
+                  );
+                }
+                const high = filteredJobs.filter((j) => j.matchScore >= 80).length;
+                const best = filteredJobs[0];
+                const avg = Math.round(filteredJobs.reduce((s, j) => s + j.matchScore, 0) / total);
+                return (
+                  <p className="text-muted-foreground mt-1 leading-relaxed">
+                    Today you have <span className="text-accent font-semibold">{total} new job{total === 1 ? "" : "s"}</span>, <span className="font-semibold text-foreground">{high} above 80% match</span>.{" "}
+                    Your best fit is <span className="font-semibold text-foreground">{best.title}</span> at {best.company} ({best.matchScore}%).{" "}
+                    {avg >= 70
+                      ? `Overall match quality is strong (avg ${avg}%).`
+                      : `Average match quality sits at ${avg}% — refining your profile could help.`}
+                  </p>
+                );
+              })()}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => navigate("/chat")}>
+                  <MessageCircle className="w-4 h-4 mr-1.5" />
+                  Chat with Leslie AI
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => navigate("/insights")}>
+                  <Sparkles className="w-4 h-4 mr-1.5" />
+                  Daily highlights
+                </Button>
+              </div>
             </div>
           </div>
         </motion.div>
