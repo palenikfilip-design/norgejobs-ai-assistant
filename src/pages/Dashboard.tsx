@@ -1,6 +1,7 @@
 import { useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { useUser, mergeProfilePreset } from "@/context/UserContext";
 import { mockJobs } from "@/data/mockJobs";
 import { matchJobsEnhanced, type EnhancedJob } from "@/utils/jobMatching";
@@ -24,8 +25,10 @@ import { usePreferenceProfile } from "@/hooks/usePreferenceProfile";
 import { useSubscription } from "@/hooks/useSubscription";
 import { computeBehaviorScore } from "@/utils/behaviorLearning";
 import PatternInsightsPanel from "@/components/PatternInsightsPanel";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const Dashboard = () => {
+  const { t } = useTranslation();
   const { user, activeAvatars, activePresets, logout, supabaseUser } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -177,15 +180,16 @@ const Dashboard = () => {
             <span className="font-display font-bold text-foreground text-lg">Leslie AI</span>
           </div>
           <div className="flex items-center gap-2">
+            <LanguageSwitcher />
             <NotificationsPopover topJobs={filteredJobs} />
 
-            <Button variant="ghost" size="icon" onClick={() => navigate("/saved")} aria-label="Saved Jobs">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/saved")} aria-label={t("header.savedJobs")}>
               <Bookmark className="w-5 h-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => navigate("/chat")}>
+            <Button variant="ghost" size="icon" onClick={() => navigate("/chat")} aria-label={t("header.chat")}>
               <MessageCircle className="w-5 h-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={async () => { await logout(); navigate("/"); }}>
+            <Button variant="ghost" size="icon" onClick={async () => { await logout(); navigate("/"); }} aria-label={t("header.logout")}>
               <LogOut className="w-5 h-5" />
             </Button>
           </div>
