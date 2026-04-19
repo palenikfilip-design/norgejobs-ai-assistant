@@ -1,6 +1,7 @@
 import { useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { useUser, mergeProfilePreset } from "@/context/UserContext";
 import { mockJobs } from "@/data/mockJobs";
 import { matchJobsEnhanced, type EnhancedJob } from "@/utils/jobMatching";
@@ -24,8 +25,10 @@ import { usePreferenceProfile } from "@/hooks/usePreferenceProfile";
 import { useSubscription } from "@/hooks/useSubscription";
 import { computeBehaviorScore } from "@/utils/behaviorLearning";
 import PatternInsightsPanel from "@/components/PatternInsightsPanel";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const Dashboard = () => {
+  const { t } = useTranslation();
   const { user, activeAvatars, activePresets, logout, supabaseUser } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -177,15 +180,16 @@ const Dashboard = () => {
             <span className="font-display font-bold text-foreground text-lg">Leslie AI</span>
           </div>
           <div className="flex items-center gap-2">
+            <LanguageSwitcher />
             <NotificationsPopover topJobs={filteredJobs} />
 
-            <Button variant="ghost" size="icon" onClick={() => navigate("/saved")} aria-label="Saved Jobs">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/saved")} aria-label={t("header.savedJobs")}>
               <Bookmark className="w-5 h-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => navigate("/chat")}>
+            <Button variant="ghost" size="icon" onClick={() => navigate("/chat")} aria-label={t("header.chat")}>
               <MessageCircle className="w-5 h-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={async () => { await logout(); navigate("/"); }}>
+            <Button variant="ghost" size="icon" onClick={async () => { await logout(); navigate("/"); }} aria-label={t("header.logout")}>
               <LogOut className="w-5 h-5" />
             </Button>
           </div>
@@ -199,16 +203,16 @@ const Dashboard = () => {
             <img src={leslieAvatar} alt="Leslie AI" className="w-12 h-12 rounded-xl object-cover shrink-0" />
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h1 className="text-2xl font-bold text-foreground">Hi {firstName}! 👋</h1>
+                <h1 className="text-2xl font-bold text-foreground">{t("dashboard.greeting", { name: firstName })}</h1>
                 {activePresets.length > 1 && (
                   <Select value={highlightPresetId} onValueChange={setHighlightPresetId}>
                     <SelectTrigger className="w-[200px] h-8 text-xs">
-                      <SelectValue placeholder="Highlight scope" />
+                      <SelectValue placeholder={t("dashboard.highlightScope")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All presets (combined)</SelectItem>
+                      <SelectItem value="all">{t("dashboard.allPresets")}</SelectItem>
                       {activePresets.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.name || "Untitled preset"}</SelectItem>
+                        <SelectItem key={p.id} value={p.id}>{p.name || t("dashboard.untitledPreset")}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -222,7 +226,7 @@ const Dashboard = () => {
                 if (total === 0) {
                   return (
                     <p className="text-muted-foreground mt-1">
-                      No new matches{scope ? ` for "${scope.name}"` : ""} today. Try adjusting your search presets.
+                      {t("dashboard.noMatches", { scope: scope ? t("dashboard.forPreset", { name: scope.name }) : "" })}
                     </p>
                   );
                 }
@@ -231,23 +235,20 @@ const Dashboard = () => {
                 const avg = Math.round(highlightJobs.reduce((s, j) => s + j.matchScore, 0) / total);
                 return (
                   <p className="text-muted-foreground mt-1 leading-relaxed">
-                    {scope ? <>For <span className="font-semibold text-foreground">{scope.name}</span>: </> : null}
-                    Today you have <span className="text-accent font-semibold">{total} new job{total === 1 ? "" : "s"}</span>, <span className="font-semibold text-foreground">{high} above 80% match</span>.{" "}
-                    Your best fit is <span className="font-semibold text-foreground">{best.title}</span> at {best.company} ({best.matchScore}%).{" "}
-                    {avg >= 70
-                      ? `Overall match quality is strong (avg ${avg}%).`
-                      : `Average match quality sits at ${avg}% — refining your profile could help.`}
+                    {scope ? <>{t("dashboard.forPreset", { name: scope.name }).trim()}: </> : null}
+                    {t("dashboard.summary", { total, high, title: best.title, company: best.company, score: best.matchScore })}{" "}
+                    {avg >= 70 ? t("dashboard.summaryStrong", { avg }) : t("dashboard.summaryWeak", { avg })}
                   </p>
                 );
               })()}
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" onClick={() => navigate("/chat")}>
                   <MessageCircle className="w-4 h-4 mr-1.5" />
-                  Chat with Leslie AI
+                  {t("dashboard.chatBtn")}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => navigate(`/insights${highlightPresetId !== "all" ? `?presetId=${highlightPresetId}` : ""}`)}>
                   <Sparkles className="w-4 h-4 mr-1.5" />
-                  Daily highlights
+                  {t("dashboard.dailyHighlights")}
                 </Button>
               </div>
             </div>
@@ -260,7 +261,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-accent" />
-                <h2 className="font-semibold text-foreground">Search Presets</h2>
+                <h2 className="font-semibold text-foreground">{t("dashboard.searchPresets")}</h2>
               </div>
             </div>
             <PresetSwitcher />
@@ -278,7 +279,7 @@ const Dashboard = () => {
             )}
             {user.presets.length === 0 && (
               <p className="text-sm text-muted-foreground mt-2">
-                Create your first search preset to get personalized job matches.
+                {t("dashboard.createFirstPreset")}
               </p>
             )}
           </div>
@@ -286,7 +287,7 @@ const Dashboard = () => {
           <div className="mt-3 flex justify-end">
             <Button variant="outline" size="sm" onClick={() => navigate("/sources")}>
               <Globe className="w-4 h-4 mr-1.5" />
-              Zdroje práce
+              {t("dashboard.jobSources")}
             </Button>
           </div>
         </motion.div>
@@ -336,7 +337,7 @@ const Dashboard = () => {
         {/* Job Matches */}
         <div className="mb-6 flex items-center gap-2">
           <BriefcaseBusiness className="w-5 h-5 text-accent" />
-          <h2 className="text-xl font-bold text-foreground">Top Job Matches</h2>
+          <h2 className="text-xl font-bold text-foreground">{t("dashboard.topMatches")}</h2>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           {filteredJobs.map((job, i) => {
@@ -375,7 +376,7 @@ const Dashboard = () => {
           })}
           {filteredJobs.length === 0 && (
             <div className="col-span-2 text-center py-12 text-muted-foreground">
-              No jobs match your current filters. Try adjusting your search criteria.
+              {t("dashboard.noJobsFilters")}
             </div>
           )}
         </div>

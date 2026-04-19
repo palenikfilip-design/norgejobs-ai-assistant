@@ -1,0 +1,55 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "close": "Close",
+    "search": "Search",
+    "language": "Language"
+  },
+  "header": {
+    "savedJobs": "Saved Jobs",
+    "chat": "Chat",
+    "logout": "Logout",
+    "premium": "Premium",
+    "sources": "Job Sources"
+  },
+  "dashboard": {
+    "greeting": "Hi {{name}}! 👋",
+    "noMatches": "No new matches{{scope}} today. Try adjusting your search presets.",
+    "forPreset": " for \"{{name}}\"",
+    "summary": "Today you have {{total}} new job(s), {{high}} above 80% match. Your best fit is {{title}} at {{company}} ({{score}}%).",
+    "summaryStrong": "Overall match quality is strong (avg {{avg}}%).",
+    "summaryWeak": "Average match quality sits at {{avg}}% — refining your profile could help.",
+    "chatBtn": "Chat with Leslie AI",
+    "dailyHighlights": "Daily highlights",
+    "highlightScope": "Highlight scope",
+    "allPresets": "All presets (combined)",
+    "untitledPreset": "Untitled preset",
+    "searchPresets": "Search Presets",
+    "createFirstPreset": "Create your first search preset to get personalized job matches.",
+    "topMatches": "Top Job Matches",
+    "noJobsFilters": "No jobs match your current filters. Try adjusting your search criteria.",
+    "viewsRemaining": "{{count}} full job view remaining today",
+    "viewsRemaining_plural": "{{count}} full job views remaining today",
+    "viewsExhausted": "You've used all free views for today",
+    "clickJobToView": "Click on a job to use a view",
+    "upgradePremium": "Upgrade to Premium for unlimited access",
+    "jobSources": "Job Sources"
+  },
+  "insights": {
+    "title": "Daily Highlights",
+    "subtitle": "Your personalized daily dashboard"
+  },
+  "notifications": {
+    "title": "Daily summary",
+    "noNew": "No new highlights today.",
+    "viewAll": "View all"
+  },
+  "language": {
+    "switchTo": "Switch language"
+  }
+}

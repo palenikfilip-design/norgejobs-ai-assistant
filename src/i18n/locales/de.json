@@ -1,0 +1,55 @@
+{
+  "common": {
+    "loading": "Lädt...",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "back": "Zurück",
+    "close": "Schließen",
+    "search": "Suchen",
+    "language": "Sprache"
+  },
+  "header": {
+    "savedJobs": "Gespeicherte Jobs",
+    "chat": "Chat",
+    "logout": "Abmelden",
+    "premium": "Premium",
+    "sources": "Jobquellen"
+  },
+  "dashboard": {
+    "greeting": "Hallo {{name}}! 👋",
+    "noMatches": "Heute keine neuen Treffer{{scope}}. Passen Sie Ihre Voreinstellungen an.",
+    "forPreset": " für „{{name}}\"",
+    "summary": "Heute haben Sie {{total}} neue Jobs, {{high}} über 80% Match. Beste Wahl: {{title}} bei {{company}} ({{score}}%).",
+    "summaryStrong": "Gesamtqualität der Treffer ist stark (Durchschn. {{avg}}%).",
+    "summaryWeak": "Durchschnittliche Match-Qualität liegt bei {{avg}}% — Profilverfeinerung könnte helfen.",
+    "chatBtn": "Mit Leslie AI chatten",
+    "dailyHighlights": "Tageshighlights",
+    "highlightScope": "Highlight-Bereich",
+    "allPresets": "Alle Voreinstellungen (kombiniert)",
+    "untitledPreset": "Unbenannte Voreinstellung",
+    "searchPresets": "Suchvoreinstellungen",
+    "createFirstPreset": "Erstellen Sie Ihre erste Voreinstellung für personalisierte Jobs.",
+    "topMatches": "Top Job-Treffer",
+    "noJobsFilters": "Keine Jobs entsprechen Ihren Filtern.",
+    "viewsRemaining": "{{count}} vollständige Jobansicht verbleibt heute",
+    "viewsRemaining_plural": "{{count}} vollständige Jobansichten verbleiben heute",
+    "viewsExhausted": "Sie haben alle kostenlosen Ansichten verbraucht",
+    "clickJobToView": "Klicken Sie auf einen Job, um eine Ansicht zu nutzen",
+    "upgradePremium": "Upgrade auf Premium für unbegrenzten Zugriff",
+    "jobSources": "Jobquellen"
+  },
+  "insights": {
+    "title": "Tageshighlights",
+    "subtitle": "Ihr personalisiertes Tages-Dashboard"
+  },
+  "notifications": {
+    "title": "Tageszusammenfassung",
+    "noNew": "Heute keine Neuigkeiten.",
+    "viewAll": "Alle anzeigen"
+  },
+  "language": {
+    "switchTo": "Sprache wechseln"
+  }
+}

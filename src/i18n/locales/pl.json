@@ -1,0 +1,55 @@
+{
+  "common": {
+    "loading": "Ładowanie...",
+    "save": "Zapisz",
+    "cancel": "Anuluj",
+    "delete": "Usuń",
+    "edit": "Edytuj",
+    "back": "Wstecz",
+    "close": "Zamknij",
+    "search": "Szukaj",
+    "language": "Język"
+  },
+  "header": {
+    "savedJobs": "Zapisane oferty",
+    "chat": "Czat",
+    "logout": "Wyloguj",
+    "premium": "Premium",
+    "sources": "Źródła pracy"
+  },
+  "dashboard": {
+    "greeting": "Cześć {{name}}! 👋",
+    "noMatches": "Brak nowych dopasowań{{scope}} dzisiaj. Dostosuj swoje preferencje.",
+    "forPreset": " dla „{{name}}\"",
+    "summary": "Dzisiaj masz {{total}} nowych ofert, {{high}} powyżej 80% dopasowania. Najlepszy wybór: {{title}} w {{company}} ({{score}}%).",
+    "summaryStrong": "Ogólna jakość dopasowań jest wysoka (śr. {{avg}}%).",
+    "summaryWeak": "Średnia jakość dopasowań to {{avg}}% — udoskonalenie profilu może pomóc.",
+    "chatBtn": "Czatuj z Leslie AI",
+    "dailyHighlights": "Dzienne podsumowanie",
+    "highlightScope": "Zakres podsumowania",
+    "allPresets": "Wszystkie preferencje (łącznie)",
+    "untitledPreset": "Bez nazwy",
+    "searchPresets": "Preferencje wyszukiwania",
+    "createFirstPreset": "Utwórz pierwszą preferencję, aby otrzymywać spersonalizowane oferty.",
+    "topMatches": "Najlepsze oferty pracy",
+    "noJobsFilters": "Żadne oferty nie pasują do filtrów.",
+    "viewsRemaining": "{{count}} pełne wyświetlenie pozostało dziś",
+    "viewsRemaining_plural": "{{count}} pełnych wyświetleń pozostało dziś",
+    "viewsExhausted": "Wykorzystałeś wszystkie darmowe wyświetlenia",
+    "clickJobToView": "Kliknij ofertę, aby użyć wyświetlenia",
+    "upgradePremium": "Przejdź na Premium dla nieograniczonego dostępu",
+    "jobSources": "Źródła pracy"
+  },
+  "insights": {
+    "title": "Dzienne podsumowanie",
+    "subtitle": "Twój spersonalizowany pulpit dnia"
+  },
+  "notifications": {
+    "title": "Dzienne podsumowanie",
+    "noNew": "Brak nowości dzisiaj.",
+    "viewAll": "Zobacz wszystkie"
+  },
+  "language": {
+    "switchTo": "Zmień język"
+  }
+}
