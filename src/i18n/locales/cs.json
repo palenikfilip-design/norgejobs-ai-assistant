@@ -1,0 +1,55 @@
+{
+  "common": {
+    "loading": "Načítání...",
+    "save": "Uložit",
+    "cancel": "Zrušit",
+    "delete": "Smazat",
+    "edit": "Upravit",
+    "back": "Zpět",
+    "close": "Zavřít",
+    "search": "Hledat",
+    "language": "Jazyk"
+  },
+  "header": {
+    "savedJobs": "Uložené nabídky",
+    "chat": "Chat",
+    "logout": "Odhlásit",
+    "premium": "Premium",
+    "sources": "Zdroje práce"
+  },
+  "dashboard": {
+    "greeting": "Ahoj {{name}}! 👋",
+    "noMatches": "Žádné nové shody{{scope}} dnes. Zkuste upravit své vyhledávací předvolby.",
+    "forPreset": " pro „{{name}}\"",
+    "summary": "Dnes máte {{total}} nových nabídek, {{high}} nad 80% shodu. Nejlepší volbou je {{title}} u {{company}} ({{score}}%).",
+    "summaryStrong": "Celková kvalita shod je vysoká (průměr {{avg}}%).",
+    "summaryWeak": "Průměrná kvalita shod je {{avg}}% — vylepšení profilu může pomoci.",
+    "chatBtn": "Chatovat s Leslie AI",
+    "dailyHighlights": "Denní přehled",
+    "highlightScope": "Rozsah přehledu",
+    "allPresets": "Všechny předvolby (kombinovaně)",
+    "untitledPreset": "Předvolba bez názvu",
+    "searchPresets": "Vyhledávací předvolby",
+    "createFirstPreset": "Vytvořte svou první vyhledávací předvolbu pro personalizované nabídky.",
+    "topMatches": "Nejlepší nabídky práce",
+    "noJobsFilters": "Žádné nabídky neodpovídají filtrům. Zkuste upravit kritéria.",
+    "viewsRemaining": "{{count}} zbývající plné zobrazení dnes",
+    "viewsRemaining_plural": "{{count}} zbývajících plných zobrazení dnes",
+    "viewsExhausted": "Vyčerpali jste všechna bezplatná zobrazení pro dnešek",
+    "clickJobToView": "Klikněte na nabídku pro použití zobrazení",
+    "upgradePremium": "Přejděte na Premium pro neomezený přístup",
+    "jobSources": "Zdroje práce"
+  },
+  "insights": {
+    "title": "Denní přehled",
+    "subtitle": "Váš personalizovaný denní panel"
+  },
+  "notifications": {
+    "title": "Denní shrnutí",
+    "noNew": "Dnes žádné novinky.",
+    "viewAll": "Zobrazit vše"
+  },
+  "language": {
+    "switchTo": "Změnit jazyk"
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "common": {
+    "loading": "Načítavanie...",
+    "save": "Uložiť",
+    "cancel": "Zrušiť",
+    "delete": "Vymazať",
+    "edit": "Upraviť",
+    "back": "Späť",
+    "close": "Zavrieť",
+    "search": "Hľadať",
+    "language": "Jazyk"
+  },
+  "header": {
+    "savedJobs": "Uložené ponuky",
+    "chat": "Chat",
+    "logout": "Odhlásiť",
+    "premium": "Premium",
+    "sources": "Zdroje práce"
+  },
+  "dashboard": {
+    "greeting": "Ahoj {{name}}! 👋",
+    "noMatches": "Žiadne nové zhody{{scope}} dnes. Skúste upraviť svoje predvoľby.",
+    "forPreset": " pre „{{name}}\"",
+    "summary": "Dnes máte {{total}} nových ponúk, {{high}} nad 80% zhodu. Najlepšou voľbou je {{title}} v {{company}} ({{score}}%).",
+    "summaryStrong": "Celková kvalita zhôd je vysoká (priemer {{avg}}%).",
+    "summaryWeak": "Priemerná kvalita zhôd je {{avg}}% — vylepšenie profilu môže pomôcť.",
+    "chatBtn": "Chatovať s Leslie AI",
+    "dailyHighlights": "Denný prehľad",
+    "highlightScope": "Rozsah prehľadu",
+    "allPresets": "Všetky predvoľby (kombinovane)",
+    "untitledPreset": "Predvoľba bez názvu",
+    "searchPresets": "Vyhľadávacie predvoľby",
+    "createFirstPreset": "Vytvorte si prvú predvoľbu pre personalizované ponuky.",
+    "topMatches": "Najlepšie pracovné ponuky",
+    "noJobsFilters": "Žiadne ponuky nezodpovedajú filtrom.",
+    "viewsRemaining": "{{count}} zostávajúce plné zobrazenie dnes",
+    "viewsRemaining_plural": "{{count}} zostávajúcich plných zobrazení dnes",
+    "viewsExhausted": "Vyčerpali ste všetky bezplatné zobrazenia",
+    "clickJobToView": "Kliknite na ponuku pre použitie zobrazenia",
+    "upgradePremium": "Prejdite na Premium pre neobmedzený prístup",
+    "jobSources": "Zdroje práce"
+  },
+  "insights": {
+    "title": "Denný prehľad",
+    "subtitle": "Váš personalizovaný denný panel"
+  },
+  "notifications": {
+    "title": "Denné zhrnutie",
+    "noNew": "Dnes žiadne novinky.",
+    "viewAll": "Zobraziť všetko"
+  },
+  "language": {
+    "switchTo": "Zmeniť jazyk"
+  }
+}
