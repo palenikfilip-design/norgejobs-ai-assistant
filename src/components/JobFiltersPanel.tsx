@@ -90,6 +90,7 @@ const JobFiltersPanel = ({ filters, onFiltersChange, onSearch, totalResults, tot
       keyword: "", location: "", countries: [], jobType: "",
       salaryMin: undefined, salaryMax: undefined, salaryType: "monthly",
       languages: [], experienceLevel: "", professionCategories: [], bonuses: [],
+      sources: [], sourceScope: "all",
     });
   };
 
