@@ -2,7 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, ChevronDown, ChevronUp, X, Plus, MapPin, DollarSign, Globe, Languages, Briefcase, Gift } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, X, Plus, MapPin, DollarSign, Globe, Languages, Briefcase, Gift, Home, Plane, Wifi, Building2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import type { JobFilters } from "@/types/jobFilters";
@@ -10,6 +10,7 @@ import {
   LANGUAGES as LANG_OPTIONS, LANGUAGE_LEVELS, PROFESSION_CATEGORIES, JOB_BONUSES,
 } from "@/constants/jobRequirements";
 import { COUNTRIES, COUNTRY_FLAGS } from "@/constants/countries";
+import { JOB_SOURCE_CATALOG } from "@/data/jobSources";
 
 interface JobFiltersPanelProps {
   filters: JobFilters;
@@ -17,6 +18,8 @@ interface JobFiltersPanelProps {
   onSearch: () => void;
   totalResults: number;
   totalJobsCount: number;
+  /** Country of the current user (from profile). Used to compute "Around me" portals. */
+  userCountry?: string;
 }
 
 const LANGUAGE_FLAGS: Record<string, string> = {
@@ -32,7 +35,14 @@ const JOB_TYPES = [
   { value: "Remote", label: "Remote" },
 ];
 
-const JobFiltersPanel = ({ filters, onFiltersChange, onSearch, totalResults, totalJobsCount }: JobFiltersPanelProps) => {
+const SCOPE_TABS: { value: JobFilters["sourceScope"]; label: string; icon: typeof Home }[] = [
+  { value: "all", label: "All", icon: Globe },
+  { value: "around_me", label: "Around me", icon: Home },
+  { value: "abroad", label: "Abroad", icon: Plane },
+  { value: "remote", label: "Remote", icon: Wifi },
+];
+
+const JobFiltersPanel = ({ filters, onFiltersChange, onSearch, totalResults, totalJobsCount, userCountry }: JobFiltersPanelProps) => {
   const { toast } = useToast();
   const [showAdvanced, setShowAdvanced] = useState(false);
 
