@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Check, Save, Info } from "lucide-react";
+import { ArrowLeft, Check, Save, Info, Home, Plane, Wifi, Globe, Building2 } from "lucide-react";
 import { COUNTRIES } from "@/constants/countries";
 import { JOB_BONUSES } from "@/constants/jobRequirements";
+import { JOB_SOURCE_CATALOG } from "@/data/jobSources";
 import { useToast } from "@/hooks/use-toast";
 import { hasLifestyleData } from "@/types/lifestyleProfile";
 import InfoTooltip from "@/components/InfoTooltip";
@@ -25,6 +26,13 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const JOB_TYPES = ["Full-time", "Part-time", "Seasonal", "Remote"];
+
+const SCOPE_TABS: { value: SearchPreset["preferredSourceScope"]; label: string; icon: typeof Home }[] = [
+  { value: "all", label: "All", icon: Globe },
+  { value: "around_me", label: "Around me", icon: Home },
+  { value: "abroad", label: "Abroad", icon: Plane },
+  { value: "remote", label: "Remote", icon: Wifi },
+];
 
 const TagSelector = ({
   options,
