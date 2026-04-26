@@ -20,6 +20,10 @@ export interface Job {
   positions?: number;
   avgDaysToFill?: number;
   dimensions?: JobDimensions;
+  /** Source portal id (matches JOB_SOURCE_CATALOG.id), e.g. "jobs_cz", "indeed". */
+  sourceId?: string;
+  /** Original posting URL on the source portal. */
+  sourceUrl?: string;
 }
 
 export const mockJobs: Job[] = [
