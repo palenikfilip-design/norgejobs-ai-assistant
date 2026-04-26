@@ -87,6 +87,8 @@ export async function loadPresetsFromDB(userId: string): Promise<SearchPreset[]>
     active: p.active,
     useLifestyleMatching: (p.match_weights as any)?.useLifestyleMatching ?? false,
     lifestyleWeight: (p.match_weights as any)?.lifestyleWeight ?? 20,
+    preferredSources: (p.match_weights as any)?.preferredSources ?? [],
+    preferredSourceScope: (p.match_weights as any)?.preferredSourceScope ?? "all",
   }));
 }
 
@@ -102,7 +104,13 @@ export async function savePresetToDB(userId: string, preset: SearchPreset) {
     salary_max: preset.salaryMax,
     housing_preference: preset.housingPreference,
     desired_bonuses: preset.desiredBonuses as any,
-    match_weights: preset.matchWeights as any,
+    match_weights: {
+      ...preset.matchWeights,
+      useLifestyleMatching: preset.useLifestyleMatching,
+      lifestyleWeight: preset.lifestyleWeight,
+      preferredSources: preset.preferredSources,
+      preferredSourceScope: preset.preferredSourceScope,
+    } as any,
     active: preset.active,
   });
   if (error) console.error("Error saving preset:", error);
