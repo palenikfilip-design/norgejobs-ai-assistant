@@ -112,7 +112,32 @@ const JobFiltersPanel = ({ filters, onFiltersChange, onSearch, totalResults, tot
     filters.languages.length > 0 ||
     (filters.experienceLevel && filters.experienceLevel !== "any") ||
     filters.professionCategories.length > 0 ||
-    filters.bonuses.length > 0;
+    filters.bonuses.length > 0 ||
+    filters.sources.length > 0 ||
+    filters.sourceScope !== "all";
+
+  // Categorize portals based on user country and scope
+  const userCountryLower = (userCountry || "").trim().toLowerCase();
+  const portalsByScope = {
+    around_me: JOB_SOURCE_CATALOG.filter(s =>
+      userCountryLower && s.countries.some(c => c.toLowerCase() === userCountryLower)
+    ),
+    abroad: JOB_SOURCE_CATALOG.filter(s =>
+      !userCountryLower || !s.countries.some(c => c.toLowerCase() === userCountryLower)
+    ),
+    remote: JOB_SOURCE_CATALOG.filter(s =>
+      ["linkedin", "indeed", "eures"].includes(s.id)
+    ),
+    all: JOB_SOURCE_CATALOG,
+  };
+  const visiblePortals = portalsByScope[filters.sourceScope];
+
+  const togglePortal = (id: string) => {
+    const next = filters.sources.includes(id)
+      ? filters.sources.filter(s => s !== id)
+      : [...filters.sources, id];
+    onFiltersChange({ ...filters, sources: next });
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") onSearch();
