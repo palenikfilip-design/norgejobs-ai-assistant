@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Check, Save, Info } from "lucide-react";
+import { ArrowLeft, Check, Save, Info, Home, Plane, Wifi, Globe, Building2 } from "lucide-react";
 import { COUNTRIES } from "@/constants/countries";
 import { JOB_BONUSES } from "@/constants/jobRequirements";
+import { JOB_SOURCE_CATALOG } from "@/data/jobSources";
 import { useToast } from "@/hooks/use-toast";
 import { hasLifestyleData } from "@/types/lifestyleProfile";
 import InfoTooltip from "@/components/InfoTooltip";
@@ -25,6 +26,13 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const JOB_TYPES = ["Full-time", "Part-time", "Seasonal", "Remote"];
+
+const SCOPE_TABS: { value: SearchPreset["preferredSourceScope"]; label: string; icon: typeof Home }[] = [
+  { value: "all", label: "All", icon: Globe },
+  { value: "around_me", label: "Around me", icon: Home },
+  { value: "abroad", label: "Abroad", icon: Plane },
+  { value: "remote", label: "Remote", icon: Wifi },
+];
 
 const TagSelector = ({
   options,
@@ -180,6 +188,26 @@ const PresetEdit = () => {
 
   const countryOptions = COUNTRIES.map((c) => ({ value: c.value, label: c.label }));
 
+  const userCountryLower = (user.profile.country || "").trim().toLowerCase();
+  const portalsByScope: Record<SearchPreset["preferredSourceScope"], typeof JOB_SOURCE_CATALOG> = {
+    around_me: JOB_SOURCE_CATALOG.filter((s) =>
+      userCountryLower && s.countries.some((c) => c.toLowerCase() === userCountryLower)
+    ),
+    abroad: JOB_SOURCE_CATALOG.filter((s) =>
+      !userCountryLower || !s.countries.some((c) => c.toLowerCase() === userCountryLower)
+    ),
+    remote: JOB_SOURCE_CATALOG.filter((s) => ["linkedin", "indeed", "eures"].includes(s.id)),
+    all: JOB_SOURCE_CATALOG,
+  };
+  const visiblePortals = portalsByScope[form.preferredSourceScope];
+
+  const togglePortal = (id: string) => {
+    const next = form.preferredSources.includes(id)
+      ? form.preferredSources.filter((s) => s !== id)
+      : [...form.preferredSources, id];
+    update("preferredSources", next);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border/50">
@@ -243,6 +271,69 @@ const PresetEdit = () => {
               {form.housingPreference ? "Yes, I need housing" : "No, I have my own"}
             </button>
           </div>
+        </section>
+
+        {/* Portals */}
+        <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
+          <div className="flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-accent" />
+            <h2 className="font-semibold text-foreground">Portals</h2>
+            <InfoTooltip content="Choose which job portals this preset should search. Around me uses portals from your profile country." />
+          </div>
+          <div className="flex flex-wrap gap-1.5 p-1 bg-muted rounded-lg w-fit">
+            {SCOPE_TABS.map(({ value, label, icon: Icon }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => update("preferredSourceScope", value)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+                  form.preferredSourceScope === value
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon size={12} />
+                {label}
+              </button>
+            ))}
+          </div>
+          {visiblePortals.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              {form.preferredSourceScope === "around_me" && !user.profile.country
+                ? "Set your country in profile to see local portals."
+                : "No portals available in this scope."}
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {visiblePortals.map((p) => {
+                const active = form.preferredSources.includes(p.id);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => togglePortal(p.id)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                      active
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background text-foreground border-border hover:border-primary/50"
+                    }`}
+                  >
+                    {p.name}
+                    {active && <Check className="w-3 h-3 inline ml-1" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {form.preferredSources.length > 0 && (
+            <button
+              type="button"
+              onClick={() => update("preferredSources", [])}
+              className="text-xs text-muted-foreground hover:text-foreground underline"
+            >
+              Clear portal selection
+            </button>
+          )}
         </section>
 
         {/* Lifestyle Matching */}
