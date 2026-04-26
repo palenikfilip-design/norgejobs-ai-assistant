@@ -343,7 +343,7 @@ export const mockJobs: Job[] = [
     applicants: 9,
     positions: 15,
     avgDaysToFill: 7,
-    dimensions: { stress_level: 50, isolation_level: 40, physical_demand: 75, environment_type: "city", shift_type: "rotating", climate: "moderate", social_interaction: 35, routine_level: 85 },
+    dimensions: { stress_level: 50, isolation_level: 40, physical_demand: 75, environment_type: "city", shift_type: "flexible", climate: "moderate", social_interaction: 35, routine_level: 85 },
     sourceId: "jobs_cz",
     sourceUrl: "https://www.jobs.cz/rpd/operator-vyroby-skoda",
   },
