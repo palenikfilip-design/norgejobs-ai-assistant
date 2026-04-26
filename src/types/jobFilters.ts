@@ -12,6 +12,10 @@ export interface JobFilters {
   experienceLevel: string;
   professionCategories: string[];
   bonuses: string[];
+  /** Selected job portal source IDs (e.g. "jobs_cz", "indeed"). Empty = all. */
+  sources: string[];
+  /** Geographic scope for portals. */
+  sourceScope: "all" | "around_me" | "abroad" | "remote";
 }
 
 export const defaultFilters: JobFilters = {
@@ -26,4 +30,6 @@ export const defaultFilters: JobFilters = {
   experienceLevel: "",
   professionCategories: [],
   bonuses: [],
+  sources: [],
+  sourceScope: "all",
 };

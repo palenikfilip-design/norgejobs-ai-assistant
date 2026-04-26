@@ -2,7 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, ChevronDown, ChevronUp, X, Plus, MapPin, DollarSign, Globe, Languages, Briefcase, Gift } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, X, Plus, MapPin, DollarSign, Globe, Languages, Briefcase, Gift, Home, Plane, Wifi, Building2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import type { JobFilters } from "@/types/jobFilters";
@@ -10,6 +10,7 @@ import {
   LANGUAGES as LANG_OPTIONS, LANGUAGE_LEVELS, PROFESSION_CATEGORIES, JOB_BONUSES,
 } from "@/constants/jobRequirements";
 import { COUNTRIES, COUNTRY_FLAGS } from "@/constants/countries";
+import { JOB_SOURCE_CATALOG } from "@/data/jobSources";
 
 interface JobFiltersPanelProps {
   filters: JobFilters;
@@ -17,6 +18,8 @@ interface JobFiltersPanelProps {
   onSearch: () => void;
   totalResults: number;
   totalJobsCount: number;
+  /** Country of the current user (from profile). Used to compute "Around me" portals. */
+  userCountry?: string;
 }
 
 const LANGUAGE_FLAGS: Record<string, string> = {
@@ -32,7 +35,14 @@ const JOB_TYPES = [
   { value: "Remote", label: "Remote" },
 ];
 
-const JobFiltersPanel = ({ filters, onFiltersChange, onSearch, totalResults, totalJobsCount }: JobFiltersPanelProps) => {
+const SCOPE_TABS: { value: JobFilters["sourceScope"]; label: string; icon: typeof Home }[] = [
+  { value: "all", label: "All", icon: Globe },
+  { value: "around_me", label: "Around me", icon: Home },
+  { value: "abroad", label: "Abroad", icon: Plane },
+  { value: "remote", label: "Remote", icon: Wifi },
+];
+
+const JobFiltersPanel = ({ filters, onFiltersChange, onSearch, totalResults, totalJobsCount, userCountry }: JobFiltersPanelProps) => {
   const { toast } = useToast();
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -90,6 +100,7 @@ const JobFiltersPanel = ({ filters, onFiltersChange, onSearch, totalResults, tot
       keyword: "", location: "", countries: [], jobType: "",
       salaryMin: undefined, salaryMax: undefined, salaryType: "monthly",
       languages: [], experienceLevel: "", professionCategories: [], bonuses: [],
+      sources: [], sourceScope: "all",
     });
   };
 
@@ -101,7 +112,32 @@ const JobFiltersPanel = ({ filters, onFiltersChange, onSearch, totalResults, tot
     filters.languages.length > 0 ||
     (filters.experienceLevel && filters.experienceLevel !== "any") ||
     filters.professionCategories.length > 0 ||
-    filters.bonuses.length > 0;
+    filters.bonuses.length > 0 ||
+    filters.sources.length > 0 ||
+    filters.sourceScope !== "all";
+
+  // Categorize portals based on user country and scope
+  const userCountryLower = (userCountry || "").trim().toLowerCase();
+  const portalsByScope = {
+    around_me: JOB_SOURCE_CATALOG.filter(s =>
+      userCountryLower && s.countries.some(c => c.toLowerCase() === userCountryLower)
+    ),
+    abroad: JOB_SOURCE_CATALOG.filter(s =>
+      !userCountryLower || !s.countries.some(c => c.toLowerCase() === userCountryLower)
+    ),
+    remote: JOB_SOURCE_CATALOG.filter(s =>
+      ["linkedin", "indeed", "eures"].includes(s.id)
+    ),
+    all: JOB_SOURCE_CATALOG,
+  };
+  const visiblePortals = portalsByScope[filters.sourceScope];
+
+  const togglePortal = (id: string) => {
+    const next = filters.sources.includes(id)
+      ? filters.sources.filter(s => s !== id)
+      : [...filters.sources, id];
+    onFiltersChange({ ...filters, sources: next });
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") onSearch();
@@ -147,6 +183,68 @@ const JobFiltersPanel = ({ filters, onFiltersChange, onSearch, totalResults, tot
 
       {showAdvanced && (
         <div className="mt-4 pt-4 border-t border-border space-y-5">
+          {/* Portals filter */}
+          <div>
+            <label className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+              <Building2 size={16} className="text-accent" /> Portals
+            </label>
+            {/* Scope tabs */}
+            <div className="flex flex-wrap gap-1.5 p-1 bg-muted rounded-lg w-fit mb-3">
+              {SCOPE_TABS.map(({ value, label, icon: Icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => onFiltersChange({ ...filters, sourceScope: value })}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+                    filters.sourceScope === value
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Icon size={12} />
+                  {label}
+                </button>
+              ))}
+            </div>
+            {/* Portal chips */}
+            {visiblePortals.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                {filters.sourceScope === "around_me" && !userCountry
+                  ? "Set your country in profile to see local portals."
+                  : "No portals available in this scope."}
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {visiblePortals.map(p => {
+                  const active = filters.sources.includes(p.id);
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => togglePortal(p.id)}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                        active
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background text-foreground border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {p.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {filters.sources.length > 0 && (
+              <button
+                type="button"
+                onClick={() => onFiltersChange({ ...filters, sources: [] })}
+                className="text-xs text-muted-foreground hover:text-foreground mt-2 underline"
+              >
+                Clear portal selection
+              </button>
+            )}
+          </div>
+
           {/* Location + Salary */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>

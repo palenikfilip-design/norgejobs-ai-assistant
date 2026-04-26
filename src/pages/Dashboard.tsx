@@ -108,8 +108,23 @@ const Dashboard = () => {
     if (filters.salaryMax) {
       jobs = jobs.filter(j => { const ms = j.salary.match(/€([\d,]+)/g); if (!ms || ms.length < 2) return true; return parseInt(ms[1].replace(/[€,]/g, "")) <= (filters.salaryMax || Infinity); });
     }
+    // Source portal filter
+    if (filters.sources.length > 0) {
+      jobs = jobs.filter(j => j.sourceId && filters.sources.includes(j.sourceId));
+    }
+    // Geographic scope filter
+    if (filters.sourceScope !== "all") {
+      const userCountry = (profile.country || "").trim().toLowerCase();
+      if (filters.sourceScope === "remote") {
+        jobs = jobs.filter(j => j.country.toLowerCase() === "remote" || j.type.toLowerCase() === "remote");
+      } else if (filters.sourceScope === "around_me" && userCountry) {
+        jobs = jobs.filter(j => j.country.toLowerCase() === userCountry);
+      } else if (filters.sourceScope === "abroad" && userCountry) {
+        jobs = jobs.filter(j => j.country.toLowerCase() !== userCountry && j.country.toLowerCase() !== "remote");
+      }
+    }
     return jobs;
-  }, [matchedJobs, filters]);
+  }, [matchedJobs, filters, profile.country]);
 
   // Jobs scoped to selected preset (or all active) for the greeting summary
   const highlightJobs = useMemo((): EnhancedJob[] => {
@@ -304,7 +319,7 @@ const Dashboard = () => {
 
         {/* Filters */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <JobFiltersPanel filters={filters} onFiltersChange={setFilters} onSearch={handleSearch} totalResults={filteredJobs.length} totalJobsCount={mockJobs.length} />
+          <JobFiltersPanel filters={filters} onFiltersChange={setFilters} onSearch={handleSearch} totalResults={filteredJobs.length} totalJobsCount={mockJobs.length} userCountry={profile.country} />
         </motion.div>
 
         {/* Daily limit banner */}
