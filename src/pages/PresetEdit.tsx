@@ -273,6 +273,69 @@ const PresetEdit = () => {
           </div>
         </section>
 
+        {/* Portals */}
+        <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
+          <div className="flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-accent" />
+            <h2 className="font-semibold text-foreground">Portals</h2>
+            <InfoTooltip content="Choose which job portals this preset should search. Around me uses portals from your profile country." />
+          </div>
+          <div className="flex flex-wrap gap-1.5 p-1 bg-muted rounded-lg w-fit">
+            {SCOPE_TABS.map(({ value, label, icon: Icon }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => update("preferredSourceScope", value)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+                  form.preferredSourceScope === value
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon size={12} />
+                {label}
+              </button>
+            ))}
+          </div>
+          {visiblePortals.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              {form.preferredSourceScope === "around_me" && !user.profile.country
+                ? "Set your country in profile to see local portals."
+                : "No portals available in this scope."}
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {visiblePortals.map((p) => {
+                const active = form.preferredSources.includes(p.id);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => togglePortal(p.id)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                      active
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background text-foreground border-border hover:border-primary/50"
+                    }`}
+                  >
+                    {p.name}
+                    {active && <Check className="w-3 h-3 inline ml-1" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {form.preferredSources.length > 0 && (
+            <button
+              type="button"
+              onClick={() => update("preferredSources", [])}
+              className="text-xs text-muted-foreground hover:text-foreground underline"
+            >
+              Clear portal selection
+            </button>
+          )}
+        </section>
+
         {/* Lifestyle Matching */}
         <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
           <div className="flex items-center gap-2">
