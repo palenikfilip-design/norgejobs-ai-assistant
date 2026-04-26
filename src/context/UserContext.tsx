@@ -249,6 +249,8 @@ function migrateState(saved: any): UserState {
         active: true,
         useLifestyleMatching: false,
         lifestyleWeight: 20,
+        preferredSources: [],
+        preferredSourceScope: "all",
       });
     });
   }
