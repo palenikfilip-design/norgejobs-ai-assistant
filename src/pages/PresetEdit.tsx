@@ -188,6 +188,26 @@ const PresetEdit = () => {
 
   const countryOptions = COUNTRIES.map((c) => ({ value: c.value, label: c.label }));
 
+  const userCountryLower = (user.profile.country || "").trim().toLowerCase();
+  const portalsByScope: Record<SearchPreset["preferredSourceScope"], typeof JOB_SOURCE_CATALOG> = {
+    around_me: JOB_SOURCE_CATALOG.filter((s) =>
+      userCountryLower && s.countries.some((c) => c.toLowerCase() === userCountryLower)
+    ),
+    abroad: JOB_SOURCE_CATALOG.filter((s) =>
+      !userCountryLower || !s.countries.some((c) => c.toLowerCase() === userCountryLower)
+    ),
+    remote: JOB_SOURCE_CATALOG.filter((s) => ["linkedin", "indeed", "eures"].includes(s.id)),
+    all: JOB_SOURCE_CATALOG,
+  };
+  const visiblePortals = portalsByScope[form.preferredSourceScope];
+
+  const togglePortal = (id: string) => {
+    const next = form.preferredSources.includes(id)
+      ? form.preferredSources.filter((s) => s !== id)
+      : [...form.preferredSources, id];
+    update("preferredSources", next);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border/50">
