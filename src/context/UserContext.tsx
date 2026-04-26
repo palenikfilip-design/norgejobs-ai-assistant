@@ -76,6 +76,10 @@ export interface SearchPreset {
   active: boolean; // whether currently used for matching
   useLifestyleMatching: boolean;
   lifestyleWeight: number; // 0–50 (percentage)
+  /** Selected job portal source IDs to scope search to. Empty = all. */
+  preferredSources: string[];
+  /** Geographic scope for portals. */
+  preferredSourceScope: "all" | "around_me" | "abroad" | "remote";
 }
 
 export const defaultPreset: Omit<SearchPreset, "id"> = {
@@ -90,6 +94,8 @@ export const defaultPreset: Omit<SearchPreset, "id"> = {
   active: true,
   useLifestyleMatching: false,
   lifestyleWeight: 20,
+  preferredSources: [],
+  preferredSourceScope: "all",
 };
 
 /**
