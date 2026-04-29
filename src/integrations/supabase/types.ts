@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      ingest_logs: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          jobs_added: number | null
+          jobs_skipped: number | null
+          source: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          jobs_added?: number | null
+          jobs_skipped?: number | null
+          source: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          jobs_added?: number | null
+          jobs_skipped?: number | null
+          source?: string
+          status?: string
+        }
+        Relationships: []
+      }
       job_preferences: {
         Row: {
           category: string
@@ -164,6 +197,69 @@ export type Database = {
           updated_at?: string
           user_id?: string
           work_experience?: string
+        }
+        Relationships: []
+      }
+      public_jobs: {
+        Row: {
+          company: string | null
+          country: string | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          external_id: string | null
+          fetched_at: string
+          id: string
+          job_type: string | null
+          location: string | null
+          posted_at: string | null
+          raw_data: Json | null
+          salary_max: number | null
+          salary_min: number | null
+          source_portal: string
+          title: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          company?: string | null
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          external_id?: string | null
+          fetched_at?: string
+          id?: string
+          job_type?: string | null
+          location?: string | null
+          posted_at?: string | null
+          raw_data?: Json | null
+          salary_max?: number | null
+          salary_min?: number | null
+          source_portal: string
+          title: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          company?: string | null
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          external_id?: string | null
+          fetched_at?: string
+          id?: string
+          job_type?: string | null
+          location?: string | null
+          posted_at?: string | null
+          raw_data?: Json | null
+          salary_max?: number | null
+          salary_min?: number | null
+          source_portal?: string
+          title?: string
+          updated_at?: string
+          url?: string
         }
         Relationships: []
       }
