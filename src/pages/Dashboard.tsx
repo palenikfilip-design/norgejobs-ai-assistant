@@ -55,7 +55,7 @@ const Dashboard = () => {
       desired_bonuses: a?.desiredBonuses ?? [],
     };
   }, [activeAvatars, profile]);
-  const { matches: liveMatches, loading: liveLoading } = useLiveMatches(avatarForMatching);
+  const { matches: liveMatches, loading: liveLoading, error: liveError, lastResponse: liveResponse } = useLiveMatches(avatarForMatching);
   const liveJobs = useMemo(() => liveMatches.map(liveMatchToJob), [liveMatches]);
   const allJobs = useMemo(() => liveJobs, [liveJobs]);
 
@@ -373,6 +373,32 @@ const Dashboard = () => {
           <BriefcaseBusiness className="w-5 h-5 text-accent" />
           <h2 className="text-xl font-bold text-foreground">{t("dashboard.topMatches")}</h2>
         </div>
+
+        {/* Debug panel — visible to logged-in users */}
+        {supabaseUser && (
+          <div className="mb-6 bg-card border border-border rounded-xl p-4 text-xs font-mono">
+            <div className="font-bold text-foreground mb-2">🐛 Debug panel (match-jobs)</div>
+            <div className="mb-3">
+              <div className="text-muted-foreground mb-1">Edge Function response:</div>
+              <pre className="bg-muted/50 rounded p-2 overflow-auto max-h-60 text-foreground whitespace-pre-wrap break-all">
+{liveResponse ? JSON.stringify(liveResponse, null, 2) : (liveLoading ? "…loading" : "null")}
+              </pre>
+            </div>
+            <div className="mb-3">
+              <div className="text-muted-foreground mb-1">Error (if any):</div>
+              <pre className="bg-muted/50 rounded p-2 overflow-auto max-h-32 text-destructive whitespace-pre-wrap break-all">
+{liveError ?? "none"}
+              </pre>
+            </div>
+            <div>
+              <div className="text-muted-foreground mb-1">User avatar (sent to function):</div>
+              <pre className="bg-muted/50 rounded p-2 overflow-auto max-h-60 text-foreground whitespace-pre-wrap break-all">
+{avatarForMatching ? JSON.stringify(avatarForMatching, null, 2) : "null (profile incomplete)"}
+              </pre>
+            </div>
+          </div>
+        )}
+
         <div className="grid gap-4 md:grid-cols-2">
           {liveLoading && filteredJobs.length === 0 && (
             <div className="col-span-2 text-center py-12 text-muted-foreground flex flex-col items-center gap-3">
