@@ -24,7 +24,9 @@ interface NormalizedJob {
   posted_at: string | null;
 }
 
-async function fetchMPSV(): Promise<NormalizedJob[]> {
+async function fetchMPSV(
+  supabase?: ReturnType<typeof createClient>,
+): Promise<NormalizedJob[]> {
   // MPSV publishes daily JSON dumps. Try last 7 days, take first available.
   const today = new Date();
   let data: any = null;
@@ -38,6 +40,20 @@ async function fetchMPSV(): Promise<NormalizedJob[]> {
   }
   if (!data) throw new Error("MPSV: no recent daily file found");
   const items = (data?.polozky ?? []).slice(0, 200);
+
+  // DEBUG: dump raw structure of the first record so we can inspect field names
+  if (supabase && items.length > 0) {
+    try {
+      await supabase.from("ingest_logs").insert({
+        source: "mpsv_debug",
+        status: "debug",
+        error_message: JSON.stringify(items[0]).slice(0, 8000),
+      });
+    } catch (e) {
+      console.error("mpsv_debug log failed:", e);
+    }
+  }
+
   return items
     .map((j: any): NormalizedJob | null => {
       const portalId = j?.portalId ?? j?.id;
@@ -137,11 +153,11 @@ async function fetchEURES(): Promise<NormalizedJob[]> {
 async function ingestSource(
   supabase: ReturnType<typeof createClient>,
   name: string,
-  fetcher: () => Promise<NormalizedJob[]>,
+  fetcher: (supabase: ReturnType<typeof createClient>) => Promise<NormalizedJob[]>,
 ) {
   const start = Date.now();
   try {
-    const jobs = await fetcher();
+    const jobs = await fetcher(supabase);
     if (!jobs.length) {
       await supabase.from("ingest_logs").insert({
         source: name, status: "success", jobs_added: 0, jobs_skipped: 0, duration_ms: Date.now() - start,
