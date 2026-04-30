@@ -97,6 +97,91 @@ async function fetchNav(limit = 50): Promise<NormalizedJob[]> {
   }
 }
 
+async function fetchEures(pageSize = 100): Promise<NormalizedJob[]> {
+  const mapItems = (items: any[]): NormalizedJob[] => {
+    return (items ?? []).map((j: any): NormalizedJob => {
+      const id = j?.id ?? j?.handle ?? crypto.randomUUID();
+      const handle = j?.handle ?? j?.jobHandle ?? null;
+      const url =
+        j?.jobUrl ??
+        (handle ? `https://eures.ec.europa.eu/eures-jobs/${handle}` : `https://eures.ec.europa.eu/eures-jobs/${id}`);
+      const wageRaw = j?.experienceItems?.[0]?.wage ?? null;
+      const wageNum =
+        typeof wageRaw === "number"
+          ? wageRaw
+          : typeof wageRaw === "string"
+            ? Number(String(wageRaw).replace(/[^0-9.]/g, "")) || null
+            : null;
+      return {
+        source_portal: "eures.ec.europa.eu",
+        external_id: String(id),
+        title: j?.jobTitle ?? j?.title ?? "Job",
+        company: j?.employer?.name ?? j?.companyName ?? null,
+        location: j?.city ?? j?.location ?? null,
+        country: j?.country ?? null,
+        salary_min: wageNum,
+        salary_max: wageNum,
+        currency: j?.experienceItems?.[0]?.currency ?? "EUR",
+        url,
+        job_type: j?.positionScheduleCodes?.[0] ?? null,
+      };
+    });
+  };
+
+  const extractItems = (data: any): any[] =>
+    data?.jobVacancies ??
+    data?.data?.jobVacancies ??
+    data?.content ??
+    data?.items ??
+    data?.results ??
+    [];
+
+  // Try POST primary endpoint
+  try {
+    const r = await fetch(
+      "https://eures.ec.europa.eu/eures-jobs-search-api/api/v1/page-job-search/1",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          dataSetRequest: {
+            pageNum: 0,
+            pageSize,
+            sortBy: "BEST_MATCH",
+          },
+        }),
+      },
+    );
+    if (r.ok) {
+      const data = await r.json();
+      return mapItems(extractItems(data));
+    }
+    console.warn("EURES POST failed:", r.status);
+  } catch (e) {
+    console.error("EURES POST error:", e);
+  }
+
+  // GET fallback
+  try {
+    const r = await fetch(
+      `https://eures.ec.europa.eu/eures-jobs-search-api/api/v1/page-job-search/1?dataSetRequest.pageSize=${pageSize}`,
+      { headers: { Accept: "application/json" } },
+    );
+    if (!r.ok) {
+      console.warn("EURES GET failed:", r.status);
+      return [];
+    }
+    const data = await r.json();
+    return mapItems(extractItems(data));
+  } catch (e) {
+    console.error("EURES GET error:", e);
+    return [];
+  }
+}
+
 async function batchScore(
   jobs: NormalizedJob[],
   avatar: unknown,
@@ -207,15 +292,18 @@ Deno.serve(async (req) => {
 
     const wantMpsv = !sources || sources.includes("mpsv.cz");
     const wantNav = !sources || sources.includes("nav.no");
+    const wantEures = !sources || sources.includes("eures.ec.europa.eu");
 
-    const [mpsv, nav] = await Promise.all([
+    const [mpsv, nav, eures] = await Promise.all([
       wantMpsv ? fetchMpsv(50) : Promise.resolve([]),
       wantNav ? fetchNav(50) : Promise.resolve([]),
+      wantEures ? fetchEures(100) : Promise.resolve([]),
     ]);
 
-    const allJobs = [...mpsv, ...nav];
+    const eures_raw_job_count = eures.length;
+    const allJobs = [...mpsv, ...nav, ...eures];
     if (allJobs.length === 0) {
-      return new Response(JSON.stringify({ matches: [] }), {
+      return new Response(JSON.stringify({ matches: [], debug: { eures_raw_job_count, mpsv_raw_job_count: mpsv.length, nav_raw_job_count: nav.length } }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -235,7 +323,15 @@ Deno.serve(async (req) => {
       .sort((a, b) => b.score - a.score);
 
     return new Response(
-      JSON.stringify({ matches, total_fetched: allJobs.length }),
+      JSON.stringify({
+        matches,
+        total_fetched: allJobs.length,
+        debug: {
+          eures_raw_job_count,
+          mpsv_raw_job_count: mpsv.length,
+          nav_raw_job_count: nav.length,
+        },
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
