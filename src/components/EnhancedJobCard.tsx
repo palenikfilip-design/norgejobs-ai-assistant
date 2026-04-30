@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Banknote, Briefcase, Sparkles, ExternalLink, FileText, Heart, ChevronDown, ChevronUp, TrendingUp, TrendingDown, AlertTriangle, ShieldCheck } from "lucide-react";
+import { MapPin, Banknote, Briefcase, Sparkles, ExternalLink, FileText, Heart, ChevronDown, ChevronUp, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
 import { getProfileCompletion } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,9 +38,6 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
   const { activeAvatars, user } = useUser();
   const activeAvatar = activeAvatars[0] ?? null;
 
-  // Confidence score based on profile completion
-  const confidence = useMemo(() => getProfileCompletion(user.profile).percent, [user.profile]);
-
   const scoreColor = job.matchScore >= 80
     ? "text-emerald-500 bg-emerald-500/10 border-emerald-500/30"
     : job.matchScore >= 60
@@ -49,10 +46,13 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
 
   const scoreLabel = job.matchScore >= 80 ? "Great Match" : job.matchScore >= 60 ? "Good Match" : "Low Match";
 
-  const parsed = parseSalaryRange(job.salary);
-  const monthlyLocal = parsed
+  const parsedRaw = parseSalaryRange(job.salary);
+  // Treat near-zero / nonsense salaries as "not specified"
+  const hasRealSalary = !!parsedRaw && (parsedRaw.max ?? parsedRaw.min ?? 0) > 100;
+  const parsed = hasRealSalary ? parsedRaw : null;
+  const salaryDisplay = hasRealSalary && parsed
     ? `${formatCurrency(parsed.min / 12, parsed.currency)} – ${formatCurrency(parsed.max / 12, parsed.currency)}/month`
-    : null;
+    : "Neuvedeno";
   const monthlyConverted = parsed && userCurrency !== parsed.currency
     ? `≈ ${formatCurrency(convertCurrency(parsed.min / 12, parsed.currency, userCurrency), userCurrency)} – ${formatCurrency(convertCurrency(parsed.max / 12, parsed.currency, userCurrency), userCurrency)}/month`
     : null;
@@ -61,6 +61,21 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
     if (!parsed) return null;
     return getCostOfLivingInsight(job.country, job.title, parsed.min, parsed.max);
   }, [job.country, job.title, parsed?.min, parsed?.max]);
+
+  // Location: drop empty / "—" city
+  const cleanCity = job.city && job.city.trim() && job.city.trim() !== "—" ? job.city.trim() : null;
+  const cleanCountry = job.country && job.country.trim() && job.country.trim() !== "—" ? job.country.trim() : null;
+  const locationDisplay = [cleanCity, cleanCountry].filter(Boolean).join(", ") || "Neuvedeno";
+
+  // URL safety
+  const rawUrl = job.sourceUrl || "";
+  const validUrl =
+    rawUrl &&
+    /^https?:\/\//i.test(rawUrl) &&
+    !/lovableproject\.com/i.test(rawUrl) &&
+    !/lovable\.app/i.test(rawUrl)
+      ? rawUrl
+      : null;
 
   // Smart Match
   const smartMatch = useMemo(() => {
@@ -110,17 +125,10 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
             </div>
             <div className={`flex flex-col items-center px-3 py-2 rounded-lg border ${scoreColor} relative`}>
               <div className="flex items-center gap-1">
-                <span className="text-2xl font-bold leading-none">{job.matchScore}%</span>
+                <span className="text-2xl font-bold leading-none">{job.matchScore}% shoda</span>
                 <InfoTooltip content="Match Score ukazuje, jak dobře tato pozice odpovídá tvému profilu. 80%+ = skvělý match, 60-79% = dobrý match, pod 60% = nízká shoda." />
               </div>
               <span className="text-[10px] font-medium mt-0.5">{scoreLabel}</span>
-              <span className={`text-[9px] mt-0.5 flex items-center gap-0.5 font-medium ${
-                confidence < 70 ? "text-destructive" : confidence < 100 ? "text-yellow-500" : "text-muted-foreground"
-              }`}>
-                {confidence < 100 ? <AlertTriangle className="w-2.5 h-2.5" /> : <ShieldCheck className="w-2.5 h-2.5" />}
-                Conf: {confidence}%
-                <InfoTooltip content="Confidence (spolehlivost) ukazuje, kolik tvého profilu je vyplněno. Čím víc informací vyplníš, tím přesnější bude match skóre." />
-              </span>
             </div>
           </div>
 
@@ -134,7 +142,7 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
 
           {/* Meta */}
           <div className="flex flex-wrap gap-2 text-sm text-muted-foreground mb-3">
-            <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{job.city}, {job.country}</span>
+            <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{locationDisplay}</span>
             <span className="flex items-center gap-1"><Briefcase className="w-3.5 h-3.5" />{job.type}</span>
           </div>
 
@@ -153,7 +161,7 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
           <div className="bg-secondary/50 rounded-lg p-3 mb-3">
             <div className="flex items-center gap-1.5 mb-1">
               <Banknote className="w-4 h-4 text-accent" />
-              <span className="font-medium text-foreground text-sm">{monthlyLocal ?? job.salary}</span>
+              <span className="font-medium text-foreground text-sm">{salaryDisplay}</span>
               <InfoTooltip content="Měsíční plat v originální měně inzerátu. Pokud se tvá měna liší, přepočet je uveden níže." />
             </div>
             {monthlyConverted && (
@@ -165,7 +173,7 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
           <p className="text-sm text-foreground/80 mb-3">{job.aiSummary}</p>
 
           {/* Real Value Insight */}
-          {costInsight && (
+          {hasRealSalary && costInsight && (
             <div className="mb-3">
               <RealValueInsight insight={costInsight} userCurrency={userCurrency} />
             </div>
@@ -237,11 +245,17 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
 
           {/* Actions */}
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" className="text-xs" asChild>
-              <a href="#" target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="w-3 h-3 mr-1" />View Full Job
-              </a>
-            </Button>
+            {validUrl ? (
+              <Button variant="outline" size="sm" className="text-xs" asChild>
+                <a href={validUrl} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="w-3 h-3 mr-1" />View Full Job
+                </a>
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" className="text-xs" disabled>
+                <ExternalLink className="w-3 h-3 mr-1" />URL not available
+              </Button>
+            )}
             <Button variant="outline" size="sm" className="text-xs" onClick={() => onGenerateCoverLetter?.(job)}>
               <FileText className="w-3 h-3 mr-1" />Cover Letter
             </Button>
