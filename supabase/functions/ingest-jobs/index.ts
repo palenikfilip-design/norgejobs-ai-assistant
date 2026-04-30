@@ -184,9 +184,20 @@ Deno.serve(async (req) => {
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Auth check: either cron (x-cron-secret) or admin user JWT
+    // Auth: cron uses x-cron-secret matching vault secret; admin uses JWT
     const cronSecret = req.headers.get("x-cron-secret");
-    const isCron = cronSecret && cronSecret === Deno.env.get("INGEST_CRON_SECRET");
+    let isCron = false;
+    if (cronSecret) {
+      const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE);
+      const { data: secretRow } = await adminClient
+        .schema("vault" as any)
+        .from("decrypted_secrets" as any)
+        .select("decrypted_secret")
+        .eq("name", "INGEST_CRON_SECRET")
+        .maybeSingle();
+      const expected = (secretRow as any)?.decrypted_secret as string | undefined;
+      if (expected && cronSecret === expected) isCron = true;
+    }
 
     if (!isCron) {
       const authHeader = req.headers.get("Authorization");
