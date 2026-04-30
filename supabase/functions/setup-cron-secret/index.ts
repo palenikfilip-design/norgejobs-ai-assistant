@@ -35,10 +35,26 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
-    const { error: rpcError } = await supabase.rpc("upsert_ingest_cron_secret", {
-      _value: SECRET_VALUE,
-    });
-    if (rpcError) throw rpcError;
+
+    // Try update existing secret, else create
+    const { data: existing } = await supabase
+      .schema("vault" as any)
+      .from("secrets")
+      .select("id")
+      .eq("name", "INGEST_CRON_SECRET")
+      .maybeSingle();
+
+    if (existing?.id) {
+      const { error: updErr } = await supabase.rpc("vault_update_secret" as any, {
+        secret_id: existing.id, new_secret: SECRET_VALUE,
+      });
+      if (updErr) throw updErr;
+    } else {
+      const { error: createErr } = await supabase.rpc("vault_create_secret" as any, {
+        new_secret: SECRET_VALUE, new_name: "INGEST_CRON_SECRET",
+      });
+      if (createErr) throw createErr;
+    }
 
     return new Response(JSON.stringify({ ok: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
