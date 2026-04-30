@@ -25,61 +25,73 @@ interface NormalizedJob {
 }
 
 async function fetchMPSV(): Promise<NormalizedJob[]> {
-  const res = await fetch("https://data.mpsv.cz/api/v1/volna-mista?pocet=100", {
-    headers: { Accept: "application/json" },
-  });
-  if (!res.ok) throw new Error(`MPSV ${res.status}`);
-  const data = await res.json();
-  const items = data?.polozky ?? data?.items ?? [];
+  // MPSV publishes daily JSON dumps. Try last 7 days, take first available.
+  const today = new Date();
+  let data: any = null;
+  for (let offset = 0; offset < 7 && !data; offset++) {
+    const d = new Date(today);
+    d.setUTCDate(d.getUTCDate() - offset);
+    const dateStr = d.toISOString().slice(0, 10);
+    const url = `https://data.mpsv.cz/od/soubory/volna-mista-prirustek/volna-mista-prirustek-${dateStr}.json`;
+    const res = await fetch(url);
+    if (res.ok) data = await res.json();
+  }
+  if (!data) throw new Error("MPSV: no recent daily file found");
+  const items = (data?.polozky ?? []).slice(0, 200);
   return items
     .map((j: any): NormalizedJob | null => {
-      const url = j?.url ?? j?.urlMistaVykonuPrace ?? (j?.id ? `https://www.mpsv.cz/web/cz/volna-mista/${j.id}` : null);
-      if (!url) return null;
-      const mzda = j?.mzdaOd ?? j?.mzda ?? null;
+      const portalId = j?.portalId ?? j?.id;
+      if (!portalId) return null;
+      const url = `https://www.uradprace.cz/web/cz/volna-mista-v-cr?portalId=${portalId}`;
+      const profese = j?.pozadovanaProfese?.cs ?? "Volné místo";
       return {
         source_portal: "mpsv.cz",
-        external_id: j?.id ? String(j.id) : null,
-        title: j?.profese?.nazev ?? j?.nazev ?? "Bez názvu",
+        external_id: String(portalId),
+        title: profese,
         company: j?.zamestnavatel?.nazev ?? null,
-        location: j?.mistoVykonuPrace?.obec ?? j?.obec ?? null,
+        location: j?.mistoVykonuPrace?.obec?.nazev ?? j?.mistoVykonuPrace?.adresa ?? null,
         country: "Czech Republic",
-        salary_min: typeof j?.mzdaOd === "number" ? j.mzdaOd : (typeof mzda === "number" ? mzda : null),
-        salary_max: typeof j?.mzdaDo === "number" ? j.mzdaDo : null,
+        salary_min: typeof j?.mesicniMzdaOd === "number" ? j.mesicniMzdaOd : null,
+        salary_max: typeof j?.mesicniMzdaDo === "number" ? j.mesicniMzdaDo : null,
         currency: "CZK",
-        description: j?.popis ?? null,
+        description: j?.poznamka ?? j?.dalsiInformace ?? null,
         url,
-        job_type: j?.druhPracovnihoPomeru?.nazev ?? null,
+        job_type: typeof j?.pocetHodinTydne === "number" && j.pocetHodinTydne >= 35 ? "Full-time" : "Part-time",
         raw_data: j,
-        posted_at: j?.datumZverejneni ?? null,
+        posted_at: j?.datumVlozeni ?? null,
       };
     })
     .filter((x: NormalizedJob | null): x is NormalizedJob => !!x);
 }
 
 async function fetchNAV(): Promise<NormalizedJob[]> {
-  const res = await fetch("https://arbeidsplassen.nav.no/public-feed/api/v1/ads?size=100", {
-    headers: { Accept: "application/json" },
+  // New NAV stilling-feed (May 2025+) requires a Bearer token. Optional: NAV_FEED_TOKEN secret.
+  const token = Deno.env.get("NAV_FEED_TOKEN");
+  if (!token) throw new Error("NAV: NAV_FEED_TOKEN secret not configured (skipping)");
+  const res = await fetch("https://pam-stilling-feed.nav.no/api/v1/feed?size=100", {
+    headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error(`NAV ${res.status}`);
   const data = await res.json();
-  const items = data?.content ?? [];
+  const items = data?.items ?? data?.content ?? [];
   return items
     .map((j: any): NormalizedJob | null => {
-      const url = j?.source_url ?? j?.sourceurl ?? (j?.uuid ? `https://arbeidsplassen.nav.no/stillinger/stilling/${j.uuid}` : null);
+      const id = j?.id ?? j?.uuid;
+      const url = j?.url ?? j?.source_url ?? (id ? `https://arbeidsplassen.nav.no/stillinger/stilling/${id}` : null);
       if (!url) return null;
       return {
         source_portal: "nav.no",
-        external_id: j?.uuid ?? null,
+        external_id: id ?? null,
         title: j?.title ?? "Untitled",
         company: j?.employer?.name ?? null,
-        location: j?.locationList?.[0]?.municipal ?? j?.municipal ?? null,
+        location: j?.location?.municipal ?? j?.locationList?.[0]?.municipal ?? null,
         country: "Norway",
         salary_min: null,
         salary_max: null,
         currency: "NOK",
         description: j?.description ?? null,
         url,
-        job_type: j?.engagementtype ?? null,
+        job_type: j?.engagementType ?? j?.engagementtype ?? null,
         raw_data: j,
         posted_at: j?.published ?? null,
       };
@@ -88,34 +100,35 @@ async function fetchNAV(): Promise<NormalizedJob[]> {
 }
 
 async function fetchEURES(): Promise<NormalizedJob[]> {
-  const res = await fetch(
-    "https://eures.ec.europa.eu/eures-jobs-search-api/api/v1/page-job-search/1?dataSetRequest.pageSize=100",
-    { headers: { Accept: "application/json" } },
-  );
+  // EURES public search endpoint (POST). Reverse-engineered, may change.
+  const res = await fetch("https://europa.eu/eures/eures-apps/searchengine/page/jv-search-api/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ resultsPerPage: 100, page: 1, sortOrder: "BEST_MATCH_DESC" }),
+  });
   if (!res.ok) throw new Error(`EURES ${res.status}`);
   const data = await res.json();
-  const items = data?.data?.jobVacancies ?? data?.jobVacancies ?? [];
+  const items = data?.jvs ?? data?.data?.jvs ?? data?.jobVacancies ?? [];
   return items
     .map((j: any): NormalizedJob | null => {
-      const handle = j?.jobVacancy?.handle ?? j?.handle;
-      const url = handle ? `https://eures.ec.europa.eu/portal/jv-se/jv-details/${handle}` : null;
+      const handle = j?.handle ?? j?.id;
+      const url = handle ? `https://europa.eu/eures/portal/jv-se/jv-details/${handle}` : null;
       if (!url) return null;
-      const v = j?.jobVacancy ?? j;
       return {
         source_portal: "eures.ec.europa.eu",
-        external_id: handle ?? null,
-        title: v?.title ?? "Untitled",
-        company: v?.employer?.name ?? null,
-        location: v?.locations?.[0]?.city ?? null,
-        country: v?.locations?.[0]?.countryName ?? v?.locations?.[0]?.country ?? null,
-        salary_min: v?.wage?.amountMin ?? null,
-        salary_max: v?.wage?.amountMax ?? null,
-        currency: v?.wage?.currency ?? "EUR",
-        description: v?.description ?? v?.summary ?? null,
+        external_id: handle ? String(handle) : null,
+        title: j?.title ?? "Untitled",
+        company: j?.employer?.name ?? null,
+        location: j?.locations?.[0]?.city ?? j?.location?.city ?? null,
+        country: j?.locations?.[0]?.countryCode ?? j?.location?.countryCode ?? null,
+        salary_min: j?.wage?.amountMin ?? null,
+        salary_max: j?.wage?.amountMax ?? null,
+        currency: j?.wage?.currency ?? "EUR",
+        description: j?.description ?? j?.summary ?? null,
         url,
-        job_type: v?.positionScheduleCodes?.[0] ?? null,
+        job_type: j?.positionScheduleCodes?.[0] ?? null,
         raw_data: j,
-        posted_at: v?.datePublished ?? null,
+        posted_at: j?.datePublished ?? null,
       };
     })
     .filter((x: NormalizedJob | null): x is NormalizedJob => !!x);
@@ -184,9 +197,14 @@ Deno.serve(async (req) => {
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Auth check: either cron (x-cron-secret) or admin user JWT
+    // Auth: cron uses x-cron-secret matching vault secret; admin uses JWT
     const cronSecret = req.headers.get("x-cron-secret");
-    const isCron = cronSecret && cronSecret === Deno.env.get("INGEST_CRON_SECRET");
+    let isCron = false;
+    if (cronSecret) {
+      const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE);
+      const { data: ok } = await adminClient.rpc("verify_ingest_cron_secret" as any, { _provided: cronSecret });
+      if (ok === true) isCron = true;
+    }
 
     if (!isCron) {
       const authHeader = req.headers.get("Authorization");

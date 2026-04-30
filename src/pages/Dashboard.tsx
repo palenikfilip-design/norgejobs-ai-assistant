@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useUser, mergeProfilePreset } from "@/context/UserContext";
 import { mockJobs } from "@/data/mockJobs";
 import { matchJobsEnhanced, type EnhancedJob } from "@/utils/jobMatching";
+import { usePublicJobs } from "@/hooks/usePublicJobs";
 import EnhancedJobCard from "@/components/EnhancedJobCard";
 import BlurredJobCard from "@/components/BlurredJobCard";
 import PresetSwitcher from "@/components/PresetSwitcher";
@@ -39,6 +40,8 @@ const Dashboard = () => {
   const { isActive: isPremium } = useSubscription(supabaseUser?.id ?? null);
   const { track } = useJobInteractions(supabaseUser?.id ?? null);
   const { interactions, preferences } = usePreferenceProfile(supabaseUser?.id ?? null, mockJobs);
+  const { jobs: dbJobs } = usePublicJobs(200);
+  const allJobs = useMemo(() => [...dbJobs, ...mockJobs], [dbJobs]);
 
   const [filters, setFilters] = useState<JobFilters>(defaultFilters);
   const [coverLetterOpen, setCoverLetterOpen] = useState(false);
@@ -52,7 +55,7 @@ const Dashboard = () => {
   // Match jobs using all active presets, deduplicate by job id, keep best score
   const matchedJobs = useMemo((): EnhancedJob[] => {
     if (activeAvatars.length === 0) {
-      return mockJobs.map(j => ({
+      return allJobs.map(j => ({
         ...j,
         matchScore: 70,
         matchDetails: [],
@@ -64,7 +67,7 @@ const Dashboard = () => {
     }
     const jobMap = new Map<string, EnhancedJob>();
     activeAvatars.forEach(avatar => {
-      const matched = matchJobsEnhanced(mockJobs, avatar);
+      const matched = matchJobsEnhanced(allJobs, avatar);
       matched.forEach(job => {
         const existing = jobMap.get(job.id);
         if (!existing || job.matchScore > existing.matchScore) {
@@ -79,12 +82,12 @@ const Dashboard = () => {
     // Behavior-aware re-ranking (Premium): blend match (70%) + behavior (30%)
     return arr
       .map((j) => {
-        const bScore = computeBehaviorScore(j, interactions, preferences, mockJobs);
+        const bScore = computeBehaviorScore(j, interactions, preferences, allJobs);
         const finalScore = Math.round(j.matchScore * 0.7 + bScore * 0.3);
         return { ...j, matchScore: finalScore };
       })
       .sort((a, b) => b.matchScore - a.matchScore);
-  }, [activeAvatars, isPremium, interactions, preferences]);
+  }, [activeAvatars, isPremium, interactions, preferences, allJobs]);
 
   const filteredJobs = useMemo(() => {
     let jobs = matchedJobs;
@@ -132,8 +135,8 @@ const Dashboard = () => {
     const preset = activePresets.find((p) => p.id === highlightPresetId);
     if (!preset) return filteredJobs;
     const avatar = mergeProfilePreset(profile, preset);
-    return matchJobsEnhanced(mockJobs, avatar).sort((a, b) => b.matchScore - a.matchScore);
-  }, [highlightPresetId, filteredJobs, activePresets, profile]);
+    return matchJobsEnhanced(allJobs, avatar).sort((a, b) => b.matchScore - a.matchScore);
+  }, [highlightPresetId, filteredJobs, activePresets, profile, allJobs]);
 
   const handleSearch = useCallback(() => {}, []);
 
@@ -319,7 +322,7 @@ const Dashboard = () => {
 
         {/* Filters */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <JobFiltersPanel filters={filters} onFiltersChange={setFilters} onSearch={handleSearch} totalResults={filteredJobs.length} totalJobsCount={mockJobs.length} userCountry={profile.country} />
+          <JobFiltersPanel filters={filters} onFiltersChange={setFilters} onSearch={handleSearch} totalResults={filteredJobs.length} totalJobsCount={allJobs.length} userCountry={profile.country} />
         </motion.div>
 
         {/* Daily limit banner */}

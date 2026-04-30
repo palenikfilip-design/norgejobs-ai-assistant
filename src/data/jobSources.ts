@@ -54,6 +54,14 @@ export const JOB_SOURCE_CATALOG: Omit<JobSource, "active" | "auto_assigned">[] =
     url_patterns: ["jobs.cz"],
   },
   {
+    id: "mpsv_cz",
+    name: "MPSV (úřad práce)",
+    type: "job_portal",
+    base_url: "https://data.mpsv.cz",
+    countries: ["Czech Republic"],
+    url_patterns: ["mpsv.cz"],
+  },
+  {
     id: "prace_cz",
     name: "Prace.cz",
     type: "job_portal",

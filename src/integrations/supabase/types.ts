@@ -506,6 +506,11 @@ export type Database = {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
       }
+      set_ingest_cron_secret: { Args: { _value: string }; Returns: undefined }
+      verify_ingest_cron_secret: {
+        Args: { _provided: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
