@@ -24,74 +24,57 @@ interface NormalizedJob {
 async function fetchMpsv(limit = 200): Promise<NormalizedJob[]> {
   try {
     console.log("Starting MPSV fetch");
-    // The full JSON is ~175MB. Stream it and parse only the first N objects
-    // by scanning brace boundaries to avoid OOM in the edge runtime.
+    // The full JSON is ~175MB. Use HTTP Range to grab only the first chunk
+    // and parse complete top-level objects out of it via brace counting.
     const r = await fetch(
       "https://data.mpsv.cz/od/soubory/volna-mista/volna-mista.json",
-      { headers: { Accept: "application/json" } },
+      {
+        headers: {
+          Accept: "application/json",
+          Range: "bytes=0-524287", // first 512 KB
+        },
+      },
     );
     console.log("MPSV status:", r.status);
-    if (!r.ok || !r.body) return [];
+    if (!r.ok && r.status !== 206) return [];
+    const text = await r.text();
+    console.log("MPSV chars:", text.length);
 
-    const reader = r.body.getReader();
-    const decoder = new TextDecoder();
+    // Find start of array
+    const arrStart = text.indexOf("[");
     const items: any[] = [];
-    let buf = "";
-    let started = false;
-    let depth = 0;
-    let inStr = false;
-    let escape = false;
-    let objStart = -1;
-    let totalBytes = 0;
-    const MAX_BYTES = 8 * 1024 * 1024; // hard safety cap
-
-    outer: while (items.length < limit && totalBytes < MAX_BYTES) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      totalBytes += value.byteLength;
-      buf += decoder.decode(value, { stream: true });
-
-      for (let i = 0; i < buf.length; i++) {
-        const ch = buf[i];
-        if (!started) {
-          if (ch === "[") started = true;
-          continue;
-        }
+    if (arrStart >= 0) {
+      let depth = 0;
+      let inStr = false;
+      let escape = false;
+      let objStart = -1;
+      for (let i = arrStart + 1; i < text.length && items.length < limit; i++) {
+        const ch = text.charCodeAt(i);
         if (inStr) {
           if (escape) escape = false;
-          else if (ch === "\\") escape = true;
-          else if (ch === '"') inStr = false;
+          else if (ch === 92) escape = true; // \
+          else if (ch === 34) inStr = false; // "
           continue;
         }
-        if (ch === '"') { inStr = true; continue; }
-        if (ch === "{") {
+        if (ch === 34) { inStr = true; continue; }
+        if (ch === 123) { // {
           if (depth === 0) objStart = i;
           depth++;
-        } else if (ch === "}") {
+        } else if (ch === 125) { // }
           depth--;
           if (depth === 0 && objStart >= 0) {
-            const slice = buf.slice(objStart, i + 1);
             try {
-              items.push(JSON.parse(slice));
-            } catch (_e) { /* ignore malformed slice */ }
-            objStart = -1;
-            if (items.length >= limit) {
-              try { await reader.cancel(); } catch (_e) { /* ignore */ }
-              break outer;
+              items.push(JSON.parse(text.slice(objStart, i + 1)));
+            } catch (_e) {
+              // truncated last object — stop
+              break;
             }
+            objStart = -1;
           }
         }
       }
-      // Trim consumed prefix to keep buffer small
-      if (depth === 0 && objStart < 0) {
-        // keep tail (could be ", " separator)
-        buf = buf.slice(-2);
-      } else if (objStart > 0) {
-        buf = buf.slice(objStart);
-        objStart = 0;
-      }
     }
-    console.log("MPSV bytes read:", totalBytes, "objects parsed:", items.length);
+    console.log("MPSV objects parsed:", items.length);
     if (items[0]) {
       console.log("MPSV body[0..500]:", JSON.stringify(items[0]).slice(0, 500));
     }
