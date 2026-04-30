@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useUser, mergeProfilePreset } from "@/context/UserContext";
-import { mockJobs } from "@/data/mockJobs";
 import { matchJobsEnhanced, type EnhancedJob } from "@/utils/jobMatching";
 import { useLiveMatches, liveMatchToJob } from "@/hooks/useLiveMatches";
 import EnhancedJobCard from "@/components/EnhancedJobCard";
@@ -14,7 +13,7 @@ import ProfileCompletion from "@/components/ProfileCompletion";
 import JobFiltersPanel from "@/components/JobFiltersPanel";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageCircle, LogOut, Sparkles, BriefcaseBusiness, Filter, Globe, Crown, Eye, Bookmark } from "lucide-react";
+import { MessageCircle, LogOut, Sparkles, BriefcaseBusiness, Filter, Globe, Crown, Eye, Bookmark, Loader2 } from "lucide-react";
 import NotificationsPopover from "@/components/NotificationsPopover";
 import leslieAvatar from "@/assets/leslie-avatar.png";
 import { type JobFilters, defaultFilters } from "@/types/jobFilters";
@@ -39,26 +38,26 @@ const Dashboard = () => {
   const { access, canViewJob, remainingViews, recordJobView, useFreedUnlock } = useUserAccess(supabaseUser?.id ?? null);
   const { isActive: isPremium } = useSubscription(supabaseUser?.id ?? null);
   const { track } = useJobInteractions(supabaseUser?.id ?? null);
-  const { interactions, preferences } = usePreferenceProfile(supabaseUser?.id ?? null, mockJobs);
+  const { interactions, preferences } = usePreferenceProfile(supabaseUser?.id ?? null, []);
   // Live AI-matched jobs from public APIs (MPSV, NAV) — no DB storage
   const avatarForMatching = useMemo(() => {
+    if (!profile.profession && !profile.country) return null;
     const a = activeAvatars[0];
-    if (!a) return null;
     return {
       profession: profile.profession,
       country: profile.country,
       languages: profile.languages,
       experience_level: profile.experienceLevel,
-      preferred_countries: a.preferredCountries,
-      preferred_job_type: a.preferredJobType,
-      salary_min: a.salaryMin,
-      salary_max: a.salaryMax,
-      desired_bonuses: a.desiredBonuses,
+      preferred_countries: a?.preferredCountries ?? [],
+      preferred_job_type: a?.preferredJobType ?? null,
+      salary_min: a?.salaryMin ?? null,
+      salary_max: a?.salaryMax ?? null,
+      desired_bonuses: a?.desiredBonuses ?? [],
     };
   }, [activeAvatars, profile]);
   const { matches: liveMatches, loading: liveLoading } = useLiveMatches(avatarForMatching);
   const liveJobs = useMemo(() => liveMatches.map(liveMatchToJob), [liveMatches]);
-  const allJobs = useMemo(() => [...liveJobs, ...mockJobs], [liveJobs]);
+  const allJobs = useMemo(() => liveJobs, [liveJobs]);
 
   const [filters, setFilters] = useState<JobFilters>(defaultFilters);
   const [coverLetterOpen, setCoverLetterOpen] = useState(false);
