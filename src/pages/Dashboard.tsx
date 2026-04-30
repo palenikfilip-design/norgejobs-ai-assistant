@@ -374,6 +374,12 @@ const Dashboard = () => {
           <h2 className="text-xl font-bold text-foreground">{t("dashboard.topMatches")}</h2>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
+          {liveLoading && filteredJobs.length === 0 && (
+            <div className="col-span-2 text-center py-12 text-muted-foreground flex flex-col items-center gap-3">
+              <Loader2 className="w-6 h-6 animate-spin text-accent" />
+              <span>Načítám nabídky...</span>
+            </div>
+          )}
           {filteredJobs.map((job, i) => {
             const isViewed = viewedJobIds.has(job.id);
             const isWithinLimit = i < access.dailyViewLimit || access.isPremium;
@@ -408,7 +414,7 @@ const Dashboard = () => {
               />
             );
           })}
-          {filteredJobs.length === 0 && (
+          {!liveLoading && filteredJobs.length === 0 && (
             <div className="col-span-2 text-center py-12 text-muted-foreground">
               {t("dashboard.noJobsFilters")}
             </div>
