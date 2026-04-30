@@ -1,5 +1,5 @@
-// Live job matching: fetches MPSV (CZ) + NAV (NO) public APIs and AI-scores
-// each job against the user's avatar. No job content is stored in our DB.
+// Live job matching: fetches MPSV (CZ) + Remotive + The Muse public APIs
+// and AI-scores each job against the user's avatar. No job content is stored.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,41 +21,39 @@ interface NormalizedJob {
   job_type: string | null;
 }
 
-async function fetchMpsv(limit = 50): Promise<NormalizedJob[]> {
+async function fetchMpsv(limit = 200): Promise<NormalizedJob[]> {
   try {
     console.log("Starting MPSV fetch");
     const r = await fetch(
-      `https://data.mpsv.cz/api/v1/volna-mista?pocet=${limit}`,
+      "https://data.mpsv.cz/od/soubory/volna-mista/volna-mista.json",
       { headers: { Accept: "application/json" } },
     );
-    const text = await r.text();
-    console.log("MPSV status:", r.status, "body[0..500]:", text.slice(0, 500));
-    if (!r.ok) return [];
-    const data = JSON.parse(text);
-    const items = data?.polozky ?? [];
+    console.log("MPSV status:", r.status);
+    if (!r.ok) {
+      const preview = await r.text();
+      console.log("MPSV body[0..500]:", preview.slice(0, 500));
+      return [];
+    }
+    const data = await r.json();
+    const arr: any[] = Array.isArray(data)
+      ? data
+      : (data?.polozky ?? data?.items ?? data?.data ?? []);
+    console.log("MPSV body[0..500]:", JSON.stringify(arr[0] ?? data).slice(0, 500));
+    const items = arr.slice(0, limit);
     const mapped = items.map((j: any): NormalizedJob => {
-      const id = j?.id ?? j?.referenceniCislo ?? crypto.randomUUID();
-      const title =
-        j?.profese?.nazev ?? j?.nazevPracovnihoMista ?? "Volné místo";
-      const company =
-        j?.zamestnavatel?.nazev ?? j?.kontaktniOsoba?.zamestnavatel ?? null;
-      const city =
-        j?.pracoviste?.[0]?.adresa?.obec ??
-        j?.mistoVykonuPrace?.[0]?.obec ??
-        null;
-      const min = j?.mesicniMzdaOd ?? j?.mzdaOd ?? null;
-      const max = j?.mesicniMzdaDo ?? j?.mzdaDo ?? null;
+      const id =
+        j?.ID ?? j?.id ?? j?.REFERENCNI_CISLO ?? j?.referenceniCislo ?? crypto.randomUUID();
       return {
         source_portal: "mpsv.cz",
         external_id: String(id),
-        title,
-        company,
-        location: city,
-        country: "CZ",
-        salary_min: min ? Number(min) : null,
-        salary_max: max ? Number(max) : null,
+        title: j?.NAZEV_PRACOVNIHO_MISTA ?? j?.nazevPracovnihoMista ?? "Volné místo",
+        company: j?.NAZEV_ZAMESTNAVATELE ?? j?.zamestnavatel ?? null,
+        location: j?.OBEC ?? null,
+        country: "Czech Republic",
+        salary_min: j?.MZDA_OD ? Number(j.MZDA_OD) : null,
+        salary_max: j?.MZDA_DO ? Number(j.MZDA_DO) : null,
         currency: "CZK",
-        url: `https://www.uradprace.cz/web/cz/volna-mista-detail?id=${id}`,
+        url: `https://www.mpsv.cz/web/cz/detail-volneho-mista?id=${id}`,
         job_type: null,
       };
     });
@@ -67,137 +65,84 @@ async function fetchMpsv(limit = 50): Promise<NormalizedJob[]> {
   }
 }
 
-async function fetchNav(limit = 50): Promise<NormalizedJob[]> {
+async function fetchRemotive(limit = 100): Promise<NormalizedJob[]> {
   try {
-    console.log("Starting NAV fetch");
+    console.log("Starting Remotive fetch");
     const r = await fetch(
-      `https://arbeidsplassen.nav.no/public-feed/api/v1/ads?size=${limit}`,
+      `https://remotive.com/api/remote-jobs?limit=${limit}`,
       { headers: { Accept: "application/json" } },
     );
     const text = await r.text();
-    console.log("NAV status:", r.status, "body[0..500]:", text.slice(0, 500));
+    console.log("Remotive status:", r.status, "body[0..500]:", text.slice(0, 500));
     if (!r.ok) return [];
     const data = JSON.parse(text);
-    const items = data?.content ?? [];
+    const items: any[] = data?.jobs ?? [];
     const mapped = items.map((j: any): NormalizedJob => {
-      const id = j?.uuid ?? j?.id ?? crypto.randomUUID();
+      const id = j?.id ?? crypto.randomUUID();
+      const salaryStr: string | null = j?.salary || null;
+      const nums = salaryStr
+        ? (salaryStr.match(/\d[\d,\.]*/g) ?? []).map((n) => Number(n.replace(/,/g, "")))
+        : [];
+      const currency = salaryStr
+        ? /eur|€/i.test(salaryStr)
+          ? "EUR"
+          : /\$|usd/i.test(salaryStr)
+            ? "USD"
+            : null
+        : null;
       return {
-        source_portal: "nav.no",
+        source_portal: "remotive.com",
         external_id: String(id),
-        title: j?.title ?? "Stilling",
-        company: j?.employer?.name ?? null,
-        location:
-          j?.locations?.[0]?.city ??
-          j?.locations?.[0]?.municipal ??
-          j?.locations?.[0]?.country ??
-          null,
-        country: "NO",
-        salary_min: null,
-        salary_max: null,
-        currency: "NOK",
-        url: `https://arbeidsplassen.nav.no/stillinger/stilling/${id}`,
-        job_type: j?.jobtitle ?? null,
+        title: j?.title ?? "Remote Job",
+        company: j?.company_name ?? null,
+        location: j?.candidate_required_location ?? null,
+        country: "Remote / Global",
+        salary_min: nums[0] ?? null,
+        salary_max: nums[1] ?? nums[0] ?? null,
+        currency,
+        url: j?.url ?? "https://remotive.com",
+        job_type: j?.job_type ?? null,
       };
     });
-    console.log("NAV jobs count:", mapped.length);
+    console.log("Remotive jobs count:", mapped.length);
     return mapped;
   } catch (e) {
-    console.error("NAV fetch failed:", e);
+    console.error("Remotive fetch failed:", e);
     return [];
   }
 }
 
-async function fetchEures(pageSize = 100): Promise<NormalizedJob[]> {
-  const mapItems = (items: any[]): NormalizedJob[] => {
-    return (items ?? []).map((j: any): NormalizedJob => {
-      const id = j?.id ?? j?.handle ?? crypto.randomUUID();
-      const handle = j?.handle ?? j?.jobHandle ?? null;
-      const url =
-        j?.jobUrl ??
-        (handle ? `https://eures.ec.europa.eu/eures-jobs/${handle}` : `https://eures.ec.europa.eu/eures-jobs/${id}`);
-      const wageRaw = j?.experienceItems?.[0]?.wage ?? null;
-      const wageNum =
-        typeof wageRaw === "number"
-          ? wageRaw
-          : typeof wageRaw === "string"
-            ? Number(String(wageRaw).replace(/[^0-9.]/g, "")) || null
-            : null;
+async function fetchMuse(): Promise<NormalizedJob[]> {
+  try {
+    console.log("Starting The Muse fetch");
+    const url =
+      "https://www.themuse.com/api/public/jobs?page=1&level=Entry+Level&level=Mid+Level&location=Flexible+%2F+Remote&descending=true";
+    const r = await fetch(url, { headers: { Accept: "application/json" } });
+    const text = await r.text();
+    console.log("Muse status:", r.status, "body[0..500]:", text.slice(0, 500));
+    if (!r.ok) return [];
+    const data = JSON.parse(text);
+    const items: any[] = data?.results ?? [];
+    const mapped = items.map((j: any): NormalizedJob => {
+      const id = j?.id ?? j?.short_name ?? crypto.randomUUID();
       return {
-        source_portal: "eures.ec.europa.eu",
+        source_portal: "themuse.com",
         external_id: String(id),
-        title: j?.jobTitle ?? j?.title ?? "Job",
-        company: j?.employer?.name ?? j?.companyName ?? null,
-        location: j?.city ?? j?.location ?? null,
-        country: j?.country ?? null,
-        salary_min: wageNum,
-        salary_max: wageNum,
-        currency: j?.experienceItems?.[0]?.currency ?? "EUR",
-        url,
-        job_type: j?.positionScheduleCodes?.[0] ?? null,
+        title: j?.name ?? "Job",
+        company: j?.company?.name ?? null,
+        location: j?.locations?.[0]?.name ?? null,
+        country: "Global",
+        salary_min: null,
+        salary_max: null,
+        currency: null,
+        url: j?.refs?.landing_page ?? "https://www.themuse.com",
+        job_type: j?.type ?? null,
       };
     });
-  };
-
-  const extractItems = (data: any): any[] =>
-    data?.jobVacancies ??
-    data?.data?.jobVacancies ??
-    data?.content ??
-    data?.items ??
-    data?.results ??
-    [];
-
-  // Try POST primary endpoint
-  try {
-    console.log("Starting EURES fetch (POST)");
-    const r = await fetch(
-      "https://eures.ec.europa.eu/eures-jobs-search-api/api/v1/page-job-search/1",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          dataSetRequest: {
-            pageNum: 0,
-            pageSize,
-            sortBy: "BEST_MATCH",
-          },
-        }),
-      },
-    );
-    const text = await r.text();
-    console.log("EURES POST status:", r.status, "body[0..500]:", text.slice(0, 500));
-    if (r.ok) {
-      const data = JSON.parse(text);
-      const mapped = mapItems(extractItems(data));
-      console.log("EURES jobs count:", mapped.length);
-      return mapped;
-    }
-    console.warn("EURES POST failed:", r.status);
-  } catch (e) {
-    console.error("EURES POST error:", e);
-  }
-
-  // GET fallback
-  try {
-    console.log("Starting EURES fetch (GET fallback)");
-    const r = await fetch(
-      `https://eures.ec.europa.eu/eures-jobs-search-api/api/v1/page-job-search/1?dataSetRequest.pageSize=${pageSize}`,
-      { headers: { Accept: "application/json" } },
-    );
-    const text = await r.text();
-    console.log("EURES GET status:", r.status, "body[0..500]:", text.slice(0, 500));
-    if (!r.ok) {
-      console.warn("EURES GET failed:", r.status);
-      return [];
-    }
-    const data = JSON.parse(text);
-    const mapped = mapItems(extractItems(data));
-    console.log("EURES jobs count:", mapped.length);
+    console.log("Muse jobs count:", mapped.length);
     return mapped;
   } catch (e) {
-    console.error("EURES GET error:", e);
+    console.error("Muse fetch failed:", e);
     return [];
   }
 }
@@ -311,20 +256,27 @@ Deno.serve(async (req) => {
     }
 
     const wantMpsv = !sources || sources.includes("mpsv.cz");
-    const wantNav = !sources || sources.includes("nav.no");
-    const wantEures = !sources || sources.includes("eures.ec.europa.eu");
+    const wantRemotive = !sources || sources.includes("remotive.com");
+    const wantMuse = !sources || sources.includes("themuse.com");
 
-    const [mpsv, nav, eures] = await Promise.all([
-      wantMpsv ? fetchMpsv(50) : Promise.resolve([]),
-      wantNav ? fetchNav(50) : Promise.resolve([]),
-      wantEures ? fetchEures(100) : Promise.resolve([]),
+    const [mpsv, remotive, muse] = await Promise.all([
+      wantMpsv ? fetchMpsv(200) : Promise.resolve([]),
+      wantRemotive ? fetchRemotive(100) : Promise.resolve([]),
+      wantMuse ? fetchMuse() : Promise.resolve([]),
     ]);
 
-    const eures_raw_job_count = eures.length;
-    const allJobs = [...mpsv, ...nav, ...eures];
+    const allJobs = [...mpsv, ...remotive, ...muse];
     console.log("Total jobs before scoring:", allJobs.length);
+
+    const debug = {
+      mpsv_raw_job_count: mpsv.length,
+      remotive_raw_job_count: remotive.length,
+      themuse_raw_job_count: muse.length,
+      total_before_scoring: allJobs.length,
+    };
+
     if (allJobs.length === 0) {
-      return new Response(JSON.stringify({ matches: [], debug: { eures_raw_job_count, mpsv_raw_job_count: mpsv.length, nav_raw_job_count: nav.length } }), {
+      return new Response(JSON.stringify({ matches: [], debug }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -348,11 +300,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         matches,
         total_fetched: allJobs.length,
-        debug: {
-          eures_raw_job_count,
-          mpsv_raw_job_count: mpsv.length,
-          nav_raw_job_count: nav.length,
-        },
+        debug: { ...debug, total_after_scoring: matches.length },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
