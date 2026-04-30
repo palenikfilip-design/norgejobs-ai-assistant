@@ -219,15 +219,7 @@ const Dashboard = () => {
                   variant="outline"
                   className="h-7 px-2 text-xs"
                   onClick={async () => {
-                    if (!supabaseUser) return;
-                    const { error } = await supabase.from("subscriptions").upsert({
-                      user_id: supabaseUser.id,
-                      environment: "sandbox",
-                      status: "active",
-                      price_id: "premium_monthly",
-                      product_id: "premium_plan",
-                      current_period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-                    }, { onConflict: "user_id,environment" });
+                    const { error } = await supabase.functions.invoke("dev-grant", { body: { action: "premium" } });
                     if (error) {
                       toast({ title: "Premium error", description: error.message, variant: "destructive" });
                     } else {
@@ -243,11 +235,7 @@ const Dashboard = () => {
                   variant="outline"
                   className="h-7 px-2 text-xs"
                   onClick={async () => {
-                    if (!supabaseUser) return;
-                    const { error } = await supabase.from("user_roles").upsert({
-                      user_id: supabaseUser.id,
-                      role: "admin",
-                    }, { onConflict: "user_id,role" });
+                    const { error } = await supabase.functions.invoke("dev-grant", { body: { action: "admin" } });
                     if (error) {
                       toast({ title: "Admin error", description: error.message, variant: "destructive" });
                     } else {
