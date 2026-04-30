@@ -212,6 +212,41 @@ const Dashboard = () => {
           <div className="flex items-center gap-3">
             <img src={leslieAvatar} alt="Leslie AI" className="w-8 h-8 rounded-lg object-cover" />
             <span className="font-display font-bold text-foreground text-lg">Leslie AI</span>
+            {supabaseUser?.email === "palenik.filip@gmail.com" && (
+              <div className="flex items-center gap-1 ml-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-xs"
+                  onClick={async () => {
+                    const { error } = await supabase.functions.invoke("dev-grant", { body: { action: "premium" } });
+                    if (error) {
+                      toast({ title: "Premium error", description: error.message, variant: "destructive" });
+                    } else {
+                      toast({ title: "Premium aktivováno", description: "Obnov stránku pro projevení změn." });
+                    }
+                  }}
+                >
+                  <Crown className="w-3 h-3 mr-1" />
+                  Premium
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-xs"
+                  onClick={async () => {
+                    const { error } = await supabase.functions.invoke("dev-grant", { body: { action: "admin" } });
+                    if (error) {
+                      toast({ title: "Admin error", description: error.message, variant: "destructive" });
+                    } else {
+                      toast({ title: "Admin role přiřazena" });
+                    }
+                  }}
+                >
+                  Admin
+                </Button>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <LanguageSwitcher />
