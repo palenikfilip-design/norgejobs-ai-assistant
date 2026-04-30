@@ -322,6 +322,7 @@ Deno.serve(async (req) => {
 
     const eures_raw_job_count = eures.length;
     const allJobs = [...mpsv, ...nav, ...eures];
+    console.log("Total jobs before scoring:", allJobs.length);
     if (allJobs.length === 0) {
       return new Response(JSON.stringify({ matches: [], debug: { eures_raw_job_count, mpsv_raw_job_count: mpsv.length, nav_raw_job_count: nav.length } }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -339,8 +340,9 @@ Deno.serve(async (req) => {
 
     const matches = allJobs
       .map((job, i) => ({ ...job, score: scores[i] ?? 0 }))
-      .filter((m) => m.score >= 60)
+      .filter((m) => m.score >= 50)
       .sort((a, b) => b.score - a.score);
+    console.log("Total jobs after scoring (above 50):", matches.length);
 
     return new Response(
       JSON.stringify({
