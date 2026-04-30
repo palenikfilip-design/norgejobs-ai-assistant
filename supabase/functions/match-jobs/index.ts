@@ -24,34 +24,106 @@ interface NormalizedJob {
 async function fetchMpsv(limit = 200): Promise<NormalizedJob[]> {
   try {
     console.log("Starting MPSV fetch");
+    // The full JSON is ~175MB. Stream it and parse only the first N objects
+    // by scanning brace boundaries to avoid OOM in the edge runtime.
     const r = await fetch(
       "https://data.mpsv.cz/od/soubory/volna-mista/volna-mista.json",
       { headers: { Accept: "application/json" } },
     );
     console.log("MPSV status:", r.status);
-    if (!r.ok) {
-      const preview = await r.text();
-      console.log("MPSV body[0..500]:", preview.slice(0, 500));
-      return [];
+    if (!r.ok || !r.body) return [];
+
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    const items: any[] = [];
+    let buf = "";
+    let started = false;
+    let depth = 0;
+    let inStr = false;
+    let escape = false;
+    let objStart = -1;
+    let totalBytes = 0;
+    const MAX_BYTES = 8 * 1024 * 1024; // hard safety cap
+
+    outer: while (items.length < limit && totalBytes < MAX_BYTES) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      buf += decoder.decode(value, { stream: true });
+
+      for (let i = 0; i < buf.length; i++) {
+        const ch = buf[i];
+        if (!started) {
+          if (ch === "[") started = true;
+          continue;
+        }
+        if (inStr) {
+          if (escape) escape = false;
+          else if (ch === "\\") escape = true;
+          else if (ch === '"') inStr = false;
+          continue;
+        }
+        if (ch === '"') { inStr = true; continue; }
+        if (ch === "{") {
+          if (depth === 0) objStart = i;
+          depth++;
+        } else if (ch === "}") {
+          depth--;
+          if (depth === 0 && objStart >= 0) {
+            const slice = buf.slice(objStart, i + 1);
+            try {
+              items.push(JSON.parse(slice));
+            } catch (_e) { /* ignore malformed slice */ }
+            objStart = -1;
+            if (items.length >= limit) {
+              try { await reader.cancel(); } catch (_e) { /* ignore */ }
+              break outer;
+            }
+          }
+        }
+      }
+      // Trim consumed prefix to keep buffer small
+      if (depth === 0 && objStart < 0) {
+        // keep tail (could be ", " separator)
+        buf = buf.slice(-2);
+      } else if (objStart > 0) {
+        buf = buf.slice(objStart);
+        objStart = 0;
+      }
     }
-    const data = await r.json();
-    const arr: any[] = Array.isArray(data)
-      ? data
-      : (data?.polozky ?? data?.items ?? data?.data ?? []);
-    console.log("MPSV body[0..500]:", JSON.stringify(arr[0] ?? data).slice(0, 500));
-    const items = arr.slice(0, limit);
+    console.log("MPSV bytes read:", totalBytes, "objects parsed:", items.length);
+    if (items[0]) {
+      console.log("MPSV body[0..500]:", JSON.stringify(items[0]).slice(0, 500));
+    }
+
     const mapped = items.map((j: any): NormalizedJob => {
-      const id =
-        j?.ID ?? j?.id ?? j?.REFERENCNI_CISLO ?? j?.referenceniCislo ?? crypto.randomUUID();
+      const id = j?.id ?? j?.referencniCislo ?? j?.portalId ?? crypto.randomUUID();
+      const title =
+        j?.nazevPracovnihoMista ??
+        j?.NAZEV_PRACOVNIHO_MISTA ??
+        j?.pozadovanaProfese?.cs ??
+        j?.profese?.nazev ??
+        "Volné místo";
+      const location =
+        j?.OBEC ??
+        j?.pracoviste?.[0]?.adresa?.obec ??
+        j?.mistoVykonuPrace?.[0]?.obec ??
+        null;
+      const company =
+        j?.NAZEV_ZAMESTNAVATELE ??
+        j?.zamestnavatel?.nazev ??
+        null;
+      const min = j?.MZDA_OD ?? j?.mesicniMzdaOd ?? j?.mzdaOd ?? null;
+      const max = j?.MZDA_DO ?? j?.mesicniMzdaDo ?? j?.mzdaDo ?? null;
       return {
         source_portal: "mpsv.cz",
         external_id: String(id),
-        title: j?.NAZEV_PRACOVNIHO_MISTA ?? j?.nazevPracovnihoMista ?? "Volné místo",
-        company: j?.NAZEV_ZAMESTNAVATELE ?? j?.zamestnavatel ?? null,
-        location: j?.OBEC ?? null,
+        title,
+        company,
+        location,
         country: "Czech Republic",
-        salary_min: j?.MZDA_OD ? Number(j.MZDA_OD) : null,
-        salary_max: j?.MZDA_DO ? Number(j.MZDA_DO) : null,
+        salary_min: min ? Number(min) : null,
+        salary_max: max ? Number(max) : null,
         currency: "CZK",
         url: `https://www.mpsv.cz/web/cz/detail-volneho-mista?id=${id}`,
         job_type: null,
