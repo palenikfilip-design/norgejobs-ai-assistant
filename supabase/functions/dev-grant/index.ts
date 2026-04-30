@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
           current_period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
           cancel_at_period_end: false,
         },
-        { onConflict: "user_id,environment" },
+        { onConflict: "paddle_subscription_id" },
       );
       if (error) throw error;
       return new Response(JSON.stringify({ ok: true, granted: "premium" }), {
