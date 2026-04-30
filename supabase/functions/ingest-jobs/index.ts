@@ -232,9 +232,8 @@ Deno.serve(async (req) => {
       const userClient = createClient(SUPABASE_URL, ANON_KEY, {
         global: { headers: { Authorization: authHeader } },
       });
-      const token = authHeader.replace("Bearer ", "");
-      const { data, error } = await userClient.auth.getClaims(token);
-      if (error || !data?.claims || data.claims.sub !== ADMIN_USER_ID) {
+      const { data, error } = await userClient.auth.getUser();
+      if (error || !data?.user || data.user.id !== ADMIN_USER_ID) {
         return new Response(JSON.stringify({ error: "Forbidden" }), {
           status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
