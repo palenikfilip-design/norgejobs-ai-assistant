@@ -78,12 +78,31 @@ export function useLiveMatches(avatar: unknown | null) {
     if (!avatar) return;
     setLoading(true);
     setError(null);
-    try {
+    const attempt = async (): Promise<LiveMatch[]> => {
       const { data, error } = await supabase.functions.invoke("match-jobs", {
         body: { avatar },
       });
       if (error) throw error;
-      setMatches((data?.matches as LiveMatch[]) ?? []);
+      return (data?.matches as LiveMatch[]) ?? [];
+    };
+    try {
+      let result: LiveMatch[] = [];
+      try {
+        result = await attempt();
+      } catch (e) {
+        console.warn("match-jobs first attempt failed, retrying once:", e);
+        result = await attempt();
+      }
+      if (result.length === 0) {
+        // Retry once when zero results
+        console.log("match-jobs returned 0 results, retrying once");
+        try {
+          result = await attempt();
+        } catch (e) {
+          console.warn("retry failed:", e);
+        }
+      }
+      setMatches(result);
     } catch (e) {
       console.error("Live match failed:", e);
       setError(e instanceof Error ? e.message : "Failed to load matches");
