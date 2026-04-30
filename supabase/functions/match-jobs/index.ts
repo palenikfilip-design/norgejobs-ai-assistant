@@ -23,14 +23,17 @@ interface NormalizedJob {
 
 async function fetchMpsv(limit = 50): Promise<NormalizedJob[]> {
   try {
+    console.log("Starting MPSV fetch");
     const r = await fetch(
       `https://data.mpsv.cz/api/v1/volna-mista?pocet=${limit}`,
       { headers: { Accept: "application/json" } },
     );
+    const text = await r.text();
+    console.log("MPSV status:", r.status, "body[0..500]:", text.slice(0, 500));
     if (!r.ok) return [];
-    const data = await r.json();
+    const data = JSON.parse(text);
     const items = data?.polozky ?? [];
-    return items.map((j: any): NormalizedJob => {
+    const mapped = items.map((j: any): NormalizedJob => {
       const id = j?.id ?? j?.referenceniCislo ?? crypto.randomUUID();
       const title =
         j?.profese?.nazev ?? j?.nazevPracovnihoMista ?? "Volné místo";
@@ -56,6 +59,8 @@ async function fetchMpsv(limit = 50): Promise<NormalizedJob[]> {
         job_type: null,
       };
     });
+    console.log("MPSV jobs count:", mapped.length);
+    return mapped;
   } catch (e) {
     console.error("MPSV fetch failed:", e);
     return [];
