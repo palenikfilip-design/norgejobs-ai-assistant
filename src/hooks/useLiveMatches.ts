@@ -73,54 +73,39 @@ export function useLiveMatches(avatar: unknown | null) {
   const [matches, setMatches] = useState<LiveMatch[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastResponse, setLastResponse] = useState<unknown>(null);
 
   const refresh = useCallback(async () => {
     if (!avatar) return;
     setLoading(true);
     setError(null);
-    const attempt = async (): Promise<{ data: any; matches: LiveMatch[] }> => {
+    const attempt = async (): Promise<LiveMatch[]> => {
       const { data, error } = await supabase.functions.invoke("match-jobs", {
         body: { avatar },
       });
-      console.log("[match-jobs] raw response:", { data, error });
-      if (error) {
-        console.error("[match-jobs] error:", error);
-        throw error;
-      }
-      return { data, matches: (data?.matches as LiveMatch[]) ?? [] };
+      if (error) throw error;
+      return (data?.matches as LiveMatch[]) ?? [];
     };
     try {
       let result: LiveMatch[] = [];
-      let lastData: unknown = null;
       try {
-        const r = await attempt();
-        result = r.matches;
-        lastData = r.data;
+        result = await attempt();
       } catch (e) {
         console.warn("match-jobs first attempt failed, retrying once:", e);
-        const r = await attempt();
-        result = r.matches;
-        lastData = r.data;
+        result = await attempt();
       }
       if (result.length === 0) {
         // Retry once when zero results
-        console.log("match-jobs returned 0 results, retrying once");
         try {
-          const r = await attempt();
-          result = r.matches;
-          lastData = r.data;
+          result = await attempt();
         } catch (e) {
           console.warn("retry failed:", e);
         }
       }
-      setLastResponse(lastData);
       setMatches(result);
     } catch (e) {
       console.error("Live match failed:", e);
       setError(e instanceof Error ? e.message : "Failed to load matches");
       setMatches([]);
-      setLastResponse({ error: e instanceof Error ? e.message : String(e) });
     } finally {
       setLoading(false);
     }
@@ -130,7 +115,7 @@ export function useLiveMatches(avatar: unknown | null) {
     refresh();
   }, [refresh]);
 
-  return { matches, loading, error, refresh, lastResponse };
+  return { matches, loading, error, refresh };
 }
 
 /**
