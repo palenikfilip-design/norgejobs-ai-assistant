@@ -87,17 +87,43 @@ async function fetchMpsv(limit = 200): Promise<NormalizedJob[]> {
         j?.pozadovanaProfese?.cs ??
         j?.profese?.nazev ??
         "Volné místo";
-      const location =
-        j?.OBEC ??
-        j?.pracoviste?.[0]?.adresa?.obec ??
-        j?.mistoVykonuPrace?.[0]?.obec ??
+
+      // Location: OBEC + OKRES
+      const obec = j?.OBEC ?? j?.pracoviste?.[0]?.adresa?.obec ?? j?.mistoVykonuPrace?.[0]?.obec ?? null;
+      const okres = j?.OKRES ?? j?.pracoviste?.[0]?.adresa?.okres ?? null;
+      const location = [obec, okres].filter((s) => s && String(s).trim()).join(", ") || null;
+
+      const company = j?.NAZEV_ZAMESTNAVATELE ?? j?.zamestnavatel?.nazev ?? null;
+
+      // Salary: try MZDA_OD/DO, then MINIMALNI_MZDA, then MZDOVE_PODMINKY
+      const candMin = j?.MZDA_OD ?? j?.mesicniMzdaOd ?? j?.mzdaOd ?? j?.MINIMALNI_MZDA ?? null;
+      const candMax = j?.MZDA_DO ?? j?.mesicniMzdaDo ?? j?.mzdaDo ?? null;
+      let minN = candMin != null ? Number(candMin) : null;
+      let maxN = candMax != null ? Number(candMax) : null;
+      if (minN === 0) minN = null;
+      if (maxN === 0) maxN = null;
+      // Try MZDOVE_PODMINKY string fallback
+      if (minN == null && maxN == null && typeof j?.MZDOVE_PODMINKY === "string") {
+        const nums = (j.MZDOVE_PODMINKY.match(/\d[\d\s]*/g) ?? [])
+          .map((s: string) => Number(s.replace(/\s/g, "")))
+          .filter((n: number) => !isNaN(n) && n > 100);
+        if (nums.length > 0) {
+          minN = nums[0];
+          maxN = nums[1] ?? nums[0];
+        }
+      }
+      const hasSalary = (minN != null && minN > 0) || (maxN != null && maxN > 0);
+
+      // URL: use detail URL if provided, otherwise generic landing page
+      const detailUrl =
+        j?.URL_DETAILU_VOLNEHO_MISTA ??
+        j?.urlDetailu ??
         null;
-      const company =
-        j?.NAZEV_ZAMESTNAVATELE ??
-        j?.zamestnavatel?.nazev ??
-        null;
-      const min = j?.MZDA_OD ?? j?.mesicniMzdaOd ?? j?.mzdaOd ?? null;
-      const max = j?.MZDA_DO ?? j?.mesicniMzdaDo ?? j?.mzdaDo ?? null;
+      const url =
+        detailUrl && /^https?:\/\//i.test(detailUrl)
+          ? detailUrl
+          : "https://www.uradprace.cz/volna-mista";
+
       return {
         source_portal: "mpsv.cz",
         external_id: String(id),
@@ -105,10 +131,10 @@ async function fetchMpsv(limit = 200): Promise<NormalizedJob[]> {
         company,
         location,
         country: "Czech Republic",
-        salary_min: min ? Number(min) : null,
-        salary_max: max ? Number(max) : null,
-        currency: "CZK",
-        url: `https://www.mpsv.cz/web/cz/detail-volneho-mista?id=${id}`,
+        salary_min: hasSalary ? minN : null,
+        salary_max: hasSalary ? maxN : null,
+        currency: hasSalary ? "CZK" : null,
+        url,
         job_type: null,
       };
     });
