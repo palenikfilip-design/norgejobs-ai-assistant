@@ -55,7 +55,7 @@ const Dashboard = () => {
       desired_bonuses: a?.desiredBonuses ?? [],
     };
   }, [activeAvatars, profile]);
-  const { matches: liveMatches, loading: liveLoading } = useLiveMatches(avatarForMatching);
+  const { matches: liveMatches, loading: liveLoading, error: liveError, lastResponse: liveResponse } = useLiveMatches(avatarForMatching);
   const liveJobs = useMemo(() => liveMatches.map(liveMatchToJob), [liveMatches]);
   const allJobs = useMemo(() => liveJobs, [liveJobs]);
 
