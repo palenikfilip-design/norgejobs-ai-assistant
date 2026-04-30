@@ -69,14 +69,17 @@ async function fetchMpsv(limit = 50): Promise<NormalizedJob[]> {
 
 async function fetchNav(limit = 50): Promise<NormalizedJob[]> {
   try {
+    console.log("Starting NAV fetch");
     const r = await fetch(
       `https://arbeidsplassen.nav.no/public-feed/api/v1/ads?size=${limit}`,
       { headers: { Accept: "application/json" } },
     );
+    const text = await r.text();
+    console.log("NAV status:", r.status, "body[0..500]:", text.slice(0, 500));
     if (!r.ok) return [];
-    const data = await r.json();
+    const data = JSON.parse(text);
     const items = data?.content ?? [];
-    return items.map((j: any): NormalizedJob => {
+    const mapped = items.map((j: any): NormalizedJob => {
       const id = j?.uuid ?? j?.id ?? crypto.randomUUID();
       return {
         source_portal: "nav.no",
@@ -96,6 +99,8 @@ async function fetchNav(limit = 50): Promise<NormalizedJob[]> {
         job_type: j?.jobtitle ?? null,
       };
     });
+    console.log("NAV jobs count:", mapped.length);
+    return mapped;
   } catch (e) {
     console.error("NAV fetch failed:", e);
     return [];
@@ -143,6 +148,7 @@ async function fetchEures(pageSize = 100): Promise<NormalizedJob[]> {
 
   // Try POST primary endpoint
   try {
+    console.log("Starting EURES fetch (POST)");
     const r = await fetch(
       "https://eures.ec.europa.eu/eures-jobs-search-api/api/v1/page-job-search/1",
       {
@@ -160,9 +166,13 @@ async function fetchEures(pageSize = 100): Promise<NormalizedJob[]> {
         }),
       },
     );
+    const text = await r.text();
+    console.log("EURES POST status:", r.status, "body[0..500]:", text.slice(0, 500));
     if (r.ok) {
-      const data = await r.json();
-      return mapItems(extractItems(data));
+      const data = JSON.parse(text);
+      const mapped = mapItems(extractItems(data));
+      console.log("EURES jobs count:", mapped.length);
+      return mapped;
     }
     console.warn("EURES POST failed:", r.status);
   } catch (e) {
@@ -171,16 +181,21 @@ async function fetchEures(pageSize = 100): Promise<NormalizedJob[]> {
 
   // GET fallback
   try {
+    console.log("Starting EURES fetch (GET fallback)");
     const r = await fetch(
       `https://eures.ec.europa.eu/eures-jobs-search-api/api/v1/page-job-search/1?dataSetRequest.pageSize=${pageSize}`,
       { headers: { Accept: "application/json" } },
     );
+    const text = await r.text();
+    console.log("EURES GET status:", r.status, "body[0..500]:", text.slice(0, 500));
     if (!r.ok) {
       console.warn("EURES GET failed:", r.status);
       return [];
     }
-    const data = await r.json();
-    return mapItems(extractItems(data));
+    const data = JSON.parse(text);
+    const mapped = mapItems(extractItems(data));
+    console.log("EURES jobs count:", mapped.length);
+    return mapped;
   } catch (e) {
     console.error("EURES GET error:", e);
     return [];
