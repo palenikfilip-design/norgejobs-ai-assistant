@@ -507,6 +507,10 @@ export type Database = {
         Returns: boolean
       }
       set_ingest_cron_secret: { Args: { _value: string }; Returns: undefined }
+      verify_ingest_cron_secret: {
+        Args: { _provided: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
