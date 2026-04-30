@@ -189,14 +189,8 @@ Deno.serve(async (req) => {
     let isCron = false;
     if (cronSecret) {
       const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE);
-      const { data: secretRow } = await adminClient
-        .schema("vault" as any)
-        .from("decrypted_secrets" as any)
-        .select("decrypted_secret")
-        .eq("name", "INGEST_CRON_SECRET")
-        .maybeSingle();
-      const expected = (secretRow as any)?.decrypted_secret as string | undefined;
-      if (expected && cronSecret === expected) isCron = true;
+      const { data: ok } = await adminClient.rpc("verify_ingest_cron_secret" as any, { _provided: cronSecret });
+      if (ok === true) isCron = true;
     }
 
     if (!isCron) {
