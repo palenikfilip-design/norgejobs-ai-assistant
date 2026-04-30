@@ -212,6 +212,53 @@ const Dashboard = () => {
           <div className="flex items-center gap-3">
             <img src={leslieAvatar} alt="Leslie AI" className="w-8 h-8 rounded-lg object-cover" />
             <span className="font-display font-bold text-foreground text-lg">Leslie AI</span>
+            {supabaseUser?.email === "palenik.filip@gmail.com" && (
+              <div className="flex items-center gap-1 ml-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-xs"
+                  onClick={async () => {
+                    if (!supabaseUser) return;
+                    const { error } = await supabase.from("subscriptions").upsert({
+                      user_id: supabaseUser.id,
+                      environment: "sandbox",
+                      status: "active",
+                      price_id: "premium_monthly",
+                      product_id: "premium_plan",
+                      current_period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+                    }, { onConflict: "user_id,environment" });
+                    if (error) {
+                      toast({ title: "Premium error", description: error.message, variant: "destructive" });
+                    } else {
+                      toast({ title: "Premium aktivováno", description: "Obnov stránku pro projevení změn." });
+                    }
+                  }}
+                >
+                  <Crown className="w-3 h-3 mr-1" />
+                  Premium
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-xs"
+                  onClick={async () => {
+                    if (!supabaseUser) return;
+                    const { error } = await supabase.from("user_roles").upsert({
+                      user_id: supabaseUser.id,
+                      role: "admin",
+                    }, { onConflict: "user_id,role" });
+                    if (error) {
+                      toast({ title: "Admin error", description: error.message, variant: "destructive" });
+                    } else {
+                      toast({ title: "Admin role přiřazena" });
+                    }
+                  }}
+                >
+                  Admin
+                </Button>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <LanguageSwitcher />
