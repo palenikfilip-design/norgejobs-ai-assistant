@@ -47,6 +47,42 @@ export type Database = {
         }
         Relationships: []
       }
+      job_matches: {
+        Row: {
+          clicked_at: string | null
+          created_at: string
+          id: string
+          location: string | null
+          score: number
+          source_portal: string
+          source_url: string
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          clicked_at?: string | null
+          created_at?: string
+          id?: string
+          location?: string | null
+          score: number
+          source_portal: string
+          source_url: string
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          clicked_at?: string | null
+          created_at?: string
+          id?: string
+          location?: string | null
+          score?: number
+          source_portal?: string
+          source_url?: string
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       job_preferences: {
         Row: {
           category: string

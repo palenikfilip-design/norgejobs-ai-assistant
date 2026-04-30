@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useUser, mergeProfilePreset } from "@/context/UserContext";
 import { mockJobs } from "@/data/mockJobs";
 import { matchJobsEnhanced, type EnhancedJob } from "@/utils/jobMatching";
-import { usePublicJobs } from "@/hooks/usePublicJobs";
+import { useLiveMatches, liveMatchToJob } from "@/hooks/useLiveMatches";
 import EnhancedJobCard from "@/components/EnhancedJobCard";
 import BlurredJobCard from "@/components/BlurredJobCard";
 import PresetSwitcher from "@/components/PresetSwitcher";
@@ -40,8 +40,25 @@ const Dashboard = () => {
   const { isActive: isPremium } = useSubscription(supabaseUser?.id ?? null);
   const { track } = useJobInteractions(supabaseUser?.id ?? null);
   const { interactions, preferences } = usePreferenceProfile(supabaseUser?.id ?? null, mockJobs);
-  const { jobs: dbJobs } = usePublicJobs(200);
-  const allJobs = useMemo(() => [...dbJobs, ...mockJobs], [dbJobs]);
+  // Live AI-matched jobs from public APIs (MPSV, NAV) — no DB storage
+  const avatarForMatching = useMemo(() => {
+    const a = activeAvatars[0];
+    if (!a) return null;
+    return {
+      profession: profile.profession,
+      country: profile.country,
+      languages: profile.languages,
+      experience_level: profile.experienceLevel,
+      preferred_countries: a.preferredCountries,
+      preferred_job_type: a.preferredJobType,
+      salary_min: a.salaryMin,
+      salary_max: a.salaryMax,
+      desired_bonuses: a.desiredBonuses,
+    };
+  }, [activeAvatars, profile]);
+  const { matches: liveMatches, loading: liveLoading } = useLiveMatches(avatarForMatching);
+  const liveJobs = useMemo(() => liveMatches.map(liveMatchToJob), [liveMatches]);
+  const allJobs = useMemo(() => [...liveJobs, ...mockJobs], [liveJobs]);
 
   const [filters, setFilters] = useState<JobFilters>(defaultFilters);
   const [coverLetterOpen, setCoverLetterOpen] = useState(false);
