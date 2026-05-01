@@ -224,6 +224,7 @@ export type Database = {
       profiles: {
         Row: {
           age: number | null
+          avatar_json: Json
           certifications: Json
           country: string
           created_at: string
@@ -234,7 +235,9 @@ export type Database = {
           has_completed_onboarding: boolean
           id: string
           languages: Json
+          needs_rescore: boolean
           personality: string | null
+          preferences_updated_at: string | null
           profession: string
           skills: Json
           updated_at: string
@@ -243,6 +246,7 @@ export type Database = {
         }
         Insert: {
           age?: number | null
+          avatar_json?: Json
           certifications?: Json
           country?: string
           created_at?: string
@@ -253,7 +257,9 @@ export type Database = {
           has_completed_onboarding?: boolean
           id?: string
           languages?: Json
+          needs_rescore?: boolean
           personality?: string | null
+          preferences_updated_at?: string | null
           profession?: string
           skills?: Json
           updated_at?: string
@@ -262,6 +268,7 @@ export type Database = {
         }
         Update: {
           age?: number | null
+          avatar_json?: Json
           certifications?: Json
           country?: string
           created_at?: string
@@ -272,7 +279,9 @@ export type Database = {
           has_completed_onboarding?: boolean
           id?: string
           languages?: Json
+          needs_rescore?: boolean
           personality?: string | null
+          preferences_updated_at?: string | null
           profession?: string
           skills?: Json
           updated_at?: string
