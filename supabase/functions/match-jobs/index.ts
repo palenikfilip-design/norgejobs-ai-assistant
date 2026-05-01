@@ -19,6 +19,7 @@ interface NormalizedJob {
   currency: string | null;
   url: string;
   job_type: string | null;
+  salary_display?: string | null;
 }
 
 async function fetchMpsv(limit = 200): Promise<NormalizedJob[]> {
@@ -79,7 +80,8 @@ async function fetchMpsv(limit = 200): Promise<NormalizedJob[]> {
       console.log("MPSV body[0..500]:", JSON.stringify(items[0]).slice(0, 500));
     }
 
-    const mapped = items.map((j: any): NormalizedJob => {
+    const mapped: NormalizedJob[] = [];
+    for (const j of items) {
       const id = j?.id ?? j?.referencniCislo ?? j?.portalId ?? crypto.randomUUID();
       const title =
         j?.nazevPracovnihoMista ??
@@ -88,10 +90,13 @@ async function fetchMpsv(limit = 200): Promise<NormalizedJob[]> {
         j?.profese?.nazev ??
         "Volné místo";
 
-      // Location: OBEC + OKRES
-      const obec = j?.OBEC ?? j?.pracoviste?.[0]?.adresa?.obec ?? j?.mistoVykonuPrace?.[0]?.obec ?? null;
-      const okres = j?.OKRES ?? j?.pracoviste?.[0]?.adresa?.okres ?? null;
-      const location = [obec, okres].filter((s) => s && String(s).trim()).join(", ") || null;
+      // Location: require OBEC; combine with OKRES if present
+      const obecRaw = j?.OBEC ?? j?.pracoviste?.[0]?.adresa?.obec ?? j?.mistoVykonuPrace?.[0]?.obec ?? null;
+      const okresRaw = j?.OKRES ?? j?.pracoviste?.[0]?.adresa?.okres ?? null;
+      const obec = obecRaw && String(obecRaw).trim() ? String(obecRaw).trim() : null;
+      const okres = okresRaw && String(okresRaw).trim() ? String(okresRaw).trim() : null;
+      if (!obec) continue; // skip job entirely if no OBEC
+      const location = okres ? `${obec}, ${okres}` : obec;
 
       const company = j?.NAZEV_ZAMESTNAVATELE ?? j?.zamestnavatel?.nazev ?? null;
 
@@ -100,8 +105,8 @@ async function fetchMpsv(limit = 200): Promise<NormalizedJob[]> {
       const candMax = j?.MZDA_DO ?? j?.mesicniMzdaDo ?? j?.mzdaDo ?? null;
       let minN = candMin != null ? Number(candMin) : null;
       let maxN = candMax != null ? Number(candMax) : null;
-      if (minN === 0) minN = null;
-      if (maxN === 0) maxN = null;
+      if (!minN || minN <= 0) minN = null;
+      if (!maxN || maxN <= 0) maxN = null;
       // Try MZDOVE_PODMINKY string fallback
       if (minN == null && maxN == null && typeof j?.MZDOVE_PODMINKY === "string") {
         const nums = (j.MZDOVE_PODMINKY.match(/\d[\d\s]*/g) ?? [])
@@ -113,18 +118,29 @@ async function fetchMpsv(limit = 200): Promise<NormalizedJob[]> {
         }
       }
       const hasSalary = (minN != null && minN > 0) || (maxN != null && maxN > 0);
+      const fmt = (n: number) => new Intl.NumberFormat("cs-CZ").format(n);
+      let salaryDisplay: string | null = null;
+      if (minN && maxN && minN > 0 && maxN > 0) {
+        salaryDisplay = `${fmt(minN)} – ${fmt(maxN)} Kč/měs`;
+      } else if (minN && minN > 0) {
+        salaryDisplay = `Od ${fmt(minN)} Kč/měs`;
+      } else if (maxN && maxN > 0) {
+        salaryDisplay = `Do ${fmt(maxN)} Kč/měs`;
+      }
 
-      // URL: use detail URL if provided, otherwise generic landing page
+      // URL: prefer detail URL, otherwise construct uradprace.cz detail URL with ID
       const detailUrl =
         j?.URL_DETAILU_VOLNEHO_MISTA ??
         j?.urlDetailu ??
         null;
-      const url =
-        detailUrl && /^https?:\/\//i.test(detailUrl)
-          ? detailUrl
-          : "https://www.uradprace.cz/volna-mista";
+      let url: string;
+      if (detailUrl && /^https?:\/\//i.test(detailUrl) && !/lovableproject\.com/i.test(detailUrl)) {
+        url = detailUrl;
+      } else {
+        url = `https://www.uradprace.cz/web/cz/volna-mista-vpm?id=${encodeURIComponent(String(id))}`;
+      }
 
-      return {
+      mapped.push({
         source_portal: "mpsv.cz",
         external_id: String(id),
         title,
@@ -136,9 +152,11 @@ async function fetchMpsv(limit = 200): Promise<NormalizedJob[]> {
         currency: hasSalary ? "CZK" : null,
         url,
         job_type: null,
-      };
-    });
+        salary_display: salaryDisplay,
+      });
+    }
     console.log("MPSV jobs count:", mapped.length);
+    console.log("MPSV first 3 mapped:", JSON.stringify(mapped.slice(0, 3), null, 2));
     return mapped;
   } catch (e) {
     console.error("MPSV fetch failed:", e);
