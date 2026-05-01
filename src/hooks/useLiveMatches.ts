@@ -16,6 +16,8 @@ export interface LiveMatch {
   job_type: string | null;
   score: number;
   reasons?: string[];
+  category?: string | null;
+  is_seasonal?: boolean | null;
 }
 
 function formatSalary(
@@ -64,7 +66,9 @@ export function liveMatchToJob(m: LiveMatch): Job & { matchScore?: number } {
     sourceUrl: m.url,
     matchScore: m.score,
     matchReasons: Array.isArray(m.reasons) ? m.reasons : [],
-  } as Job & { matchScore?: number; matchReasons?: string[] };
+    category: m.category ?? null,
+    isSeasonal: m.is_seasonal ?? null,
+  } as Job & { matchScore?: number; matchReasons?: string[]; category?: string | null; isSeasonal?: boolean | null };
 }
 
 interface CachedRow {
@@ -77,6 +81,8 @@ interface CachedRow {
   score: number;
   reasons: unknown;
   created_at: string;
+  category: string | null;
+  is_seasonal: boolean | null;
 }
 
 function cachedRowToMatch(r: CachedRow): LiveMatch {
@@ -94,6 +100,8 @@ function cachedRowToMatch(r: CachedRow): LiveMatch {
     job_type: null,
     score: r.score,
     reasons: Array.isArray(r.reasons) ? (r.reasons as string[]) : [],
+    category: r.category,
+    is_seasonal: r.is_seasonal,
   };
 }
 
@@ -139,7 +147,7 @@ export function useLiveMatches(avatar: unknown | null) {
     if (!uid) return [];
     const { data, error } = await supabase
       .from("cached_matches")
-      .select("job_title, job_location, job_country, job_salary, job_url, source_portal, score, reasons, created_at")
+      .select("job_title, job_location, job_country, job_salary, job_url, source_portal, score, reasons, created_at, category, is_seasonal")
       .eq("user_id", uid)
       .eq("is_active", true)
       .order("score", { ascending: false })
@@ -193,6 +201,8 @@ export function useLiveMatches(avatar: unknown | null) {
           score: m.score ?? 0,
           reasons: m.reasons ?? [],
           is_active: true,
+          category: m.category ?? null,
+          is_seasonal: m.is_seasonal ?? null,
         }));
       if (toInsert.length > 0) {
         const { error: insErr } = await supabase
