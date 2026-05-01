@@ -232,19 +232,39 @@ export function useLiveMatches(avatar: unknown | null) {
       setLoading(true);
       setError(null);
       try {
+        // If profile says preferences changed since last scoring, force a fresh fetch
+        let mustRescore = false;
+        const { data: u } = await supabase.auth.getUser();
+        const uid = u.user?.id;
+        if (uid) {
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("needs_rescore")
+            .eq("user_id", uid)
+            .maybeSingle();
+          mustRescore = !!prof?.needs_rescore;
+        }
+
         const cached = await loadFromCache();
         if (cancelled) return;
-        if (cached.length > 0) {
+        if (cached.length > 0 && !mustRescore) {
           setMatches(cached);
           setLoading(false);
           return;
         }
         if (!avatar) {
+          if (cached.length > 0) setMatches(cached);
           setLoading(false);
           return;
         }
         await fetchFromApiAndCache();
         if (cancelled) return;
+        if (mustRescore && uid) {
+          await supabase
+            .from("profiles")
+            .update({ needs_rescore: false })
+            .eq("user_id", uid);
+        }
         const after = await loadFromCache();
         if (!cancelled) setMatches(after);
       } catch (e) {
