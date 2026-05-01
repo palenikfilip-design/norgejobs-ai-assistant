@@ -16,9 +16,11 @@ export type Database = {
     Tables: {
       cached_matches: {
         Row: {
+          category: string | null
           created_at: string
           id: string
           is_active: boolean
+          is_seasonal: boolean | null
           job_country: string | null
           job_location: string | null
           job_salary: string | null
@@ -30,9 +32,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
+          is_seasonal?: boolean | null
           job_country?: string | null
           job_location?: string | null
           job_salary?: string | null
@@ -44,9 +48,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
+          is_seasonal?: boolean | null
           job_country?: string | null
           job_location?: string | null
           job_salary?: string | null
@@ -292,6 +298,7 @@ export type Database = {
       }
       public_jobs: {
         Row: {
+          category: string | null
           company: string | null
           country: string | null
           created_at: string
@@ -300,6 +307,7 @@ export type Database = {
           external_id: string | null
           fetched_at: string
           id: string
+          is_seasonal: boolean | null
           job_type: string | null
           location: string | null
           posted_at: string | null
@@ -312,6 +320,7 @@ export type Database = {
           url: string
         }
         Insert: {
+          category?: string | null
           company?: string | null
           country?: string | null
           created_at?: string
@@ -320,6 +329,7 @@ export type Database = {
           external_id?: string | null
           fetched_at?: string
           id?: string
+          is_seasonal?: boolean | null
           job_type?: string | null
           location?: string | null
           posted_at?: string | null
@@ -332,6 +342,7 @@ export type Database = {
           url: string
         }
         Update: {
+          category?: string | null
           company?: string | null
           country?: string | null
           created_at?: string
@@ -340,6 +351,7 @@ export type Database = {
           external_id?: string | null
           fetched_at?: string
           id?: string
+          is_seasonal?: boolean | null
           job_type?: string | null
           location?: string | null
           posted_at?: string | null
