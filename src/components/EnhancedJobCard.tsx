@@ -4,7 +4,7 @@ import { MapPin, Banknote, Briefcase, Sparkles, ExternalLink, FileText, Heart, C
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { EnhancedJob } from "@/utils/jobMatching";
-import { parseSalaryRange, getMultiCurrencyDisplay, formatCurrency, convertCurrency, type CurrencyCode } from "@/utils/currency";
+import { parseSalaryRange, getMultiCurrencyDisplay, formatCurrency, convertCurrency, formatSalaryWithEur, type CurrencyCode } from "@/utils/currency";
 import { getCostOfLivingInsight } from "@/utils/costOfLiving";
 import RealValueInsight from "@/components/RealValueInsight";
 import SmartMatchScore from "@/components/SmartMatchScore";
@@ -52,7 +52,8 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
   const parsed = hasRealSalary ? parsedRaw : null;
   const salaryDisplay = hasRealSalary && parsed
     ? `${formatCurrency(parsed.min / 12, parsed.currency)} – ${formatCurrency(parsed.max / 12, parsed.currency)}/month`
-    : "Neuvedeno";
+    : formatSalaryWithEur(job.salary, job.country);
+  const salaryMissing = salaryDisplay === "Plat neuvedeno";
   const monthlyConverted = parsed && userCurrency !== parsed.currency
     ? `≈ ${formatCurrency(convertCurrency(parsed.min / 12, parsed.currency, userCurrency), userCurrency)} – ${formatCurrency(convertCurrency(parsed.max / 12, parsed.currency, userCurrency), userCurrency)}/month`
     : null;
@@ -181,7 +182,7 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
           <div className="bg-secondary/50 rounded-lg p-3 mb-3">
             <div className="flex items-center gap-1.5 mb-1">
               <Banknote className="w-4 h-4 text-accent" />
-              <span className="font-medium text-foreground text-sm">{salaryDisplay}</span>
+              <span className={`font-medium text-sm ${salaryMissing ? "text-muted-foreground italic" : "text-foreground"}`}>{salaryDisplay}</span>
               <InfoTooltip content="Měsíční plat v originální měně inzerátu. Pokud se tvá měna liší, přepočet je uveden níže." />
             </div>
             {monthlyConverted && (
