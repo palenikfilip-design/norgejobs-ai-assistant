@@ -63,7 +63,8 @@ export function liveMatchToJob(m: LiveMatch): Job & { matchScore?: number } {
     sourceId: PORTAL_TO_SOURCE_ID[m.source_portal] ?? m.source_portal,
     sourceUrl: m.url,
     matchScore: m.score,
-  } as Job & { matchScore?: number };
+    matchReasons: Array.isArray(m.reasons) ? m.reasons : [],
+  } as Job & { matchScore?: number; matchReasons?: string[] };
 }
 
 interface CachedRow {
