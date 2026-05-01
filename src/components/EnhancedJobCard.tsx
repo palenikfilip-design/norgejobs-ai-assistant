@@ -20,6 +20,7 @@ import { calculateDimensionMatch, detectUnknowns } from "@/utils/dimensionMatchi
 import { defaultJobDimensions } from "@/types/candidateDimensions";
 import { generateBoostSuggestions } from "@/utils/skillBooster";
 import { useUser } from "@/context/UserContext";
+import { toCzechPill } from "@/utils/reasonLabels";
 
 interface EnhancedJobCardProps {
   job: EnhancedJob;
@@ -130,6 +131,26 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
               <span className="text-[10px] font-medium mt-0.5">{scoreLabel}</span>
             </div>
           </div>
+
+          {/* Match reasons */}
+          {(() => {
+            const pills = (Array.isArray(job.matchReasons) ? job.matchReasons : [])
+              .map((r) => toCzechPill(r))
+              .filter((r) => r.length > 0);
+            if (pills.length === 0) return null;
+            return (
+              <div className="flex gap-1 flex-wrap mt-2 mb-3">
+                {pills.map((r, idx) => (
+                  <span
+                    key={`${idx}-${r}`}
+                    className="text-xs px-2 py-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 rounded-full"
+                  >
+                    {r}
+                  </span>
+                ))}
+              </div>
+            );
+          })()}
 
           {/* Hard filter warning */}
           {job.hardFiltered && (
