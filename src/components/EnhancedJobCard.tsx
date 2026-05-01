@@ -20,6 +20,7 @@ import { calculateDimensionMatch, detectUnknowns } from "@/utils/dimensionMatchi
 import { defaultJobDimensions } from "@/types/candidateDimensions";
 import { generateBoostSuggestions } from "@/utils/skillBooster";
 import { useUser } from "@/context/UserContext";
+import { toCzechPill } from "@/utils/reasonLabels";
 
 interface EnhancedJobCardProps {
   job: EnhancedJob;
