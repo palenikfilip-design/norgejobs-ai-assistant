@@ -360,8 +360,26 @@ const Dashboard = () => {
               </p>
             )}
           </div>
-          {/* Job Sources shortcut */}
-          <div className="mt-3 flex justify-end">
+          {/* Job Sources + manual refresh */}
+          <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
+            {lastUpdated && (
+              <span className="text-xs text-muted-foreground">
+                Naposledy aktualizováno: {lastUpdated.toLocaleString("cs-CZ")}
+              </span>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refreshLiveMatches()}
+              disabled={liveLoading || !avatarForMatching}
+            >
+              {liveLoading ? (
+                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-1.5" />
+              )}
+              Načíst nové nabídky
+            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate("/sources")}>
               <Globe className="w-4 h-4 mr-1.5" />
               {t("dashboard.jobSources")}
