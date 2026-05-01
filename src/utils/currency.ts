@@ -65,3 +65,90 @@ export function getMultiCurrencyDisplay(min: number, max: number, fromCurrency: 
       label: `${formatCurrency(convertCurrency(min, fromCurrency, to), to)} – ${formatCurrency(convertCurrency(max, fromCurrency, to), to)}`,
     }));
 }
+
+/**
+ * EUR-per-unit conversion rates for displaying a salary in EUR alongside
+ * its original currency. Refresh manually each quarter (last update:
+ * 2026-Q2). Source: ECB reference rates, rounded.
+ */
+const EUR_RATES: Record<string, number> = {
+  EUR: 1,
+  CZK: 0.040,
+  NOK: 0.085,
+  SEK: 0.090,
+  GBP: 1.18,
+  USD: 0.92,
+  CHF: 1.06,
+  PLN: 0.23,
+  DKK: 0.134,
+};
+
+const COUNTRY_TO_CURRENCY: Record<string, string> = {
+  // ISO codes
+  CZ: "CZK", NO: "NOK", SE: "SEK", GB: "GBP", UK: "GBP", US: "USD",
+  CH: "CHF", PL: "PLN", DK: "DKK",
+  // Names (lowercased lookup)
+  czechia: "CZK", "czech republic": "CZK", česko: "CZK", "česká republika": "CZK",
+  norway: "NOK", norsko: "NOK",
+  sweden: "SEK", švédsko: "SEK",
+  "united kingdom": "GBP", england: "GBP", britain: "GBP",
+  "united states": "USD", usa: "USD",
+  switzerland: "CHF", švýcarsko: "CHF",
+  poland: "PLN", polsko: "PLN",
+  denmark: "DKK", dánsko: "DKK",
+};
+
+function detectCurrencyFromString(s: string): string | null {
+  const map: Array<[RegExp, string]> = [
+    [/€|\beur\b/i, "EUR"],
+    [/kč|\bczk\b/i, "CZK"],
+    [/\bnok\b/i, "NOK"],
+    [/\bsek\b/i, "SEK"],
+    [/£|\bgbp\b/i, "GBP"],
+    [/\$|\busd\b/i, "USD"],
+    [/\bchf\b/i, "CHF"],
+    [/zł|\bpln\b/i, "PLN"],
+    [/\bdkk\b/i, "DKK"],
+    [/\bkr\b/i, "NOK"], // generic "kr" → assume NOK (Norway is primary market)
+  ];
+  for (const [re, code] of map) if (re.test(s)) return code;
+  return null;
+}
+
+function detectCurrencyFromCountry(country: string): string | null {
+  if (!country) return null;
+  const trimmed = country.trim();
+  if (COUNTRY_TO_CURRENCY[trimmed.toUpperCase()]) return COUNTRY_TO_CURRENCY[trimmed.toUpperCase()];
+  return COUNTRY_TO_CURRENCY[trimmed.toLowerCase()] ?? null;
+}
+
+/**
+ * Format a raw salary string with an EUR approximation appended.
+ * - Empty / null / "neuvedeno" → "Plat neuvedeno"
+ * - Already in EUR → returned as-is
+ * - Other detected currency → "<original> (≈ X €)"
+ * - Unknown currency → returned as-is (no conversion)
+ */
+export function formatSalaryWithEur(salary: string | null | undefined, country: string | null | undefined): string {
+  if (!salary || !salary.trim() || /neuveden/i.test(salary) || /not specified/i.test(salary)) {
+    return "Plat neuvedeno";
+  }
+  const currency =
+    detectCurrencyFromString(salary) ??
+    detectCurrencyFromCountry(country ?? "");
+  if (!currency || currency === "EUR") return salary.trim();
+
+  const rate = EUR_RATES[currency];
+  if (!rate) return salary.trim();
+
+  const nums = salary.match(/[\d][\d.,\s]*/g);
+  if (!nums || nums.length === 0) return salary.trim();
+  const parsed = nums
+    .map((n) => parseFloat(n.replace(/\s/g, "").replace(/,/g, "")))
+    .filter((v) => !isNaN(v) && v > 0);
+  if (parsed.length === 0) return salary.trim();
+
+  const avg = parsed.reduce((s, v) => s + v, 0) / parsed.length;
+  const eur = Math.round(avg * rate);
+  return `${salary.trim()} (≈ ${eur.toLocaleString("en-US")} €)`;
+}
