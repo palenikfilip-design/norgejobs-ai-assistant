@@ -246,95 +246,61 @@ async function fetchMuse(): Promise<NormalizedJob[]> {
   }
 }
 
-async function batchScore(
-  jobs: NormalizedJob[],
+interface ScoreResult {
+  score: number;
+  reasons: string[];
+}
+
+async function scoreJobWithClaude(
+  job: NormalizedJob,
   avatar: unknown,
   apiKey: string,
-): Promise<number[]> {
-  if (jobs.length === 0) return [];
+): Promise<ScoreResult> {
+  const salaryStr =
+    job.salary_min || job.salary_max
+      ? `${job.salary_min ?? "?"}–${job.salary_max ?? "?"} ${job.currency ?? ""}`.trim()
+      : "unknown";
+  const prompt = `Score 0-100 how this job matches user. Return ONLY JSON: {"score": <number>, "reasons": [<max 3 short Czech reasons>]}.\n\nJob: ${job.title} in ${job.location ?? "unknown"}, ${job.country ?? "unknown"}. Salary: ${salaryStr}.\nUser preferences: ${JSON.stringify(avatar)}`;
 
-  const compactJobs = jobs.map((j, i) => ({
-    i,
-    title: j.title,
-    location: j.location,
-    country: j.country,
-  }));
-
-  const systemPrompt =
-    "You score job-to-user match quality. Return only the tool call.";
-  const userPrompt = `User avatar: ${JSON.stringify(avatar)}\n\nJobs (array of {i,title,location,country}):\n${JSON.stringify(compactJobs)}\n\nFor each job return a score 0-100 indicating how well it matches the user avatar.`;
-
-  const body = {
-    model: "google/gemini-3-flash-preview",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-    tools: [
-      {
-        type: "function",
-        function: {
-          name: "return_scores",
-          description: "Return match scores for each job by index.",
-          parameters: {
-            type: "object",
-            properties: {
-              scores: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    i: { type: "integer" },
-                    score: { type: "integer", minimum: 0, maximum: 100 },
-                  },
-                  required: ["i", "score"],
-                  additionalProperties: false,
-                },
-              },
-            },
-            required: ["scores"],
-            additionalProperties: false,
-          },
-        },
-      },
-    ],
-    tool_choice: { type: "function", function: { name: "return_scores" } },
-  };
-
-  const resp = await fetch(
-    "https://ai.gateway.lovable.dev/v1/chat/completions",
-    {
+  try {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
       },
-      body: JSON.stringify(body),
-    },
-  );
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 200,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
 
-  if (!resp.ok) {
-    const t = await resp.text();
-    console.error("AI gateway error:", resp.status, t);
-    if (resp.status === 429) throw new Error("rate_limited");
-    if (resp.status === 402) throw new Error("payment_required");
-    throw new Error("ai_error");
-  }
-
-  const data = await resp.json();
-  const call = data?.choices?.[0]?.message?.tool_calls?.[0];
-  const args = call?.function?.arguments
-    ? JSON.parse(call.function.arguments)
-    : null;
-  const scores: number[] = new Array(jobs.length).fill(0);
-  if (args?.scores) {
-    for (const s of args.scores) {
-      if (typeof s.i === "number" && s.i >= 0 && s.i < jobs.length) {
-        scores[s.i] = Math.max(0, Math.min(100, Number(s.score) || 0));
-      }
+    if (!resp.ok) {
+      const t = await resp.text();
+      console.error("Claude error:", resp.status, t.slice(0, 300));
+      if (resp.status === 429) throw new Error("rate_limited");
+      if (resp.status === 401 || resp.status === 403) throw new Error("ai_error");
+      return { score: 50, reasons: [] };
     }
+
+    const data = await resp.json();
+    const text: string = data?.content?.[0]?.text ?? "";
+    // Extract first JSON object from text
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) return { score: 50, reasons: [] };
+    const parsed = JSON.parse(match[0]);
+    const score = Math.max(0, Math.min(100, Number(parsed.score) || 0));
+    const reasons = Array.isArray(parsed.reasons)
+      ? parsed.reasons.slice(0, 3).map((r: unknown) => String(r))
+      : [];
+    return { score, reasons };
+  } catch (e) {
+    if (e instanceof Error && e.message === "rate_limited") throw e;
+    console.error("scoreJobWithClaude failed:", e);
+    return { score: 50, reasons: [] };
   }
-  return scores;
 }
 
 Deno.serve(async (req) => {
@@ -343,8 +309,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) throw new Error("LOVABLE_API_KEY missing");
+    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!apiKey) throw new Error("ANTHROPIC_API_KEY missing");
 
     const { avatar, sources } = await req.json().catch(() => ({}));
     if (!avatar || typeof avatar !== "object") {
@@ -380,17 +346,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Batch score in chunks of 25 to stay within model context
-    const chunkSize = 25;
-    const scores: number[] = [];
-    for (let i = 0; i < allJobs.length; i += chunkSize) {
-      const chunk = allJobs.slice(i, i + chunkSize);
-      const s = await batchScore(chunk, avatar, apiKey);
-      scores.push(...s);
-    }
+    // Score at most 30 jobs per call with Claude Haiku 4.5
+    const toScore = allJobs.slice(0, 30);
+    const results = await Promise.all(
+      toScore.map((j) => scoreJobWithClaude(j, avatar, apiKey)),
+    );
 
-    const matches = allJobs
-      .map((job, i) => ({ ...job, score: scores[i] ?? 0 }))
+    const matches = toScore
+      .map((job, i) => ({
+        ...job,
+        score: results[i]?.score ?? 50,
+        reasons: results[i]?.reasons ?? [],
+      }))
       .filter((m) => m.score >= 50)
       .sort((a, b) => b.score - a.score);
     console.log("Total jobs after scoring (above 50):", matches.length);
