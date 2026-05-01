@@ -11,6 +11,7 @@ import PresetSwitcher from "@/components/PresetSwitcher";
 import CoverLetterDialog from "@/components/CoverLetterDialog";
 import ProfileCompletion from "@/components/ProfileCompletion";
 import JobFiltersPanel from "@/components/JobFiltersPanel";
+import QuickFilterBar, { defaultQuickFilters, type QuickFilters } from "@/components/QuickFilterBar";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MessageCircle, LogOut, Sparkles, BriefcaseBusiness, Filter, Globe, Crown, Eye, Bookmark, Loader2, RefreshCw } from "lucide-react";
@@ -68,6 +69,28 @@ const Dashboard = () => {
   }, [newlyAdded, toast]);
 
   const [filters, setFilters] = useState<JobFilters>(defaultFilters);
+  const [quickFilters, setQuickFilters] = useState<QuickFilters>(() => {
+    if (typeof window === "undefined") return defaultQuickFilters;
+    try {
+      const raw = localStorage.getItem("leslie_filters");
+      if (!raw) return defaultQuickFilters;
+      const parsed = JSON.parse(raw);
+      return {
+        countries: Array.isArray(parsed.countries) ? parsed.countries : [],
+        categories: Array.isArray(parsed.categories) ? parsed.categories : [],
+        type: ["all", "seasonal", "permanent"].includes(parsed.type) ? parsed.type : "all",
+      };
+    } catch {
+      return defaultQuickFilters;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("leslie_filters", JSON.stringify(quickFilters));
+    } catch {
+      // ignore quota errors
+    }
+  }, [quickFilters]);
   const [coverLetterOpen, setCoverLetterOpen] = useState(false);
   const [coverLetter, setCoverLetter] = useState("");
   const [coverLetterLoading, setCoverLetterLoading] = useState(false);
