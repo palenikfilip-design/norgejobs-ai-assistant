@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      cached_matches: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          job_country: string | null
+          job_location: string | null
+          job_salary: string | null
+          job_title: string
+          job_url: string
+          reasons: Json
+          score: number
+          source_portal: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          job_country?: string | null
+          job_location?: string | null
+          job_salary?: string | null
+          job_title?: string
+          job_url: string
+          reasons?: Json
+          score?: number
+          source_portal?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          job_country?: string | null
+          job_location?: string | null
+          job_salary?: string | null
+          job_title?: string
+          job_url?: string
+          reasons?: Json
+          score?: number
+          source_portal?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ingest_logs: {
         Row: {
           created_at: string

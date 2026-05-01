@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
@@ -13,7 +13,7 @@ import ProfileCompletion from "@/components/ProfileCompletion";
 import JobFiltersPanel from "@/components/JobFiltersPanel";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageCircle, LogOut, Sparkles, BriefcaseBusiness, Filter, Globe, Crown, Eye, Bookmark, Loader2 } from "lucide-react";
+import { MessageCircle, LogOut, Sparkles, BriefcaseBusiness, Filter, Globe, Crown, Eye, Bookmark, Loader2, RefreshCw } from "lucide-react";
 import NotificationsPopover from "@/components/NotificationsPopover";
 import leslieAvatar from "@/assets/leslie-avatar.png";
 import { type JobFilters, defaultFilters } from "@/types/jobFilters";
@@ -55,9 +55,17 @@ const Dashboard = () => {
       desired_bonuses: a?.desiredBonuses ?? [],
     };
   }, [activeAvatars, profile]);
-  const { matches: liveMatches, loading: liveLoading } = useLiveMatches(avatarForMatching);
+  const { matches: liveMatches, loading: liveLoading, refresh: refreshLiveMatches, lastUpdated, newlyAdded } = useLiveMatches(avatarForMatching);
   const liveJobs = useMemo(() => liveMatches.map(liveMatchToJob), [liveMatches]);
   const allJobs = useMemo(() => liveJobs, [liveJobs]);
+
+  // Toast when refresh adds new offers
+  useEffect(() => {
+    if (newlyAdded == null) return;
+    toast({
+      title: `Přidáno ${newlyAdded} nových nabídek`,
+    });
+  }, [newlyAdded, toast]);
 
   const [filters, setFilters] = useState<JobFilters>(defaultFilters);
   const [coverLetterOpen, setCoverLetterOpen] = useState(false);
@@ -352,8 +360,26 @@ const Dashboard = () => {
               </p>
             )}
           </div>
-          {/* Job Sources shortcut */}
-          <div className="mt-3 flex justify-end">
+          {/* Job Sources + manual refresh */}
+          <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
+            {lastUpdated && (
+              <span className="text-xs text-muted-foreground">
+                Naposledy aktualizováno: {lastUpdated.toLocaleString("cs-CZ")}
+              </span>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refreshLiveMatches()}
+              disabled={liveLoading || !avatarForMatching}
+            >
+              {liveLoading ? (
+                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-1.5" />
+              )}
+              Načíst nové nabídky
+            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate("/sources")}>
               <Globe className="w-4 h-4 mr-1.5" />
               {t("dashboard.jobSources")}
