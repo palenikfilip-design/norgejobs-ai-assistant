@@ -11,6 +11,7 @@ import PresetSwitcher from "@/components/PresetSwitcher";
 import CoverLetterDialog from "@/components/CoverLetterDialog";
 import ProfileCompletion from "@/components/ProfileCompletion";
 import JobFiltersPanel from "@/components/JobFiltersPanel";
+import QuickFilterBar, { defaultQuickFilters, type QuickFilters } from "@/components/QuickFilterBar";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MessageCircle, LogOut, Sparkles, BriefcaseBusiness, Filter, Globe, Crown, Eye, Bookmark, Loader2, RefreshCw } from "lucide-react";
@@ -68,6 +69,28 @@ const Dashboard = () => {
   }, [newlyAdded, toast]);
 
   const [filters, setFilters] = useState<JobFilters>(defaultFilters);
+  const [quickFilters, setQuickFilters] = useState<QuickFilters>(() => {
+    if (typeof window === "undefined") return defaultQuickFilters;
+    try {
+      const raw = localStorage.getItem("leslie_filters");
+      if (!raw) return defaultQuickFilters;
+      const parsed = JSON.parse(raw);
+      return {
+        countries: Array.isArray(parsed.countries) ? parsed.countries : [],
+        categories: Array.isArray(parsed.categories) ? parsed.categories : [],
+        type: ["all", "seasonal", "permanent"].includes(parsed.type) ? parsed.type : "all",
+      };
+    } catch {
+      return defaultQuickFilters;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("leslie_filters", JSON.stringify(quickFilters));
+    } catch {
+      // ignore quota errors
+    }
+  }, [quickFilters]);
   const [coverLetterOpen, setCoverLetterOpen] = useState(false);
   const [coverLetter, setCoverLetter] = useState("");
   const [coverLetterLoading, setCoverLetterLoading] = useState(false);
@@ -115,6 +138,30 @@ const Dashboard = () => {
 
   const filteredJobs = useMemo(() => {
     let jobs = matchedJobs;
+    // Quick filters (compact bar above the advanced panel)
+    if (quickFilters.countries.length > 0) {
+      const set = new Set(quickFilters.countries.map((c) => c.toLowerCase()));
+      jobs = jobs.filter((j) => set.has((j.country ?? "").toLowerCase()));
+    }
+    if (quickFilters.categories.length > 0) {
+      const set = new Set(quickFilters.categories.map((c) => c.toLowerCase()));
+      jobs = jobs.filter((j) => {
+        const cat = (j as { category?: string | null }).category;
+        return cat ? set.has(cat.toLowerCase()) : false;
+      });
+    }
+    if (quickFilters.type !== "all") {
+      jobs = jobs.filter((j) => {
+        const seasonal = (j as { isSeasonal?: boolean | null }).isSeasonal;
+        if (seasonal == null) {
+          // Fallback to job.type text when explicit flag missing
+          const t = (j.type || "").toLowerCase();
+          const looksSeasonal = t.includes("seasonal") || t.includes("sezón");
+          return quickFilters.type === "seasonal" ? looksSeasonal : !looksSeasonal;
+        }
+        return quickFilters.type === "seasonal" ? seasonal : !seasonal;
+      });
+    }
     if (filters.keyword) {
       const kw = filters.keyword.toLowerCase();
       jobs = jobs.filter(j => j.title.toLowerCase().includes(kw) || j.company.toLowerCase().includes(kw) || j.description.toLowerCase().includes(kw));
@@ -151,7 +198,25 @@ const Dashboard = () => {
       }
     }
     return jobs;
-  }, [matchedJobs, filters, profile.country]);
+  }, [matchedJobs, filters, quickFilters, profile.country]);
+
+  // Available options for the quick filter dropdowns — derived from loaded jobs
+  const availableCountries = useMemo(() => {
+    const set = new Set<string>();
+    matchedJobs.forEach((j) => {
+      if (j.country && j.country.trim()) set.add(j.country.trim());
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [matchedJobs]);
+
+  const availableCategories = useMemo(() => {
+    const set = new Set<string>();
+    matchedJobs.forEach((j) => {
+      const cat = (j as { category?: string | null }).category;
+      if (cat && cat.trim()) set.add(cat.trim());
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [matchedJobs]);
 
   // Jobs scoped to selected preset (or all active) for the greeting summary
   const highlightJobs = useMemo((): EnhancedJob[] => {
@@ -399,6 +464,12 @@ const Dashboard = () => {
 
         {/* Filters */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <QuickFilterBar
+            filters={quickFilters}
+            onChange={setQuickFilters}
+            availableCountries={availableCountries}
+            availableCategories={availableCategories}
+          />
           <JobFiltersPanel filters={filters} onFiltersChange={setFilters} onSearch={handleSearch} totalResults={filteredJobs.length} totalJobsCount={allJobs.length} userCountry={profile.country} />
         </motion.div>
 
