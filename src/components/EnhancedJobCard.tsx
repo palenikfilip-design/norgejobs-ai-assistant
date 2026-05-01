@@ -131,6 +131,20 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
             </div>
           </div>
 
+          {/* Match reasons */}
+          {Array.isArray(job.matchReasons) && job.matchReasons.length > 0 && (
+            <div className="flex gap-1 flex-wrap mt-2 mb-3">
+              {job.matchReasons.map((r, idx) => (
+                <span
+                  key={`${idx}-${r}`}
+                  className="text-xs px-2 py-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 rounded-full"
+                >
+                  {r}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Hard filter warning */}
           {job.hardFiltered && (
             <div className="flex items-center gap-1.5 mb-2 px-2.5 py-1.5 rounded-lg bg-destructive/10 border border-destructive/20">
