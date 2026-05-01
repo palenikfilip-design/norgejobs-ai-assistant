@@ -464,6 +464,12 @@ const Dashboard = () => {
 
         {/* Filters */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <QuickFilterBar
+            filters={quickFilters}
+            onChange={setQuickFilters}
+            availableCountries={availableCountries}
+            availableCategories={availableCategories}
+          />
           <JobFiltersPanel filters={filters} onFiltersChange={setFilters} onSearch={handleSearch} totalResults={filteredJobs.length} totalJobsCount={allJobs.length} userCountry={profile.country} />
         </motion.div>
 
