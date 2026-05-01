@@ -55,7 +55,7 @@ const Dashboard = () => {
       desired_bonuses: a?.desiredBonuses ?? [],
     };
   }, [activeAvatars, profile]);
-  const { matches: liveMatches, loading: liveLoading, refresh: refreshLiveMatches, lastUpdated, newlyAdded } = useLiveMatches(avatarForMatching);
+  const { matches: liveMatches, loading: liveLoading, refresh: refreshLiveMatches, lastUpdated, newlyAdded, hiddenCount, activeCount } = useLiveMatches(avatarForMatching);
   const liveJobs = useMemo(() => liveMatches.map(liveMatchToJob), [liveMatches]);
   const allJobs = useMemo(() => liveJobs, [liveJobs]);
 
@@ -482,6 +482,11 @@ const Dashboard = () => {
             </div>
           )}
         </div>
+        {hiddenCount > 0 && (
+          <p className="mt-4 text-xs text-center text-muted-foreground">
+            {Math.round((hiddenCount / Math.max(1, hiddenCount + activeCount)) * 100)}% nabídek skryto (již nejsou dostupné)
+          </p>
+        )}
       </main>
 
       <CoverLetterDialog open={coverLetterOpen} onOpenChange={setCoverLetterOpen} coverLetter={coverLetter} isLoading={coverLetterLoading} jobTitle={coverLetterJobTitle} />

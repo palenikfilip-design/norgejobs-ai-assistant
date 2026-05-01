@@ -108,6 +108,29 @@ export function useLiveMatches(avatar: unknown | null) {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [newlyAdded, setNewlyAdded] = useState<number | null>(null);
+  const [hiddenCount, setHiddenCount] = useState(0);
+  const [activeCount, setActiveCount] = useState(0);
+
+  const refreshHiddenStats = useCallback(async () => {
+    const { data: u } = await supabase.auth.getUser();
+    const uid = u.user?.id;
+    if (!uid) return;
+    const [{ count: total }, { count: active }] = await Promise.all([
+      supabase
+        .from("cached_matches")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", uid),
+      supabase
+        .from("cached_matches")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", uid)
+        .eq("is_active", true),
+    ]);
+    const totalN = total ?? 0;
+    const activeN = active ?? 0;
+    setActiveCount(activeN);
+    setHiddenCount(Math.max(0, totalN - activeN));
+  }, []);
 
   const loadFromCache = useCallback(async (): Promise<LiveMatch[]> => {
     const { data: u } = await supabase.auth.getUser();
@@ -132,8 +155,9 @@ export function useLiveMatches(avatar: unknown | null) {
       );
       setLastUpdated(newest);
     }
+    void refreshHiddenStats();
     return rows.map(cachedRowToMatch);
-  }, []);
+  }, [refreshHiddenStats]);
 
   const fetchFromApiAndCache = useCallback(async (): Promise<{ matches: LiveMatch[]; added: number }> => {
     if (!avatar) return { matches: [], added: 0 };
@@ -237,7 +261,16 @@ export function useLiveMatches(avatar: unknown | null) {
     };
   }, [avatar, loadFromCache, fetchFromApiAndCache]);
 
-  return { matches, loading, error, refresh, lastUpdated, newlyAdded };
+  return {
+    matches,
+    loading,
+    error,
+    refresh,
+    lastUpdated,
+    newlyAdded,
+    hiddenCount,
+    activeCount,
+  };
 }
 
 /**
