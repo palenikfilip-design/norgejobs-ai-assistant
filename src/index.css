@@ -176,8 +176,8 @@
   position: absolute;
   left: 0;
   right: 0;
-  top: 30%;
-  height: 22%;
+  top: 38%;
+  height: 14%;
   background: linear-gradient(
     to bottom,
     hsl(var(--card) / 0) 0%,
