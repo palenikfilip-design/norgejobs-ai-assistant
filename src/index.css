@@ -130,3 +130,99 @@
     box-shadow: var(--shadow-elevated);
   }
 }
+
+/* ===== Leslie avatar micro-animations ===== */
+@keyframes leslie-breathe {
+  0%, 100% { transform: scale(1) translateY(0); }
+  50%      { transform: scale(1.025) translateY(-0.5px); }
+}
+
+@keyframes leslie-blink {
+  /* Eyelid sweeps down then back up. Most of the loop = eyes open. */
+  0%, 92%, 100% { transform: translateY(-110%); opacity: 0; }
+  94%           { transform: translateY(38%);  opacity: 0.85; }
+  96%           { transform: translateY(38%);  opacity: 0.85; }
+  98%           { transform: translateY(-110%); opacity: 0; }
+}
+
+@keyframes leslie-double-blink {
+  0%, 60%, 100% { transform: translateY(-110%); opacity: 0; }
+  63%           { transform: translateY(38%);  opacity: 0.85; }
+  66%           { transform: translateY(-110%); opacity: 0; }
+  72%           { transform: translateY(38%);  opacity: 0.85; }
+  75%           { transform: translateY(-110%); opacity: 0; }
+}
+
+@keyframes leslie-glow {
+  0%, 100% { opacity: 0.0; }
+  50%      { opacity: 0.35; }
+}
+
+.leslie-avatar { isolation: isolate; }
+
+.leslie-avatar--alive .leslie-avatar__img {
+  animation: leslie-breathe 5.5s ease-in-out infinite;
+  transform-origin: 50% 60%;
+  transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), filter 300ms ease;
+}
+
+/* Blink eyelid: a soft horizontal bar across the eye region */
+.leslie-avatar__blink {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 30%;
+  height: 22%;
+  background: linear-gradient(
+    to bottom,
+    hsl(var(--card) / 0) 0%,
+    hsl(var(--card) / 0.55) 40%,
+    hsl(var(--card) / 0.55) 60%,
+    hsl(var(--card) / 0) 100%
+  );
+  filter: blur(2px);
+  pointer-events: none;
+  animation: leslie-blink 6s ease-in-out infinite;
+  animation-delay: 1.8s;
+  z-index: 2;
+}
+
+/* Every other instance gets a different rhythm for natural variety */
+.leslie-avatar--alive:nth-of-type(2n) .leslie-avatar__blink {
+  animation: leslie-double-blink 8.5s ease-in-out infinite;
+  animation-delay: 3s;
+}
+.leslie-avatar--alive:nth-of-type(3n) .leslie-avatar__blink {
+  animation-duration: 7.2s;
+  animation-delay: 0.6s;
+}
+
+/* Subtle glow pulse, lives behind the image edge */
+.leslie-avatar__glow {
+  position: absolute;
+  inset: -8%;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at 50% 50%,
+    hsl(var(--accent) / 0.45) 0%,
+    hsl(var(--accent) / 0) 65%
+  );
+  filter: blur(8px);
+  pointer-events: none;
+  animation: leslie-glow 4.5s ease-in-out infinite;
+  z-index: -1;
+}
+
+/* Hover = a little "smile": tiny scale + warm tint + head tilt */
+.leslie-avatar--alive:hover .leslie-avatar__img {
+  transform: scale(1.06) rotate(-2deg);
+  filter: saturate(1.1) brightness(1.04);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leslie-avatar--alive .leslie-avatar__img,
+  .leslie-avatar__blink,
+  .leslie-avatar__glow {
+    animation: none !important;
+  }
+}
