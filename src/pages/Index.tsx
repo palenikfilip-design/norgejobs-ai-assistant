@@ -4,7 +4,7 @@ import { useUser } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
 import { Bot, ArrowRight, Sparkles, Globe, BriefcaseBusiness, MessageCircle } from "lucide-react";
 import { useEffect } from "react";
-import leslieAvatar from "@/assets/leslie-avatar.png";
+import LeslieAvatar from "@/components/LeslieAvatar";
 
 const features = [
   {
@@ -59,10 +59,10 @@ const Index = () => {
             >
               <div className="relative">
                 <div className="absolute -inset-3 bg-accent-gradient rounded-full blur-xl opacity-40 animate-pulse" />
-                <img
-                  src={leslieAvatar}
+                <LeslieAvatar
                   alt="Leslie AI Assistant"
-                  className="relative w-36 h-36 md:w-48 md:h-48 rounded-full object-cover border-4 border-primary-foreground/20 shadow-2xl"
+                  shape="circle"
+                  className="relative w-36 h-36 md:w-48 md:h-48 border-4 border-primary-foreground/20 shadow-2xl"
                 />
                 <div className="absolute -bottom-2 -right-2 bg-accent-gradient rounded-full p-2 shadow-lg">
                   <Sparkles className="w-5 h-5 text-accent-foreground" />
@@ -151,10 +151,9 @@ const Index = () => {
       {/* CTA */}
       <section className="py-20 bg-navy-gradient">
         <div className="max-w-3xl mx-auto px-4 text-center">
-          <img
-            src={leslieAvatar}
-            alt="Leslie AI"
-            className="w-20 h-20 rounded-full object-cover mx-auto mb-6 border-2 border-primary-foreground/20"
+          <LeslieAvatar
+            shape="circle"
+            className="w-20 h-20 mx-auto mb-6 border-2 border-primary-foreground/20 block"
           />
           <h2 className="font-display text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
             Ready to find your dream job abroad?
