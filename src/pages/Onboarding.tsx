@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { ArrowLeft, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import leslieAvatar from "@/assets/leslie-avatar.png";
 
 interface ChatMsg {
@@ -13,19 +15,13 @@ interface ChatMsg {
   content: string;
 }
 
-const QUESTIONS: string[] = [
-  "Ahoj! Jsem Leslie, tvůj asistent pro hledání práce v zahraničí. Začneme — do které země bys chtěl/a jet pracovat?",
-  "Skvělé. Jaký typ práce hledáš? (gastronomie, stavebnictví, IT, sezónní, péče o děti…)",
-  "Jakými jazyky se domluvíš?",
-  "Hledáš sezónní práci na pár měsíců, nebo trvalou pozici?",
-  "A poslední — jaký minimální plat tě zajímá? (v EUR za měsíc, můžeš nechat prázdné)",
-];
-
 export default function Onboarding() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t, i18n } = useTranslation();
+  const QUESTIONS = (i18n.t("onboarding.questions", { returnObjects: true, defaultValue: [] }) as unknown as string[]) ?? [];
   const [messages, setMessages] = useState<ChatMsg[]>([
-    { role: "assistant", content: QUESTIONS[0] },
+    { role: "assistant", content: QUESTIONS[0] ?? "" },
   ]);
   const [input, setInput] = useState("");
   const [step, setStep] = useState(0); // index of the question awaiting an answer
@@ -65,6 +61,27 @@ export default function Onboarding() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, submitting]);
 
+  // Re-issue the current visible question whenever the language changes,
+  // so the assistant prompt is always shown in the active locale.
+  useEffect(() => {
+    setMessages((prev) => {
+      if (prev.length === 0) return prev;
+      const latestQuestions = (i18n.t("onboarding.questions", { returnObjects: true, defaultValue: [] }) as unknown as string[]) ?? [];
+      if (latestQuestions.length === 0) return prev;
+      // Replace only assistant question messages (not free-form text like "thanks")
+      const next = [...prev];
+      let qIdx = 0;
+      for (let i = 0; i < next.length; i++) {
+        if (next[i].role === "assistant" && qIdx < latestQuestions.length && qIdx <= step) {
+          next[i] = { ...next[i], content: latestQuestions[qIdx] };
+          qIdx++;
+        }
+      }
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [i18n.resolvedLanguage]);
+
   const finalize = async (allMessages: ChatMsg[]) => {
     setSubmitting(true);
     try {
@@ -72,14 +89,14 @@ export default function Onboarding() {
         body: { messages: allMessages },
       });
       if (error) throw error;
-      toast({ title: "Hotovo!", description: "Připravuji tvoje nabídky…" });
+      toast({ title: t("onboarding.doneToast"), description: t("onboarding.doneToastDesc") });
       navigate("/dashboard");
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("extract-preferences failed:", msg);
       toast({
-        title: "Něco se pokazilo",
-        description: "Tvoje odpovědi jsem nestihla uložit. Zkus to prosím znovu.",
+        title: t("onboarding.errorTitle"),
+        description: t("onboarding.errorDesc"),
         variant: "destructive",
       });
       setSubmitting(false);
@@ -92,7 +109,7 @@ export default function Onboarding() {
     if (!text && step !== QUESTIONS.length - 1) return;
     if (submitting) return;
 
-    const userMsg: ChatMsg = { role: "user", content: text || "(přeskočeno)" };
+    const userMsg: ChatMsg = { role: "user", content: text || t("onboarding.skipped") };
     const next = [...messages, userMsg];
     setMessages(next);
     setInput("");
@@ -113,7 +130,7 @@ export default function Onboarding() {
       // All answers collected — extract & redirect
       const closing: ChatMsg[] = [
         ...next,
-        { role: "assistant", content: "Děkuji! Ukládám tvoje preference a hledám nabídky…" },
+        { role: "assistant", content: t("onboarding.thanks") },
       ];
       setMessages(closing);
       setStep(nextStep);
@@ -139,7 +156,7 @@ export default function Onboarding() {
             variant="ghost"
             size="icon"
             onClick={() => navigate("/")}
-            aria-label="Zpět"
+            aria-label={t("onboarding.back")}
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
@@ -147,8 +164,11 @@ export default function Onboarding() {
             <img src={leslieAvatar} alt="Leslie AI" className="w-7 h-7 rounded-lg object-cover" />
             <span className="font-display font-semibold text-foreground">Leslie</span>
           </div>
-          <div className="text-xs text-muted-foreground tabular-nums">
-            {progress}/{QUESTIONS.length}
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <div className="text-xs text-muted-foreground tabular-nums">
+              {progress}/{QUESTIONS.length}
+            </div>
           </div>
         </div>
       </header>
@@ -183,7 +203,7 @@ export default function Onboarding() {
           {submitting && step >= QUESTIONS.length && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground pl-10">
               <Loader2 className="w-4 h-4 animate-spin" />
-              Ukládám…
+              {t("onboarding.saving")}
             </div>
           )}
         </div>
@@ -201,10 +221,10 @@ export default function Onboarding() {
             onChange={(e) => setInput(e.target.value)}
             placeholder={
               step >= QUESTIONS.length
-                ? "Hotovo!"
+                ? t("onboarding.done")
                 : step === QUESTIONS.length - 1
-                  ? "Napiš částku nebo nech prázdné…"
-                  : "Napiš svou odpověď…"
+                  ? t("onboarding.salaryPlaceholder")
+                  : t("onboarding.placeholder")
             }
             disabled={submitting || step >= QUESTIONS.length}
             className="h-11"
@@ -218,7 +238,7 @@ export default function Onboarding() {
               step >= QUESTIONS.length ||
               (step !== QUESTIONS.length - 1 && !input.trim())
             }
-            aria-label="Odeslat"
+            aria-label={t("onboarding.send")}
           >
             <Send className="w-4 h-4" />
           </Button>
