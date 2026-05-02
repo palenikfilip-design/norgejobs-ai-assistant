@@ -40,13 +40,13 @@ export default function LeslieAvatar({
       {/* Soft glow that pulses subtly — sits behind, outside the clip */}
       {!isStatic && <span aria-hidden className="leslie-avatar__glow" />}
       {/* Inner clip wrapper — clips image + blink, but not the glow */}
-      <span className={cn("leslie-avatar__clip relative block h-full w-full overflow-hidden", radius)}>
+      <span className={cn("leslie-avatar__clip relative block h-full w-full overflow-hidden bg-secondary", radius)}>
         <img
           src={leslieAvatar}
           alt={alt}
           draggable={false}
           className={cn(
-            "leslie-avatar__img block h-full w-full object-cover object-top select-none",
+            "leslie-avatar__img block h-full w-full object-contain select-none",
             radius,
           )}
         />
