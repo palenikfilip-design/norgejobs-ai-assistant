@@ -98,6 +98,24 @@ export type Database = {
         }
         Relationships: []
       }
+      ingest_state: {
+        Row: {
+          last_run_at: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          last_run_at?: string
+          source: string
+          updated_at?: string
+        }
+        Update: {
+          last_run_at?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       job_matches: {
         Row: {
           clicked_at: string | null
