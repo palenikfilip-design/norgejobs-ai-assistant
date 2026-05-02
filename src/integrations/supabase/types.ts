@@ -433,6 +433,8 @@ export type Database = {
       }
       user_access: {
         Row: {
+          cover_letter_month_reset: string
+          cover_letters_used_this_month: number
           created_at: string
           daily_view_limit: number
           free_unlocks_available: number
@@ -446,6 +448,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cover_letter_month_reset?: string
+          cover_letters_used_this_month?: number
           created_at?: string
           daily_view_limit?: number
           free_unlocks_available?: number
@@ -459,6 +463,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cover_letter_month_reset?: string
+          cover_letters_used_this_month?: number
           created_at?: string
           daily_view_limit?: number
           free_unlocks_available?: number
