@@ -51,5 +51,42 @@
   },
   "language": {
     "switchTo": "Sprache wechseln"
+  },
+  "onboarding": {
+    "back": "Zurück",
+    "saving": "Speichere…",
+    "thanks": "Danke! Ich speichere deine Präferenzen und suche Jobs…",
+    "skipped": "(übersprungen)",
+    "send": "Senden",
+    "placeholder": "Schreib deine Antwort…",
+    "salaryPlaceholder": "Betrag eingeben oder leer lassen…",
+    "done": "Fertig!",
+    "doneToast": "Fertig!",
+    "doneToastDesc": "Ich bereite deine Jobs vor…",
+    "errorTitle": "Etwas ist schiefgelaufen",
+    "errorDesc": "Deine Antworten konnten nicht gespeichert werden. Bitte versuch es erneut.",
+    "questions": [
+      "Hallo! Ich bin Leslie, dein Assistent für die Jobsuche im Ausland. Lass uns starten — in welchem Land möchtest du arbeiten?",
+      "Super. Welche Art von Arbeit suchst du? (Gastronomie, Bau, IT, saisonal, Kinderbetreuung…)",
+      "Welche Sprachen sprichst du?",
+      "Suchst du saisonale Arbeit für ein paar Monate oder eine feste Stelle?",
+      "Und zuletzt — was ist dein Mindestgehalt? (EUR pro Monat, kann leer bleiben)"
+    ]
+  },
+  "chat": {
+    "title": "Leslie AI",
+    "subtitle": "Dein Job-Assistent",
+    "welcome": "Hallo {{name}}! 👋 Ich bin dein Leslie AI Assistent. Frag mich alles zu Jobchancen, Skills oder Arbeiten im Ausland. Wie kann ich dir helfen?",
+    "placeholder": "Frag mich alles über Jobs…",
+    "thinking": "Denke nach…",
+    "errorTitle": "Etwas ist schiefgelaufen",
+    "errorDesc": "Konnte keine Antwort erhalten. Bitte versuch es erneut.",
+    "rateLimited": "Zu viele Anfragen. Bitte warte kurz.",
+    "paymentRequired": "AI-Guthaben aufgebraucht. Bitte kontaktiere den Support.",
+    "suggestions": [
+      "Finde mir Jobs in Norwegen",
+      "Welche Skills soll ich verbessern?",
+      "Jobs in Deutschland"
+    ]
   }
 }

@@ -51,5 +51,42 @@
   },
   "language": {
     "switchTo": "Zmień język"
+  },
+  "onboarding": {
+    "back": "Wstecz",
+    "saving": "Zapisuję…",
+    "thanks": "Dziękuję! Zapisuję twoje preferencje i szukam ofert…",
+    "skipped": "(pominięto)",
+    "send": "Wyślij",
+    "placeholder": "Napisz swoją odpowiedź…",
+    "salaryPlaceholder": "Wpisz kwotę lub zostaw puste…",
+    "done": "Gotowe!",
+    "doneToast": "Gotowe!",
+    "doneToastDesc": "Przygotowuję twoje oferty…",
+    "errorTitle": "Coś poszło nie tak",
+    "errorDesc": "Nie udało się zapisać odpowiedzi. Spróbuj ponownie.",
+    "questions": [
+      "Cześć! Jestem Leslie, twój asystent do szukania pracy za granicą. Zacznijmy — w jakim kraju chciałbyś/chciałabyś pracować?",
+      "Świetnie. Jakiej pracy szukasz? (gastronomia, budownictwo, IT, sezonowa, opieka nad dziećmi…)",
+      "W jakich językach się komunikujesz?",
+      "Szukasz pracy sezonowej na kilka miesięcy, czy stałej?",
+      "I ostatnie — jaka jest twoja minimalna oczekiwana pensja? (EUR miesięcznie, można zostawić puste)"
+    ]
+  },
+  "chat": {
+    "title": "Leslie AI",
+    "subtitle": "Twój asystent pracy",
+    "welcome": "Cześć {{name}}! 👋 Jestem twoim asystentem Leslie. Zapytaj mnie o cokolwiek dotyczącego ofert pracy, umiejętności lub pracy za granicą. W czym mogę pomóc?",
+    "placeholder": "Zapytaj o cokolwiek o pracy…",
+    "thinking": "Myślę…",
+    "errorTitle": "Coś poszło nie tak",
+    "errorDesc": "Nie udało się uzyskać odpowiedzi. Spróbuj ponownie.",
+    "rateLimited": "Zbyt wiele zapytań. Spróbuj za chwilę.",
+    "paymentRequired": "Wyczerpano kredyty AI. Skontaktuj się z pomocą.",
+    "suggestions": [
+      "Znajdź pracę w Norwegii",
+      "Jakie umiejętności powinienem poprawić?",
+      "Praca w Niemczech"
+    ]
   }
 }

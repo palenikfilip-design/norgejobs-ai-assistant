@@ -51,5 +51,42 @@
   },
   "language": {
     "switchTo": "Změnit jazyk"
+  },
+  "onboarding": {
+    "back": "Zpět",
+    "saving": "Ukládám…",
+    "thanks": "Děkuji! Ukládám tvoje preference a hledám nabídky…",
+    "skipped": "(přeskočeno)",
+    "send": "Odeslat",
+    "placeholder": "Napiš svou odpověď…",
+    "salaryPlaceholder": "Napiš částku nebo nech prázdné…",
+    "done": "Hotovo!",
+    "doneToast": "Hotovo!",
+    "doneToastDesc": "Připravuji tvoje nabídky…",
+    "errorTitle": "Něco se pokazilo",
+    "errorDesc": "Tvoje odpovědi jsem nestihla uložit. Zkus to prosím znovu.",
+    "questions": [
+      "Ahoj! Jsem Leslie, tvůj asistent pro hledání práce v zahraničí. Začneme — do které země bys chtěl/a jet pracovat?",
+      "Skvělé. Jaký typ práce hledáš? (gastronomie, stavebnictví, IT, sezónní, péče o děti…)",
+      "Jakými jazyky se domluvíš?",
+      "Hledáš sezónní práci na pár měsíců, nebo trvalou pozici?",
+      "A poslední — jaký minimální plat tě zajímá? (v EUR za měsíc, můžeš nechat prázdné)"
+    ]
+  },
+  "chat": {
+    "title": "Leslie AI",
+    "subtitle": "Tvůj asistent pro hledání práce",
+    "welcome": "Ahoj {{name}}! 👋 Jsem tvůj asistent Leslie. Zeptej se mě na cokoli o pracovních příležitostech, dovednostech nebo práci v zahraničí. S čím ti můžu pomoct?",
+    "placeholder": "Zeptej se na cokoli o práci…",
+    "thinking": "Přemýšlím…",
+    "errorTitle": "Něco se pokazilo",
+    "errorDesc": "Nepodařilo se získat odpověď. Zkus to prosím znovu.",
+    "rateLimited": "Příliš mnoho požadavků. Zkus to za chvíli.",
+    "paymentRequired": "Vyčerpané kredity. Kontaktuj prosím podporu.",
+    "suggestions": [
+      "Najdi mi práci v Norsku",
+      "Jaké dovednosti bych měl/a zlepšit?",
+      "Práce v Německu"
+    ]
   }
 }
