@@ -51,5 +51,42 @@
   },
   "language": {
     "switchTo": "Switch language"
+  },
+  "onboarding": {
+    "back": "Back",
+    "saving": "Saving…",
+    "thanks": "Thanks! I'm saving your preferences and finding matches…",
+    "skipped": "(skipped)",
+    "send": "Send",
+    "placeholder": "Type your answer…",
+    "salaryPlaceholder": "Enter an amount or leave blank…",
+    "done": "Done!",
+    "doneToast": "All set!",
+    "doneToastDesc": "Preparing your job matches…",
+    "errorTitle": "Something went wrong",
+    "errorDesc": "I couldn't save your answers. Please try again.",
+    "questions": [
+      "Hi! I'm Leslie, your assistant for finding jobs abroad. Let's start — which country would you like to work in?",
+      "Great. What kind of work are you looking for? (hospitality, construction, IT, seasonal, childcare…)",
+      "Which languages do you speak?",
+      "Are you looking for seasonal work for a few months, or a permanent position?",
+      "And last — what's your minimum salary expectation? (EUR per month, can be left blank)"
+    ]
+  },
+  "chat": {
+    "title": "Leslie AI",
+    "subtitle": "Your job assistant",
+    "welcome": "Hi {{name}}! 👋 I'm your Leslie AI assistant. Ask me anything about job opportunities, skills, or working abroad. How can I help you today?",
+    "placeholder": "Ask me anything about jobs…",
+    "thinking": "Thinking…",
+    "errorTitle": "Something went wrong",
+    "errorDesc": "Couldn't get a reply. Please try again.",
+    "rateLimited": "Too many requests. Please try again shortly.",
+    "paymentRequired": "AI credits exhausted. Please contact support.",
+    "suggestions": [
+      "Find me jobs in Norway",
+      "What skills should I improve?",
+      "Jobs in Germany"
+    ]
   }
 }

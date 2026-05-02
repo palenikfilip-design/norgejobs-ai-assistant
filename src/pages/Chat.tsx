@@ -1,11 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { useUser } from "@/context/UserContext";
-import { mockJobs } from "@/data/mockJobs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Send, User } from "lucide-react";
+import { ArrowLeft, Loader2, Send, User } from "lucide-react";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import leslieAvatar from "@/assets/leslie-avatar.png";
 
 interface Message {
@@ -14,52 +17,11 @@ interface Message {
   content: string;
 }
 
-function generateResponse(text: string, userName: string, skills: string[], countries: string[]): string {
-  const lower = text.toLowerCase();
-
-  if (lower.includes("norway") || lower.includes("norge")) {
-    const norwayJobs = mockJobs.filter((j) => j.country === "Norway");
-    if (norwayJobs.length > 0) {
-      return `I found ${norwayJobs.length} jobs in Norway for you:\n\n${norwayJobs
-        .map((j) => `• **${j.title}** at ${j.company} (${j.city}) — ${j.salary}`)
-        .join("\n")}\n\nWould you like me to tell you more about any of these?`;
-    }
-    return "I don't have Norway jobs matching your profile right now, but I'm always scanning for new opportunities!";
-  }
-
-  if (lower.includes("skill") || lower.includes("improve") || lower.includes("learn")) {
-    const suggestions = ["Cloud Computing (AWS/Azure)", "Data Analysis", "Project Management", "Communication Skills"];
-    return `Based on your current skills (${skills.slice(0, 3).join(", ")}), here are skills that could boost your profile:\n\n${suggestions.map((s) => `• **${s}**`).join("\n")}\n\nThese are in high demand in ${countries.join(" and ")}.`;
-  }
-
-  if (lower.includes("germany") || lower.includes("berlin") || lower.includes("munich")) {
-    const germanyJobs = mockJobs.filter((j) => j.country === "Germany");
-    return germanyJobs.length > 0
-      ? `Here are jobs in Germany:\n\n${germanyJobs.map((j) => `• **${j.title}** at ${j.company} (${j.city}) — ${j.salary}`).join("\n")}`
-      : "No German jobs match your current profile, but I'll keep looking!";
-  }
-
-  if (lower.includes("austria")) {
-    const austriaJobs = mockJobs.filter((j) => j.country === "Austria");
-    return austriaJobs.length > 0
-      ? `Here are jobs in Austria:\n\n${austriaJobs.map((j) => `• **${j.title}** at ${j.company} (${j.city}) — ${j.salary}`).join("\n")}`
-      : "No Austrian jobs right now, but I'm on it!";
-  }
-
-  if (lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
-    return `Hey ${userName}! 👋 I'm your Leslie AI assistant. I can help you find jobs, suggest skills to learn, or answer questions about working abroad. What would you like to know?`;
-  }
-
-  if (lower.includes("salary") || lower.includes("pay") || lower.includes("money")) {
-    return `Salaries vary by country and role. In Norway, tech roles typically pay €50,000–€80,000, while manual labor ranges €28,000–€45,000. Would you like me to find jobs within your salary expectations?`;
-  }
-
-  return `That's a great question, ${userName}! I'm still learning, but here's what I can help with:\n\n• Find jobs by country\n• Suggest skills to improve\n• Compare salaries\n• Explain job requirements\n\nTry asking "Find me jobs in Norway" or "What skills should I improve?"`;
-}
-
 const Chat = () => {
   const { user } = useUser();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const { toast } = useToast();
   const avatar = user.profile;
   const firstName = avatar?.fullName.split(" ")[0] || "there";
 
@@ -67,28 +29,69 @@ const Chat = () => {
     {
       id: "welcome",
       role: "assistant",
-      content: `Hi ${firstName}! 👋 I'm your Leslie AI assistant. Ask me anything about job opportunities, skills, or working abroad. How can I help you today?`,
+      content: t("chat.welcome", { name: firstName }),
     },
   ]);
   const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, sending]);
 
-  const sendMessage = () => {
-    const text = input.trim();
-    if (!text) return;
+  // Refresh the welcome line when the UI language changes (only if it's
+  // still the only message — otherwise leave the existing conversation).
+  useEffect(() => {
+    setMessages((prev) => {
+      if (prev.length !== 1 || prev[0].id !== "welcome") return prev;
+      return [{ id: "welcome", role: "assistant", content: t("chat.welcome", { name: firstName }) }];
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [i18n.resolvedLanguage]);
 
-    const userMsg: Message = { id: Date.now().toString(), role: "user", content: text };
-    setMessages((m) => [...m, userMsg]);
+  const sendMessage = async (raw?: string) => {
+    const text = (raw ?? input).trim();
+    if (!text || sending) return;
+
+    const userMsg: Message = { id: `u_${Date.now()}`, role: "user", content: text };
+    const next = [...messages, userMsg];
+    setMessages(next);
     setInput("");
+    setSending(true);
 
-    setTimeout(() => {
-      const response = generateResponse(text, firstName, avatar?.skills || [], []);
-      setMessages((m) => [...m, { id: (Date.now() + 1).toString(), role: "assistant", content: response }]);
-    }, 600);
+    try {
+      const { data, error } = await supabase.functions.invoke("chat-leslie", {
+        body: {
+          messages: next.map((m) => ({ role: m.role, content: m.content })),
+          userName: firstName,
+        },
+      });
+
+      if (error) {
+        const status = (error as { context?: { status?: number } })?.context?.status;
+        if (status === 429) {
+          toast({ title: t("chat.errorTitle"), description: t("chat.rateLimited"), variant: "destructive" });
+        } else if (status === 402) {
+          toast({ title: t("chat.errorTitle"), description: t("chat.paymentRequired"), variant: "destructive" });
+        } else {
+          toast({ title: t("chat.errorTitle"), description: t("chat.errorDesc"), variant: "destructive" });
+        }
+        setSending(false);
+        return;
+      }
+
+      const reply: string = (data as { reply?: string })?.reply ?? "";
+      setMessages((m) => [
+        ...m,
+        { id: `a_${Date.now()}`, role: "assistant", content: reply || t("chat.errorDesc") },
+      ]);
+    } catch (e) {
+      console.error("chat-leslie call failed:", e);
+      toast({ title: t("chat.errorTitle"), description: t("chat.errorDesc"), variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -100,10 +103,11 @@ const Chat = () => {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <img src={leslieAvatar} alt="Leslie AI" className="w-8 h-8 rounded-lg object-cover" />
-          <div>
-            <p className="font-display font-semibold text-foreground text-sm">Leslie AI</p>
-            <p className="text-xs text-muted-foreground">Your job assistant</p>
+          <div className="flex-1 min-w-0">
+            <p className="font-display font-semibold text-foreground text-sm truncate">{t("chat.title")}</p>
+            <p className="text-xs text-muted-foreground truncate">{t("chat.subtitle")}</p>
           </div>
+          <LanguageSwitcher />
         </div>
       </header>
 
@@ -143,6 +147,12 @@ const Chat = () => {
               )}
             </motion.div>
           ))}
+          {sending && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground pl-11">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {t("chat.thinking")}
+            </div>
+          )}
           <div ref={bottomRef} />
         </div>
       </div>
@@ -153,24 +163,31 @@ const Chat = () => {
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            placeholder="Ask me anything about jobs..."
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
+            placeholder={t("chat.placeholder")}
+            disabled={sending}
             className="flex-1"
           />
           <Button
-            onClick={sendMessage}
-            disabled={!input.trim()}
+            onClick={() => sendMessage()}
+            disabled={!input.trim() || sending}
             className="bg-accent-gradient text-accent-foreground hover:opacity-90"
           >
-            <Send className="w-4 h-4" />
+            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </Button>
         </div>
         <div className="max-w-2xl mx-auto mt-2 flex gap-2 overflow-x-auto">
-          {["Find me jobs in Norway", "What skills should I improve?", "Jobs in Germany"].map((q) => (
+          {((t("chat.suggestions", { returnObjects: true, defaultValue: [] }) as unknown as string[]) ?? []).map((q) => (
             <button
               key={q}
-              onClick={() => { setInput(q); }}
-              className="shrink-0 text-xs px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+              onClick={() => sendMessage(q)}
+              disabled={sending}
+              className="shrink-0 text-xs px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50"
             >
               {q}
             </button>

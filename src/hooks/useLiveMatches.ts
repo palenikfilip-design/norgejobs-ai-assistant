@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Job } from "@/data/mockJobs";
+import i18n from "@/i18n";
 
 export interface LiveMatch {
   source_portal: string;
@@ -170,8 +171,9 @@ export function useLiveMatches(avatar: unknown | null) {
 
   const fetchFromApiAndCache = useCallback(async (): Promise<{ matches: LiveMatch[]; added: number }> => {
     if (!avatar) return { matches: [], added: 0 };
+    const language = i18n.resolvedLanguage || i18n.language || "cs";
     const { data, error } = await supabase.functions.invoke("match-jobs", {
-      body: { avatar },
+      body: { avatar, language },
     });
     if (error) throw error;
     const fresh = ((data?.matches as LiveMatch[]) ?? []).filter((m) => m && m.url);

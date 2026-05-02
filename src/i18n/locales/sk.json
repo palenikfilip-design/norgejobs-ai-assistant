@@ -51,5 +51,42 @@
   },
   "language": {
     "switchTo": "Zmeniť jazyk"
+  },
+  "onboarding": {
+    "back": "Späť",
+    "saving": "Ukladám…",
+    "thanks": "Ďakujem! Ukladám tvoje preferencie a hľadám ponuky…",
+    "skipped": "(preskočené)",
+    "send": "Odoslať",
+    "placeholder": "Napíš svoju odpoveď…",
+    "salaryPlaceholder": "Napíš sumu alebo nechaj prázdne…",
+    "done": "Hotovo!",
+    "doneToast": "Hotovo!",
+    "doneToastDesc": "Pripravujem tvoje ponuky…",
+    "errorTitle": "Niečo sa pokazilo",
+    "errorDesc": "Tvoje odpovede sa nepodarilo uložiť. Skús to prosím znova.",
+    "questions": [
+      "Ahoj! Som Leslie, tvoj asistent pre hľadanie práce v zahraničí. Začneme — do ktorej krajiny by si chcel/a ísť pracovať?",
+      "Skvelé. Aký typ práce hľadáš? (gastronómia, stavebníctvo, IT, sezónna, starostlivosť o deti…)",
+      "Akými jazykmi sa dohovoríš?",
+      "Hľadáš sezónnu prácu na pár mesiacov, alebo trvalú pozíciu?",
+      "A posledná — aký minimálny plat ťa zaujíma? (v EUR za mesiac, môžeš nechať prázdne)"
+    ]
+  },
+  "chat": {
+    "title": "Leslie AI",
+    "subtitle": "Tvoj asistent pre hľadanie práce",
+    "welcome": "Ahoj {{name}}! 👋 Som tvoj asistent Leslie. Spýtaj sa ma na čokoľvek o pracovných príležitostiach, zručnostiach alebo práci v zahraničí. S čím ti môžem pomôcť?",
+    "placeholder": "Spýtaj sa na čokoľvek o práci…",
+    "thinking": "Premýšľam…",
+    "errorTitle": "Niečo sa pokazilo",
+    "errorDesc": "Nepodarilo sa získať odpoveď. Skús to prosím znova.",
+    "rateLimited": "Príliš veľa požiadaviek. Skús to o chvíľu.",
+    "paymentRequired": "Vyčerpané kredity. Kontaktuj prosím podporu.",
+    "suggestions": [
+      "Nájdi mi prácu v Nórsku",
+      "Aké zručnosti by som mal/a zlepšiť?",
+      "Práca v Nemecku"
+    ]
   }
 }

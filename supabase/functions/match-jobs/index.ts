@@ -255,12 +255,19 @@ async function scoreJobWithClaude(
   job: NormalizedJob,
   avatar: unknown,
   apiKey: string,
+  language: string = "cs",
 ): Promise<ScoreResult> {
   const salaryStr =
     job.salary_min || job.salary_max
       ? `${job.salary_min ?? "?"}–${job.salary_max ?? "?"} ${job.currency ?? ""}`.trim()
       : "unknown";
-  const prompt = `Score 0-100 how this job matches user. Return ONLY JSON: {"score": <number>, "reasons": [<max 3 short Czech reasons>]}.\n\nJob: ${job.title} in ${job.location ?? "unknown"}, ${job.country ?? "unknown"}. Salary: ${salaryStr}.\nUser preferences: ${JSON.stringify(avatar)}`;
+  const langLabel =
+    language === "sk" ? "Slovak"
+    : language === "en" ? "English"
+    : language === "de" ? "German"
+    : language === "pl" ? "Polish"
+    : "Czech";
+  const prompt = `Score 0-100 how this job matches user. Return ONLY JSON: {"score": <number>, "reasons": [<max 3 short ${langLabel} reasons, each max 3 words>]}.\nThe "reasons" array MUST be written in ${langLabel}.\n\nJob: ${job.title} in ${job.location ?? "unknown"}, ${job.country ?? "unknown"}. Salary: ${salaryStr}.\nUser preferences: ${JSON.stringify(avatar)}`;
 
   try {
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
@@ -312,7 +319,8 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) throw new Error("ANTHROPIC_API_KEY missing");
 
-    const { avatar, sources } = await req.json().catch(() => ({}));
+    const { avatar, sources, language } = await req.json().catch(() => ({}));
+    const lang = typeof language === "string" && ["cs", "sk", "en", "de", "pl"].includes(language) ? language : "cs";
     if (!avatar || typeof avatar !== "object") {
       return new Response(JSON.stringify({ error: "avatar required" }), {
         status: 400,
@@ -349,7 +357,7 @@ Deno.serve(async (req) => {
     // Score at most 30 jobs per call with Claude Haiku 4.5
     const toScore = allJobs.slice(0, 30);
     const results = await Promise.all(
-      toScore.map((j) => scoreJobWithClaude(j, avatar, apiKey)),
+      toScore.map((j) => scoreJobWithClaude(j, avatar, apiKey, lang)),
     );
 
     const matches = toScore
