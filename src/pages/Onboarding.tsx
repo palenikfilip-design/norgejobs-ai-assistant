@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import leslieAvatar from "@/assets/leslie-avatar.png";
+import LeslieAvatar from "@/components/LeslieAvatar";
 
 interface ChatMsg {
   role: "assistant" | "user";
@@ -161,7 +161,7 @@ export default function Onboarding() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex items-center gap-2">
-            <img src={leslieAvatar} alt="Leslie AI" className="w-7 h-7 rounded-lg object-cover" />
+            <LeslieAvatar className="w-7 h-7" />
             <span className="font-display font-semibold text-foreground">Leslie</span>
           </div>
           <div className="flex items-center gap-2">
@@ -183,11 +183,7 @@ export default function Onboarding() {
               className={`flex gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}
             >
               {m.role === "assistant" && (
-                <img
-                  src={leslieAvatar}
-                  alt="Leslie"
-                  className="w-8 h-8 rounded-lg object-cover shrink-0 mt-0.5"
-                />
+                <LeslieAvatar alt="Leslie" className="w-8 h-8 shrink-0 mt-0.5" />
               )}
               <div
                 className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
