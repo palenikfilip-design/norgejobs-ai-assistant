@@ -307,12 +307,12 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border/50">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <LeslieAvatar className="w-8 h-8" />
-            <span className="font-display font-bold text-foreground text-lg">Leslie AI</span>
+        <div className="max-w-6xl mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <LeslieAvatar className="w-8 h-8 shrink-0" />
+            <span className="font-display font-bold text-foreground text-base sm:text-lg truncate">Leslie AI</span>
             {supabaseUser?.email === "palenik.filip@gmail.com" && (
-              <div className="flex items-center gap-1 ml-2">
+              <div className="hidden md:flex items-center gap-1 ml-2">
                 <Button
                   size="sm"
                   variant="outline"
@@ -347,17 +347,17 @@ const Dashboard = () => {
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-0.5 sm:gap-2 shrink-0">
             <LanguageSwitcher />
             <NotificationsPopover topJobs={filteredJobs} />
 
-            <Button variant="ghost" size="icon" onClick={() => navigate("/saved")} aria-label={t("header.savedJobs")}>
+            <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10" onClick={() => navigate("/saved")} aria-label={t("header.savedJobs")}>
               <Bookmark className="w-5 h-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => navigate("/chat")} aria-label={t("header.chat")}>
+            <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10" onClick={() => navigate("/chat")} aria-label={t("header.chat")}>
               <MessageCircle className="w-5 h-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={async () => { await logout(); navigate("/"); }} aria-label={t("header.logout")}>
+            <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10" onClick={async () => { await logout(); navigate("/"); }} aria-label={t("header.logout")}>
               <LogOut className="w-5 h-5" />
             </Button>
           </div>
