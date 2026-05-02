@@ -16,9 +16,10 @@ const LanguageSwitcher = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-1.5" aria-label={t("language.switchTo")}>
+        <Button variant="ghost" size="sm" className="gap-1 px-2" aria-label={t("language.switchTo")}>
           <Languages className="w-4 h-4" />
-          <span className="text-sm">{current.flag} {current.code.toUpperCase()}</span>
+          <span className="text-sm">{current.flag}</span>
+          <span className="hidden sm:inline text-sm">{current.code.toUpperCase()}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="bg-popover">
