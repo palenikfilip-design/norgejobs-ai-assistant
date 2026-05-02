@@ -9,7 +9,7 @@ import { ArrowLeft, Loader2, Send, User } from "lucide-react";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import leslieAvatar from "@/assets/leslie-avatar.png";
+import LeslieAvatar from "@/components/LeslieAvatar";
 
 interface Message {
   id: string;
@@ -102,7 +102,7 @@ const Chat = () => {
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <img src={leslieAvatar} alt="Leslie AI" className="w-8 h-8 rounded-lg object-cover" />
+          <LeslieAvatar className="w-8 h-8" />
           <div className="flex-1 min-w-0">
             <p className="font-display font-semibold text-foreground text-sm truncate">{t("chat.title")}</p>
             <p className="text-xs text-muted-foreground truncate">{t("chat.subtitle")}</p>
@@ -123,7 +123,7 @@ const Chat = () => {
               className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}
             >
               {msg.role === "assistant" && (
-                <img src={leslieAvatar} alt="Leslie AI" className="w-8 h-8 rounded-lg object-cover shrink-0 mt-0.5" />
+                <LeslieAvatar className="w-8 h-8 shrink-0 mt-0.5" />
               )}
               <div
                 className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-line ${

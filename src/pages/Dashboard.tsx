@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MessageCircle, LogOut, Sparkles, BriefcaseBusiness, Filter, Globe, Crown, Eye, Bookmark, Loader2, RefreshCw } from "lucide-react";
 import NotificationsPopover from "@/components/NotificationsPopover";
-import leslieAvatar from "@/assets/leslie-avatar.png";
+import LeslieAvatar from "@/components/LeslieAvatar";
 import { type JobFilters, defaultFilters } from "@/types/jobFilters";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -309,7 +309,7 @@ const Dashboard = () => {
       <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border/50">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={leslieAvatar} alt="Leslie AI" className="w-8 h-8 rounded-lg object-cover" />
+            <LeslieAvatar className="w-8 h-8" />
             <span className="font-display font-bold text-foreground text-lg">Leslie AI</span>
             {supabaseUser?.email === "palenik.filip@gmail.com" && (
               <div className="flex items-center gap-1 ml-2">
@@ -368,7 +368,7 @@ const Dashboard = () => {
         {/* AI Message */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="bg-card rounded-2xl p-6 flex items-start gap-4 border border-border shadow-sm">
-            <img src={leslieAvatar} alt="Leslie AI" className="w-12 h-12 rounded-xl object-cover shrink-0" />
+            <LeslieAvatar shape="xl" className="w-12 h-12 shrink-0" />
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h1 className="text-2xl font-bold text-foreground">{t("dashboard.greeting", { name: firstName })}</h1>
