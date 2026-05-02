@@ -234,21 +234,43 @@ const Dashboard = () => {
     setCoverLetterOpen(true);
     setCoverLetterLoading(true);
     setCoverLetter("");
+    setCoverLetterUsed(null);
+    setCoverLetterLimit(null);
+    setCoverLetterIsPremium(false);
+    setCoverLetterLimitReached(false);
     try {
       const { data, error } = await supabase.functions.invoke("generate-cover-letter", {
         body: {
           jobTitle: job.title,
           company: job.company,
           location: `${job.city}, ${job.country}`,
-          userProfile: { fullName: profile.fullName, skills: profile.skills, workExperience: profile.workExperience, languages: profile.languages.map(l => l.language) },
+          jobId: job.id,
+          language: i18n.language?.split("-")[0] || "cs",
         },
       });
-      if (error) throw error;
+      if (error) {
+        // supabase-js wraps non-2xx; try to read structured error
+        const ctx: any = (error as any).context;
+        if (ctx?.status === 403) {
+          setCoverLetterLimitReached(true);
+          return;
+        }
+        throw error;
+      }
+      if (data?.error === "limit_reached") {
+        setCoverLetterLimitReached(true);
+        setCoverLetterUsed(data.used ?? null);
+        setCoverLetterLimit(data.limit ?? null);
+        return;
+      }
       setCoverLetter(data.coverLetter || "Unable to generate cover letter.");
+      setCoverLetterUsed(data.used ?? null);
+      setCoverLetterLimit(data.limit ?? null);
+      setCoverLetterIsPremium(!!data.isPremium);
     } catch (e: any) {
       console.error("Cover letter error:", e);
-      setCoverLetter("Sorry, I couldn't generate a cover letter right now. Please try again later.");
-      toast({ title: "Error generating cover letter", description: e.message, variant: "destructive" });
+      setCoverLetter("Omlouvám se, dopis se teď nepodařilo vygenerovat. Zkus to prosím za chvíli.");
+      toast({ title: "Chyba při generování dopisu", description: e.message, variant: "destructive" });
     } finally {
       setCoverLetterLoading(false);
     }

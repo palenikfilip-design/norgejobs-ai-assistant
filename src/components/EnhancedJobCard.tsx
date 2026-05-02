@@ -278,7 +278,7 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
               </Button>
             )}
             <Button variant="outline" size="sm" className="text-xs" onClick={() => onGenerateCoverLetter?.(job)}>
-              <FileText className="w-3 h-3 mr-1" />Cover Letter
+              <FileText className="w-3 h-3 mr-1" />✉️ Připravit žádost
             </Button>
             <JobActionBar job={job} />
 
