@@ -29,7 +29,7 @@ import PatternInsightsPanel from "@/components/PatternInsightsPanel";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const Dashboard = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user, activeAvatars, activePresets, logout, supabaseUser } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -95,6 +95,10 @@ const Dashboard = () => {
   const [coverLetter, setCoverLetter] = useState("");
   const [coverLetterLoading, setCoverLetterLoading] = useState(false);
   const [coverLetterJobTitle, setCoverLetterJobTitle] = useState("");
+  const [coverLetterUsed, setCoverLetterUsed] = useState<number | null>(null);
+  const [coverLetterLimit, setCoverLetterLimit] = useState<number | null>(null);
+  const [coverLetterIsPremium, setCoverLetterIsPremium] = useState(false);
+  const [coverLetterLimitReached, setCoverLetterLimitReached] = useState(false);
   const [viewedJobIds, setViewedJobIds] = useState<Set<string>>(new Set());
   const [highlightPresetId, setHighlightPresetId] = useState<string>("all");
 
@@ -582,7 +586,17 @@ const Dashboard = () => {
         )}
       </main>
 
-      <CoverLetterDialog open={coverLetterOpen} onOpenChange={setCoverLetterOpen} coverLetter={coverLetter} isLoading={coverLetterLoading} jobTitle={coverLetterJobTitle} />
+      <CoverLetterDialog
+        open={coverLetterOpen}
+        onOpenChange={setCoverLetterOpen}
+        coverLetter={coverLetter}
+        isLoading={coverLetterLoading}
+        jobTitle={coverLetterJobTitle}
+        used={coverLetterUsed}
+        limit={coverLetterLimit}
+        isPremium={coverLetterIsPremium}
+        limitReached={coverLetterLimitReached}
+      />
     </div>
   );
 };
