@@ -29,7 +29,7 @@ export default function LeslieAvatar({
   return (
     <span
       className={cn(
-        "leslie-avatar relative inline-block overflow-hidden align-middle",
+        "leslie-avatar relative inline-block align-middle",
         radius,
         !isStatic && "leslie-avatar--alive",
         className,
@@ -37,19 +37,22 @@ export default function LeslieAvatar({
       aria-label={alt}
       role="img"
     >
-      <img
-        src={leslieAvatar}
-        alt={alt}
-        draggable={false}
-        className={cn(
-          "leslie-avatar__img block h-full w-full object-cover select-none",
-          radius,
-        )}
-      />
-      {/* Blink overlay — a thin bar that sweeps down across the eye area */}
-      {!isStatic && <span aria-hidden className="leslie-avatar__blink" />}
-      {/* Soft glow that pulses subtly */}
+      {/* Soft glow that pulses subtly — sits behind, outside the clip */}
       {!isStatic && <span aria-hidden className="leslie-avatar__glow" />}
+      {/* Inner clip wrapper — clips image + blink, but not the glow */}
+      <span className={cn("leslie-avatar__clip relative block h-full w-full overflow-hidden bg-secondary", radius)}>
+        <img
+          src={leslieAvatar}
+          alt={alt}
+          draggable={false}
+          className={cn(
+            "leslie-avatar__img block h-full w-full object-contain select-none",
+            radius,
+          )}
+        />
+        {/* Blink overlay — a thin bar that sweeps down across the eye area */}
+        {!isStatic && <span aria-hidden className="leslie-avatar__blink" />}
+      </span>
     </span>
   );
 }

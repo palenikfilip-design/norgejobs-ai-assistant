@@ -90,6 +90,11 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', system-ui, sans-serif;
+    overflow-x: hidden;
+  }
+
+  html {
+    overflow-x: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -171,8 +176,8 @@
   position: absolute;
   left: 0;
   right: 0;
-  top: 30%;
-  height: 22%;
+  top: 38%;
+  height: 14%;
   background: linear-gradient(
     to bottom,
     hsl(var(--card) / 0) 0%,
