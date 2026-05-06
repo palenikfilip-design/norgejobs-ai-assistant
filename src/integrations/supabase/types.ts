@@ -191,6 +191,69 @@ export type Database = {
         }
         Relationships: []
       }
+      job_portals_catalog: {
+        Row: {
+          api_info: string | null
+          avg_salary: string | null
+          category: string
+          country: string | null
+          created_at: string
+          housing_included: string | null
+          id: string
+          is_active: boolean
+          job_categories: string | null
+          languages: string | null
+          name: string
+          notes: string | null
+          portal_type: string | null
+          priority: number | null
+          recommended_approach: string | null
+          scraping_terms: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          api_info?: string | null
+          avg_salary?: string | null
+          category?: string
+          country?: string | null
+          created_at?: string
+          housing_included?: string | null
+          id?: string
+          is_active?: boolean
+          job_categories?: string | null
+          languages?: string | null
+          name: string
+          notes?: string | null
+          portal_type?: string | null
+          priority?: number | null
+          recommended_approach?: string | null
+          scraping_terms?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          api_info?: string | null
+          avg_salary?: string | null
+          category?: string
+          country?: string | null
+          created_at?: string
+          housing_included?: string | null
+          id?: string
+          is_active?: boolean
+          job_categories?: string | null
+          languages?: string | null
+          name?: string
+          notes?: string | null
+          portal_type?: string | null
+          priority?: number | null
+          recommended_approach?: string | null
+          scraping_terms?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       job_preferences: {
         Row: {
           category: string
