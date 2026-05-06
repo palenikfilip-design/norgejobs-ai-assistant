@@ -342,6 +342,9 @@ export default function Admin() {
             <h1 className="font-display font-semibold text-foreground">Admin · Analytics</h1>
             <p className="text-xs text-muted-foreground">Internal dashboard — refreshed on load</p>
           </div>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/admin/portals">Mapa portálů</Link>
+          </Button>
         </div>
       </header>
 
