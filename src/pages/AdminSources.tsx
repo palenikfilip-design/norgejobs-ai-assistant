@@ -158,15 +158,15 @@ export default function AdminSources() {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from("job_sources").insert({
+    const { error } = await supabase.from("job_sources").insert([{
       name: form.name.trim(),
       source_type: form.source_type,
       tier: form.tier,
       country: form.country.trim() || null,
       sector: form.sector.trim() || null,
-      config: parsed,
+      config: parsed as never,
       is_active: true,
-    });
+    }]);
     setSaving(false);
     if (error) {
       toast({ title: "Failed to add", description: error.message, variant: "destructive" });
