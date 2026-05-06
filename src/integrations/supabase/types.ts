@@ -347,6 +347,57 @@ export type Database = {
         }
         Relationships: []
       }
+      job_sources: {
+        Row: {
+          config: Json
+          country: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          jobs_added_total: number
+          last_error: string | null
+          last_run_at: string | null
+          last_run_status: string | null
+          name: string
+          sector: string | null
+          source_type: string
+          tier: number
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          country?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          jobs_added_total?: number
+          last_error?: string | null
+          last_run_at?: string | null
+          last_run_status?: string | null
+          name: string
+          sector?: string | null
+          source_type: string
+          tier?: number
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          country?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          jobs_added_total?: number
+          last_error?: string | null
+          last_run_at?: string | null
+          last_run_status?: string | null
+          name?: string
+          sector?: string | null
+          source_type?: string
+          tier?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           age: number | null
@@ -434,6 +485,7 @@ export type Database = {
           raw_data: Json | null
           salary_max: number | null
           salary_min: number | null
+          source_id: string | null
           source_portal: string
           title: string
           updated_at: string
@@ -456,6 +508,7 @@ export type Database = {
           raw_data?: Json | null
           salary_max?: number | null
           salary_min?: number | null
+          source_id?: string | null
           source_portal: string
           title: string
           updated_at?: string
@@ -478,12 +531,21 @@ export type Database = {
           raw_data?: Json | null
           salary_max?: number | null
           salary_min?: number | null
+          source_id?: string | null
           source_portal?: string
           title?: string
           updated_at?: string
           url?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "public_jobs_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "job_sources"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscriptions: {
         Row: {
