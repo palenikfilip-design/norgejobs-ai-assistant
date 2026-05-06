@@ -17,6 +17,7 @@ import Premium from "./pages/Premium";
 import SavedJobs from "./pages/SavedJobs";
 import DailyInsights from "./pages/DailyInsights";
 import Admin from "./pages/Admin";
+import PortalsMap from "./pages/PortalsMap";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/saved" element={<SavedJobs />} />
             <Route path="/insights" element={<DailyInsights />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/portals" element={<PortalsMap />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
