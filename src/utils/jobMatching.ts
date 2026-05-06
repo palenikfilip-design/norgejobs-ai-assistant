@@ -20,6 +20,7 @@ export interface EnhancedJob extends Job {
   aiSummary: string;
   hardFiltered?: boolean;
   hardFilterReason?: string;
+  sourcePortal?: string;
 }
 
 // --- Category scorers (each returns 0–100) ---
