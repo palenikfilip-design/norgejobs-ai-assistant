@@ -65,6 +65,45 @@ export type Database = {
         }
         Relationships: []
       }
+      employer_sources: {
+        Row: {
+          ats_config: Json
+          ats_type: string
+          company_name: string
+          country: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          last_run_at: string | null
+          sector: string | null
+          updated_at: string
+        }
+        Insert: {
+          ats_config?: Json
+          ats_type: string
+          company_name: string
+          country?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          sector?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ats_config?: Json
+          ats_type?: string
+          company_name?: string
+          country?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          sector?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ingest_logs: {
         Row: {
           created_at: string
