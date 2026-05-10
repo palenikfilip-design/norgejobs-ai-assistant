@@ -38,7 +38,7 @@ export default function LeslieAvatar({
       role="img"
     >
       {/* Soft glow that pulses subtly — sits behind, outside the clip */}
-      {!isStatic && <span aria-hidden className="leslie-avatar__glow" />}
+      {/* glow disabled per user request */}
       {/* Inner clip wrapper — clips image + blink, but not the glow */}
       <span className={cn("leslie-avatar__clip relative block h-full w-full overflow-hidden bg-secondary", radius)}>
         <img
@@ -50,8 +50,7 @@ export default function LeslieAvatar({
             radius,
           )}
         />
-        {/* Blink overlay — a thin bar that sweeps down across the eye area */}
-        {!isStatic && <span aria-hidden className="leslie-avatar__blink" />}
+        {/* Blink overlay removed — caused a visible flash across the face */}
       </span>
     </span>
   );
