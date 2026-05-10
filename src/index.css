@@ -138,35 +138,46 @@
 
 /* ===== Leslie avatar micro-animations ===== */
 @keyframes leslie-breathe {
-  0%, 100% { transform: scale(1) translateY(0); }
-  50%      { transform: scale(1.025) translateY(-0.5px); }
+  0%, 100% { transform: scale(1) translateY(0) rotate(0deg); }
+  25%      { transform: scale(1.04) translateY(-1.5px) rotate(-0.6deg); }
+  50%      { transform: scale(1.05) translateY(-2px) rotate(0deg); }
+  75%      { transform: scale(1.03) translateY(-1px) rotate(0.6deg); }
 }
 
 @keyframes leslie-blink {
-  /* Eyelid sweeps down then back up. Most of the loop = eyes open. */
-  0%, 92%, 100% { transform: translateY(-110%); opacity: 0; }
-  94%           { transform: translateY(38%);  opacity: 0.85; }
-  96%           { transform: translateY(38%);  opacity: 0.85; }
-  98%           { transform: translateY(-110%); opacity: 0; }
+  /* Eyelid sweeps down then back up. Visible blink ~250ms every loop. */
+  0%, 78%, 100% { transform: translateY(-120%) scaleY(0.6); opacity: 0; }
+  82%           { transform: translateY(40%)   scaleY(1);   opacity: 1; }
+  86%           { transform: translateY(40%)   scaleY(1);   opacity: 1; }
+  90%           { transform: translateY(-120%) scaleY(0.6); opacity: 0; }
 }
 
 @keyframes leslie-double-blink {
-  0%, 60%, 100% { transform: translateY(-110%); opacity: 0; }
-  63%           { transform: translateY(38%);  opacity: 0.85; }
-  66%           { transform: translateY(-110%); opacity: 0; }
-  72%           { transform: translateY(38%);  opacity: 0.85; }
-  75%           { transform: translateY(-110%); opacity: 0; }
+  0%, 55%, 100% { transform: translateY(-120%) scaleY(0.6); opacity: 0; }
+  60%           { transform: translateY(40%)   scaleY(1);   opacity: 1; }
+  64%           { transform: translateY(-120%) scaleY(0.6); opacity: 0; }
+  70%           { transform: translateY(40%)   scaleY(1);   opacity: 1; }
+  74%           { transform: translateY(-120%) scaleY(0.6); opacity: 0; }
 }
 
 @keyframes leslie-glow {
-  0%, 100% { opacity: 0.0; }
-  50%      { opacity: 0.35; }
+  0%, 100% { opacity: 0.15; transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(1.08); }
+}
+
+@keyframes leslie-look {
+  0%, 100% { transform: translate(0, 0); }
+  20%      { transform: translate(-1.5%, 0.5%); }
+  45%      { transform: translate(1.5%, -0.5%); }
+  70%      { transform: translate(0.5%, 1%); }
 }
 
 .leslie-avatar { isolation: isolate; }
 
 .leslie-avatar--alive .leslie-avatar__img {
-  animation: leslie-breathe 5.5s ease-in-out infinite;
+  animation:
+    leslie-breathe 4s ease-in-out infinite,
+    leslie-look 11s ease-in-out infinite;
   transform-origin: 50% 60%;
   transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), filter 300ms ease;
 }
@@ -176,29 +187,30 @@
   position: absolute;
   left: 0;
   right: 0;
-  top: 38%;
-  height: 14%;
+  top: 32%;
+  height: 22%;
   background: linear-gradient(
     to bottom,
     hsl(var(--card) / 0) 0%,
-    hsl(var(--card) / 0.55) 40%,
-    hsl(var(--card) / 0.55) 60%,
+    hsl(var(--card) / 0.95) 35%,
+    hsl(var(--card) / 0.95) 65%,
     hsl(var(--card) / 0) 100%
   );
-  filter: blur(2px);
+  filter: blur(1.5px);
   pointer-events: none;
-  animation: leslie-blink 6s ease-in-out infinite;
-  animation-delay: 1.8s;
+  animation: leslie-blink 4.5s ease-in-out infinite;
+  animation-delay: 1.2s;
+  transform-origin: 50% 50%;
   z-index: 2;
 }
 
-/* Every other instance gets a different rhythm for natural variety */
+/* Variety across multiple instances */
 .leslie-avatar--alive:nth-of-type(2n) .leslie-avatar__blink {
-  animation: leslie-double-blink 8.5s ease-in-out infinite;
-  animation-delay: 3s;
+  animation: leslie-double-blink 7s ease-in-out infinite;
+  animation-delay: 2.2s;
 }
 .leslie-avatar--alive:nth-of-type(3n) .leslie-avatar__blink {
-  animation-duration: 7.2s;
+  animation-duration: 5.8s;
   animation-delay: 0.6s;
 }
 
