@@ -28,10 +28,17 @@ import {
 const JOB_TYPES = ["Full-time", "Part-time", "Seasonal", "Remote"];
 
 const SCOPE_TABS: { value: SearchPreset["preferredSourceScope"]; label: string; icon: typeof Home }[] = [
-  { value: "all", label: "All", icon: Globe },
-  { value: "around_me", label: "Around me", icon: Home },
+  { value: "around_me", label: "Home", icon: Home },
   { value: "abroad", label: "Abroad", icon: Plane },
   { value: "remote", label: "Remote", icon: Wifi },
+  { value: "all", label: "All", icon: Globe },
+];
+
+const SCOPE_HERO: { value: SearchPreset["preferredSourceScope"]; label: string; desc: string; icon: typeof Home }[] = [
+  { value: "around_me", label: "Home", desc: "Práce v mé zemi — typicky dlouhodobé pozice", icon: Home },
+  { value: "abroad", label: "Abroad", desc: "Práce v cizině — často sezónní / krátkodobé", icon: Plane },
+  { value: "remote", label: "Remote", desc: "Práce odkudkoliv — distanční role", icon: Wifi },
+  { value: "all", label: "All", desc: "Vše dohromady, bez geografického omezení", icon: Globe },
 ];
 
 const TagSelector = ({
@@ -239,6 +246,43 @@ const PresetEdit = () => {
             onChange={(e) => update("name", e.target.value)}
             placeholder="e.g. Norway Jobs, Germany Tech, Remote Work..."
           />
+        </section>
+
+        {/* Search Scope — primary filter */}
+        <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
+          <div className="flex items-center gap-2">
+            <h2 className="font-semibold text-foreground">Kde chceš pracovat?</h2>
+            <InfoTooltip content="Hlavní filtr presetu. Home = nabídky v tvé zemi (převážně dlouhodobé). Abroad = nabídky v cizině (často sezónní). Remote = bez ohledu na zemi." />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {SCOPE_HERO.map(({ value, label, desc, icon: Icon }) => {
+              const active = form.preferredSourceScope === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => update("preferredSourceScope", value)}
+                  className={`text-left p-3 rounded-xl border transition-all ${
+                    active
+                      ? "bg-accent-gradient text-accent-foreground border-transparent shadow-md"
+                      : "bg-background text-foreground border-border hover:border-primary/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <Icon size={16} />
+                    <span className="font-semibold text-sm">{label}</span>
+                    {active && <Check className="w-3.5 h-3.5 ml-auto" />}
+                  </div>
+                  <p className={`text-[11px] leading-snug ${active ? "opacity-90" : "text-muted-foreground"}`}>
+                    {desc}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+          {form.preferredSourceScope === "around_me" && !user.profile.country && (
+            <p className="text-xs text-yellow-500">⚠️ Doplň si zemi v profilu, aby Home filtr fungoval správně.</p>
+          )}
         </section>
 
         {/* Job Preferences */}
