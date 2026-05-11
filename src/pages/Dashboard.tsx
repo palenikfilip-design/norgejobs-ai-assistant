@@ -116,9 +116,26 @@ const Dashboard = () => {
         aiSummary: j.description,
       }));
     }
+    const userCountry = (profile.country || "").trim().toLowerCase();
+    const scopeFilter = (jobs: typeof allJobs, scope: string) => {
+      if (scope === "all") return jobs;
+      if (scope === "remote") {
+        return jobs.filter(j => j.country.toLowerCase() === "remote" || j.type.toLowerCase() === "remote");
+      }
+      if (scope === "around_me" && userCountry) {
+        return jobs.filter(j => j.country.toLowerCase() === userCountry);
+      }
+      if (scope === "abroad" && userCountry) {
+        return jobs.filter(j => j.country.toLowerCase() !== userCountry && j.country.toLowerCase() !== "remote");
+      }
+      return jobs;
+    };
     const jobMap = new Map<string, EnhancedJob>();
-    activeAvatars.forEach(avatar => {
-      const matched = matchJobsEnhanced(allJobs, avatar);
+    activePresets.forEach((preset, idx) => {
+      const avatar = activeAvatars[idx];
+      if (!avatar) return;
+      const scoped = scopeFilter(allJobs, preset.preferredSourceScope || "all");
+      const matched = matchJobsEnhanced(scoped, avatar);
       matched.forEach(job => {
         const existing = jobMap.get(job.id);
         if (!existing || job.matchScore > existing.matchScore) {
@@ -138,7 +155,7 @@ const Dashboard = () => {
         return { ...j, matchScore: finalScore };
       })
       .sort((a, b) => b.matchScore - a.matchScore);
-  }, [activeAvatars, isPremium, interactions, preferences, allJobs]);
+  }, [activeAvatars, activePresets, profile.country, isPremium, interactions, preferences, allJobs]);
 
   const filteredJobs = useMemo(() => {
     let jobs = matchedJobs;
