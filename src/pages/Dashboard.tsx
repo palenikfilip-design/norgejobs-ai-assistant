@@ -401,9 +401,6 @@ const Dashboard = () => {
                   <DropdownMenuRadioItem value="0">Vypnuto</DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="15">15 minut</DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="30">30 minut</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="60">1 hodina</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="240">4 hodiny</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="1440">24 hodin</DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={async () => { await logout(); navigate("/"); }} className="cursor-pointer">
