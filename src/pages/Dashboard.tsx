@@ -37,6 +37,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { computeBehaviorScore } from "@/utils/behaviorLearning";
 import PatternInsightsPanel from "@/components/PatternInsightsPanel";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { Slider } from "@/components/ui/slider";
 
 const Dashboard = () => {
   const { t, i18n } = useTranslation();
@@ -394,14 +395,28 @@ const Dashboard = () => {
                 <DropdownMenuLabel className="flex items-center gap-2">
                   <Clock className="w-4 h-4" /> Auto-odhlášení po neaktivitě
                 </DropdownMenuLabel>
-                <DropdownMenuRadioGroup
-                  value={String(inactivityMinutes)}
-                  onValueChange={(v) => setInactivityMinutes(Number(v))}
-                >
-                  <DropdownMenuRadioItem value="0">Vypnuto</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="15">15 minut</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="30">30 minut</DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
+                {(() => {
+                  const STOPS = [15, 30, 60, 240];
+                  const LABELS = ["15m", "30m", "1h", "4h"];
+                  const idx = Math.max(0, STOPS.indexOf(inactivityMinutes));
+                  return (
+                    <div className="px-3 py-3 w-64">
+                      <Slider
+                        min={0}
+                        max={STOPS.length - 1}
+                        step={1}
+                        value={[idx]}
+                        onValueChange={(v) => setInactivityMinutes(STOPS[v[0]])}
+                        className="[&_[role=slider]]:bg-destructive [&_[role=slider]]:border-destructive [&>span:first-child>span]:bg-destructive"
+                      />
+                      <div className="flex justify-between mt-2 text-xs text-muted-foreground">
+                        {LABELS.map((l, i) => (
+                          <span key={l} className={i === idx ? "text-destructive font-semibold" : ""}>{l}</span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={async () => { await logout(); navigate("/"); }} className="cursor-pointer">
                   <LogOut className="w-4 h-4 mr-2" /> Odhlásit se hned
