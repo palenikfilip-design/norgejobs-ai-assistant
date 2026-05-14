@@ -396,8 +396,8 @@ const Dashboard = () => {
                   <Clock className="w-4 h-4" /> Auto-odhlášení po neaktivitě
                 </DropdownMenuLabel>
                 {(() => {
-                  const STOPS = [15, 30, 60, 240];
-                  const LABELS = ["15m", "30m", "1h", "4h"];
+                  const STOPS = [0, 15, 30, 60, 240];
+                  const LABELS = ["Off", "15m", "30m", "1h", "4h"];
                   const idx = Math.max(0, STOPS.indexOf(inactivityMinutes));
                   return (
                     <div className="px-3 py-3 w-64">
