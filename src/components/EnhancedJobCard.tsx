@@ -115,7 +115,7 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.06, duration: 0.4 }}
-        className="bg-card rounded-xl border border-border shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
+        className="group bg-card rounded-xl border border-border shadow-sm transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:border-[#1F2937] hover:ring-2 hover:ring-[#1F2937]/40 hover:shadow-[0_0_0_4px_hsl(215_28%_17%/0.18),0_18px_45px_-12px_hsl(215_28%_17%/0.55)]"
       >
         <div className="p-5">
           {/* Header */}
