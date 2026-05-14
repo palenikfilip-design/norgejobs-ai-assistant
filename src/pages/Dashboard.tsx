@@ -14,7 +14,15 @@ import JobFiltersPanel from "@/components/JobFiltersPanel";
 import QuickFilterBar, { defaultQuickFilters, type QuickFilters } from "@/components/QuickFilterBar";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageCircle, LogOut, Sparkles, BriefcaseBusiness, Filter, Globe, Crown, Eye, Bookmark, Loader2, RefreshCw } from "lucide-react";
+import { MessageCircle, LogOut, Sparkles, BriefcaseBusiness, Filter, Globe, Crown, Eye, Bookmark, Loader2, RefreshCw, Clock } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import NotificationsPopover from "@/components/NotificationsPopover";
 import LeslieAvatar from "@/components/LeslieAvatar";
 import { type JobFilters, defaultFilters } from "@/types/jobFilters";
@@ -30,7 +38,7 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const Dashboard = () => {
   const { t, i18n } = useTranslation();
-  const { user, activeAvatars, activePresets, logout, supabaseUser } = useUser();
+  const { user, activeAvatars, activePresets, logout, supabaseUser, inactivityMinutes, setInactivityMinutes } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
   const profile = user.profile;
@@ -374,6 +382,27 @@ const Dashboard = () => {
             <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10" onClick={() => navigate("/chat")} aria-label={t("header.chat")}>
               <MessageCircle className="w-5 h-5" />
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10" aria-label="Auto-logout">
+                  <Clock className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Auto-odhlášení po neaktivitě</DropdownMenuLabel>
+                <DropdownMenuRadioGroup
+                  value={String(inactivityMinutes)}
+                  onValueChange={(v) => setInactivityMinutes(Number(v))}
+                >
+                  <DropdownMenuRadioItem value="0">Vypnuto</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="15">15 minut</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="30">30 minut</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="60">1 hodina</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="240">4 hodiny</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="1440">24 hodin</DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10" onClick={async () => { await logout(); navigate("/"); }} aria-label={t("header.logout")}>
               <LogOut className="w-5 h-5" />
             </Button>
