@@ -4,6 +4,7 @@ import type { User, Session } from "@supabase/supabase-js";
 import { type CandidateDimensions, defaultCandidateDimensions } from "@/types/candidateDimensions";
 import { type LifestyleProfile, defaultLifestyleProfile } from "@/types/lifestyleProfile";
 import { loadProfileFromDB, saveProfileToDB, loadPresetsFromDB, savePresetToDB, deletePresetFromDB } from "@/hooks/useProfileSync";
+import { useInactivityLogout, getInactivityMinutes, setInactivityMinutes as persistInactivityMinutes, DEFAULT_INACTIVITY_MINUTES } from "@/hooks/useInactivityLogout";
 
 export interface LanguageWithLevel {
   language: string;
@@ -204,6 +205,8 @@ interface UserContextType {
   togglePreset: (id: string) => void;
   clearNotifications: () => void;
   loading: boolean;
+  inactivityMinutes: number;
+  setInactivityMinutes: (m: number) => void;
 }
 
 const defaultUser: UserState = {
@@ -276,6 +279,7 @@ export const useUser = () => {
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [inactivityMinutes, setInactivityMinutesState] = useState<number>(() => getInactivityMinutes());
   const [user, setUser] = useState<UserState>(() => {
     const saved = localStorage.getItem("leslieUser");
     if (saved) return migrateState(JSON.parse(saved));
@@ -301,11 +305,13 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSupabaseUser(session?.user ?? null);
       if (session?.user) {
         loadFromDB(session.user.id, session.user.email ?? "");
-      } else {
+      } else if (event === "SIGNED_OUT") {
+        // Only clear local state on explicit sign-out — not on transient
+        // network failures during INITIAL_SESSION / TOKEN_REFRESHED.
         setUser(defaultUser);
         localStorage.removeItem("leslieUser");
       }
@@ -386,6 +392,16 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const activePresets = user.presets.filter((p) => p.active);
   const activeAvatars = activePresets.map((p) => mergeProfilePreset(user.profile, p));
 
+  // Auto-logout after configured inactivity (only when signed in).
+  useInactivityLogout(inactivityMinutes, !!supabaseUser, () => {
+    logout();
+  });
+
+  const setInactivityMinutes = (m: number) => {
+    setInactivityMinutesState(m);
+    persistInactivityMinutes(m);
+  };
+
   return (
     <UserContext.Provider
       value={{
@@ -406,6 +422,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         togglePreset,
         clearNotifications,
         loading,
+        inactivityMinutes,
+        setInactivityMinutes,
       }}
     >
       {children}
