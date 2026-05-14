@@ -37,6 +37,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { computeBehaviorScore } from "@/utils/behaviorLearning";
 import PatternInsightsPanel from "@/components/PatternInsightsPanel";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { Slider } from "@/components/ui/slider";
 
 const Dashboard = () => {
   const { t, i18n } = useTranslation();
