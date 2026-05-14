@@ -301,11 +301,13 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSupabaseUser(session?.user ?? null);
       if (session?.user) {
         loadFromDB(session.user.id, session.user.email ?? "");
-      } else {
+      } else if (event === "SIGNED_OUT") {
+        // Only clear local state on explicit sign-out — not on transient
+        // network failures during INITIAL_SESSION / TOKEN_REFRESHED.
         setUser(defaultUser);
         localStorage.removeItem("leslieUser");
       }
