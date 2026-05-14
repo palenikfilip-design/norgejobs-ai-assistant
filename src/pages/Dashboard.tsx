@@ -21,6 +21,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import NotificationsPopover from "@/components/NotificationsPopover";
@@ -384,12 +386,14 @@ const Dashboard = () => {
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10" aria-label="Auto-logout">
-                  <Clock className="w-5 h-5" />
+                <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10" aria-label={t("header.logout")}>
+                  <LogOut className="w-5 h-5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Auto-odhlášení po neaktivitě</DropdownMenuLabel>
+                <DropdownMenuLabel className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" /> Auto-odhlášení po neaktivitě
+                </DropdownMenuLabel>
                 <DropdownMenuRadioGroup
                   value={String(inactivityMinutes)}
                   onValueChange={(v) => setInactivityMinutes(Number(v))}
@@ -401,11 +405,12 @@ const Dashboard = () => {
                   <DropdownMenuRadioItem value="240">4 hodiny</DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="1440">24 hodin</DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={async () => { await logout(); navigate("/"); }} className="cursor-pointer">
+                  <LogOut className="w-4 h-4 mr-2" /> Odhlásit se hned
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10" onClick={async () => { await logout(); navigate("/"); }} aria-label={t("header.logout")}>
-              <LogOut className="w-5 h-5" />
-            </Button>
           </div>
         </div>
       </header>
