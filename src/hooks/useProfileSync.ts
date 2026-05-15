@@ -81,6 +81,7 @@ export async function loadPresetsFromDB(userId: string): Promise<SearchPreset[]>
     preferredCountries: (p.preferred_countries as string[]) || [],
     salaryMin: Number(p.salary_min) || 0,
     salaryMax: Number(p.salary_max) || 0,
+    salaryPeriod: ((p.match_weights as any)?.salaryPeriod === "hourly" ? "hourly" : "monthly"),
     housingPreference: p.housing_preference,
     desiredBonuses: (p.desired_bonuses as string[]) || [],
     matchWeights: { ...DEFAULT_MATCH_WEIGHTS, ...((p.match_weights as any) || {}) },

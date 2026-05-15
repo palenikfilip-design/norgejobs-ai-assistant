@@ -71,6 +71,7 @@ export interface SearchPreset {
   preferredCountries: string[];
   salaryMin: number;
   salaryMax: number;
+  salaryPeriod: "monthly" | "hourly";
   housingPreference: boolean;
   desiredBonuses: string[];
   matchWeights: MatchWeights;
@@ -89,6 +90,7 @@ export const defaultPreset: Omit<SearchPreset, "id"> = {
   preferredCountries: [],
   salaryMin: 0,
   salaryMax: 0,
+  salaryPeriod: "monthly",
   housingPreference: false,
   desiredBonuses: [],
   matchWeights: { ...DEFAULT_MATCH_WEIGHTS },
@@ -257,6 +259,7 @@ function migrateState(saved: any): UserState {
         preferredCountries: av.preferredCountries || [],
         salaryMin: av.salaryMin || 0,
         salaryMax: av.salaryMax || 0,
+        salaryPeriod: av.salaryPeriod || "monthly",
         housingPreference: av.housingPreference || false,
         desiredBonuses: av.desiredBonuses || [],
         matchWeights: av.matchWeights || { ...DEFAULT_MATCH_WEIGHTS },

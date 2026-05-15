@@ -321,7 +321,23 @@ const PresetEdit = () => {
             <TagSelector options={countryOptions} selected={form.preferredCountries} onChange={(v) => update("preferredCountries", v)} />
           </div>
           <div className="space-y-2">
-            <Label>Salary Expectation (€/year)</Label>
+            <Label>Salary Expectation ({form.salaryPeriod === "hourly" ? "€/hour" : "€/month"})</Label>
+            <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit">
+              {(["monthly", "hourly"] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => update("salaryPeriod", p)}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                    form.salaryPeriod === p
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {p === "monthly" ? "Měsíčně" : "Hodinově"}
+                </button>
+              ))}
+            </div>
             <div className="flex gap-3 items-center">
               <Input type="number" value={form.salaryMin || ""} onChange={(e) => update("salaryMin", Number(e.target.value))} className="w-28" placeholder="Min" />
               <span className="text-muted-foreground">to</span>
