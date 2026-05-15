@@ -88,7 +88,12 @@ export async function loadPresetsFromDB(userId: string): Promise<SearchPreset[]>
     useLifestyleMatching: (p.match_weights as any)?.useLifestyleMatching ?? false,
     lifestyleWeight: (p.match_weights as any)?.lifestyleWeight ?? 20,
     preferredSources: (p.match_weights as any)?.preferredSources ?? [],
-    preferredSourceScope: (p.match_weights as any)?.preferredSourceScope ?? "all",
+    preferredSourceScope: (() => {
+      const raw = (p.match_weights as any)?.preferredSourceScope;
+      if (Array.isArray(raw)) return raw;
+      if (typeof raw === "string") return [raw];
+      return ["all"];
+    })(),
   }));
 }
 
