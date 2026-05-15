@@ -361,9 +361,9 @@ const PresetEdit = () => {
               ))}
             </div>
             <div className="flex gap-3 items-center">
-              <Input type="number" value={form.salaryMin || ""} onChange={(e) => update("salaryMin", Number(e.target.value))} className="w-28" placeholder="Min" />
+              <Input type="number" min={0} value={form.salaryMin || ""} onChange={(e) => update("salaryMin", Math.max(0, Number(e.target.value)))} className="w-28" placeholder="Min" />
               <span className="text-muted-foreground">to</span>
-              <Input type="number" value={form.salaryMax || ""} onChange={(e) => update("salaryMax", Number(e.target.value))} className="w-28" placeholder="Max" />
+              <Input type="number" min={0} value={form.salaryMax || ""} onChange={(e) => update("salaryMax", Math.max(0, Number(e.target.value)))} className="w-28" placeholder="Max" />
               <Select value={form.salaryCurrency} onValueChange={(v) => update("salaryCurrency", v)}>
                 <SelectTrigger className="w-28">
                   <SelectValue />
