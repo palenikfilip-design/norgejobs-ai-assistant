@@ -37,10 +37,10 @@ const SCOPE_TABS: { value: ScopeValue; label: string; icon: typeof Home }[] = [
 ];
 
 const SCOPE_HERO: { value: ScopeValue; label: string; desc: string; icon: typeof Home }[] = [
-  { value: "around_me", label: "Home", desc: "Práce v mé zemi — typicky dlouhodobé pozice", icon: Home },
-  { value: "abroad", label: "Abroad", desc: "Práce v cizině — často sezónní / krátkodobé", icon: Plane },
-  { value: "remote", label: "Remote", desc: "Práce odkudkoliv — distanční role", icon: Wifi },
-  { value: "all", label: "All", desc: "Vše dohromady, bez geografického omezení", icon: Globe },
+  { value: "around_me", label: "Home", desc: "Jobs in my country — typically long-term positions", icon: Home },
+  { value: "abroad", label: "Abroad", desc: "Jobs abroad — often seasonal / short-term", icon: Plane },
+  { value: "remote", label: "Remote", desc: "Work from anywhere — distance roles", icon: Wifi },
+  { value: "all", label: "All", desc: "Everything together, no geographic limit", icon: Globe },
 ];
 
 const TagSelector = ({
@@ -272,8 +272,8 @@ const PresetEdit = () => {
         {/* Search Scope — primary filter */}
         <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
           <div className="flex items-center gap-2">
-            <h2 className="font-semibold text-foreground">Kde chceš pracovat?</h2>
-            <InfoTooltip content="Hlavní filtr presetu. Home = nabídky v tvé zemi (převážně dlouhodobé). Abroad = nabídky v cizině (často sezónní). Remote = bez ohledu na zemi." />
+            <h2 className="font-semibold text-foreground">Where do you want to work?</h2>
+            <InfoTooltip content="Main preset filter. Home = jobs in your country (mostly long-term). Abroad = jobs abroad (often seasonal). Remote = regardless of country." />
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {SCOPE_HERO.map(({ value, label, desc, icon: Icon }) => {
@@ -303,9 +303,9 @@ const PresetEdit = () => {
               );
             })}
           </div>
-          <p className="text-[11px] text-muted-foreground">Můžeš vybrat více možností (klikni znovu pro odebrání).</p>
+          <p className="text-[11px] text-muted-foreground">You can pick multiple options (click again to remove).</p>
           {(form.preferredSourceScope || []).includes("around_me") && !user.profile.country && (
-            <p className="text-xs text-yellow-500">⚠️ Doplň si zemi v profilu, aby Home filtr fungoval správně.</p>
+            <p className="text-xs text-yellow-500">⚠️ Set your country in profile so the Home filter works properly.</p>
           )}
         </section>
 
@@ -334,7 +334,7 @@ const PresetEdit = () => {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {p === "monthly" ? "Měsíčně" : "Hodinově"}
+                  {p === "monthly" ? "Monthly" : "Hourly"}
                 </button>
               ))}
             </div>
