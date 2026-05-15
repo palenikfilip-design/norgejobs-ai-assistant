@@ -27,14 +27,16 @@ import {
 
 const JOB_TYPES = ["Full-time", "Part-time", "Seasonal", "Remote"];
 
-const SCOPE_TABS: { value: SearchPreset["preferredSourceScope"]; label: string; icon: typeof Home }[] = [
+type ScopeValue = "all" | "around_me" | "abroad" | "remote";
+
+const SCOPE_TABS: { value: ScopeValue; label: string; icon: typeof Home }[] = [
   { value: "around_me", label: "Home", icon: Home },
   { value: "abroad", label: "Abroad", icon: Plane },
   { value: "remote", label: "Remote", icon: Wifi },
   { value: "all", label: "All", icon: Globe },
 ];
 
-const SCOPE_HERO: { value: SearchPreset["preferredSourceScope"]; label: string; desc: string; icon: typeof Home }[] = [
+const SCOPE_HERO: { value: ScopeValue; label: string; desc: string; icon: typeof Home }[] = [
   { value: "around_me", label: "Home", desc: "Práce v mé zemi — typicky dlouhodobé pozice", icon: Home },
   { value: "abroad", label: "Abroad", desc: "Práce v cizině — často sezónní / krátkodobé", icon: Plane },
   { value: "remote", label: "Remote", desc: "Práce odkudkoliv — distanční role", icon: Wifi },
