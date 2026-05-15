@@ -71,6 +71,7 @@ export interface SearchPreset {
   preferredCountries: string[];
   salaryMin: number;
   salaryMax: number;
+  salaryPeriod: "monthly" | "hourly";
   housingPreference: boolean;
   desiredBonuses: string[];
   matchWeights: MatchWeights;
@@ -89,6 +90,7 @@ export const defaultPreset: Omit<SearchPreset, "id"> = {
   preferredCountries: [],
   salaryMin: 0,
   salaryMax: 0,
+  salaryPeriod: "monthly",
   housingPreference: false,
   desiredBonuses: [],
   matchWeights: { ...DEFAULT_MATCH_WEIGHTS },
