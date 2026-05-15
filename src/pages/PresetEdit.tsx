@@ -27,14 +27,16 @@ import {
 
 const JOB_TYPES = ["Full-time", "Part-time", "Seasonal", "Remote"];
 
-const SCOPE_TABS: { value: SearchPreset["preferredSourceScope"]; label: string; icon: typeof Home }[] = [
+type ScopeValue = "all" | "around_me" | "abroad" | "remote";
+
+const SCOPE_TABS: { value: ScopeValue; label: string; icon: typeof Home }[] = [
   { value: "around_me", label: "Home", icon: Home },
   { value: "abroad", label: "Abroad", icon: Plane },
   { value: "remote", label: "Remote", icon: Wifi },
   { value: "all", label: "All", icon: Globe },
 ];
 
-const SCOPE_HERO: { value: SearchPreset["preferredSourceScope"]; label: string; desc: string; icon: typeof Home }[] = [
+const SCOPE_HERO: { value: ScopeValue; label: string; desc: string; icon: typeof Home }[] = [
   { value: "around_me", label: "Home", desc: "Práce v mé zemi — typicky dlouhodobé pozice", icon: Home },
   { value: "abroad", label: "Abroad", desc: "Práce v cizině — často sezónní / krátkodobé", icon: Plane },
   { value: "remote", label: "Remote", desc: "Práce odkudkoliv — distanční role", icon: Wifi },
@@ -195,8 +197,27 @@ const PresetEdit = () => {
 
   const countryOptions = COUNTRIES.map((c) => ({ value: c.value, label: c.label }));
 
+  const [portalScopeTab, setPortalScopeTab] = useState<ScopeValue>(
+    (form.preferredSourceScope?.[0] as ScopeValue) || "all"
+  );
+
+  const toggleScope = (value: ScopeValue) => {
+    const current = (form.preferredSourceScope || []) as ScopeValue[];
+    let next: ScopeValue[];
+    if (value === "all") {
+      next = current.includes("all") ? [] : ["all"];
+    } else {
+      const without = current.filter((s) => s !== "all");
+      next = without.includes(value)
+        ? without.filter((s) => s !== value)
+        : [...without, value];
+    }
+    if (next.length === 0) next = ["all"];
+    update("preferredSourceScope", next);
+  };
+
   const userCountryLower = (user.profile.country || "").trim().toLowerCase();
-  const portalsByScope: Record<SearchPreset["preferredSourceScope"], typeof JOB_SOURCE_CATALOG> = {
+  const portalsByScope: Record<ScopeValue, typeof JOB_SOURCE_CATALOG> = {
     around_me: JOB_SOURCE_CATALOG.filter((s) =>
       userCountryLower && s.countries.some((c) => c.toLowerCase() === userCountryLower)
     ),
@@ -206,7 +227,7 @@ const PresetEdit = () => {
     remote: JOB_SOURCE_CATALOG.filter((s) => ["linkedin", "indeed", "eures"].includes(s.id)),
     all: JOB_SOURCE_CATALOG,
   };
-  const visiblePortals = portalsByScope[form.preferredSourceScope];
+  const visiblePortals = portalsByScope[portalScopeTab];
 
   const togglePortal = (id: string) => {
     const next = form.preferredSources.includes(id)
@@ -256,12 +277,12 @@ const PresetEdit = () => {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {SCOPE_HERO.map(({ value, label, desc, icon: Icon }) => {
-              const active = form.preferredSourceScope === value;
+              const active = (form.preferredSourceScope || []).includes(value);
               return (
                 <button
                   key={value}
                   type="button"
-                  onClick={() => update("preferredSourceScope", value)}
+                  onClick={() => toggleScope(value)}
                   className={`text-left p-3 rounded-xl border transition-all ${
                     active
                       ? "bg-accent-gradient text-accent-foreground border-transparent shadow-md"
@@ -271,7 +292,9 @@ const PresetEdit = () => {
                   <div className="flex items-center gap-2 mb-1">
                     <Icon size={16} />
                     <span className="font-semibold text-sm">{label}</span>
-                    {active && <Check className="w-3.5 h-3.5 ml-auto" />}
+                    <span className="ml-auto text-base font-bold leading-none">
+                      {active ? "−" : "+"}
+                    </span>
                   </div>
                   <p className={`text-[11px] leading-snug ${active ? "opacity-90" : "text-muted-foreground"}`}>
                     {desc}
@@ -280,7 +303,8 @@ const PresetEdit = () => {
               );
             })}
           </div>
-          {form.preferredSourceScope === "around_me" && !user.profile.country && (
+          <p className="text-[11px] text-muted-foreground">Můžeš vybrat více možností (klikni znovu pro odebrání).</p>
+          {(form.preferredSourceScope || []).includes("around_me") && !user.profile.country && (
             <p className="text-xs text-yellow-500">⚠️ Doplň si zemi v profilu, aby Home filtr fungoval správně.</p>
           )}
         </section>
@@ -329,9 +353,9 @@ const PresetEdit = () => {
               <button
                 key={value}
                 type="button"
-                onClick={() => update("preferredSourceScope", value)}
+                onClick={() => setPortalScopeTab(value)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
-                  form.preferredSourceScope === value
+                  portalScopeTab === value
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
@@ -343,7 +367,7 @@ const PresetEdit = () => {
           </div>
           {visiblePortals.length === 0 ? (
             <p className="text-xs text-muted-foreground">
-              {form.preferredSourceScope === "around_me" && !user.profile.country
+              {portalScopeTab === "around_me" && !user.profile.country
                 ? "Set your country in profile to see local portals."
                 : "No portals available in this scope."}
             </p>

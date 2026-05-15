@@ -79,8 +79,8 @@ export interface SearchPreset {
   lifestyleWeight: number; // 0–50 (percentage)
   /** Selected job portal source IDs to scope search to. Empty = all. */
   preferredSources: string[];
-  /** Geographic scope for portals. */
-  preferredSourceScope: "all" | "around_me" | "abroad" | "remote";
+  /** Geographic scope for portals. Multi-select. */
+  preferredSourceScope: ("all" | "around_me" | "abroad" | "remote")[];
 }
 
 export const defaultPreset: Omit<SearchPreset, "id"> = {
@@ -96,7 +96,7 @@ export const defaultPreset: Omit<SearchPreset, "id"> = {
   useLifestyleMatching: false,
   lifestyleWeight: 20,
   preferredSources: [],
-  preferredSourceScope: "all",
+  preferredSourceScope: ["all"],
 };
 
 /**
@@ -220,7 +220,18 @@ const defaultUser: UserState = {
 
 // Migrate old localStorage format
 function migrateState(saved: any): UserState {
-  if (saved.profile) return { ...defaultUser, ...saved };
+  if (saved.profile) {
+    const merged = { ...defaultUser, ...saved } as UserState;
+    merged.presets = (merged.presets || []).map((p: any) => ({
+      ...p,
+      preferredSourceScope: Array.isArray(p.preferredSourceScope)
+        ? p.preferredSourceScope
+        : p.preferredSourceScope
+        ? [p.preferredSourceScope]
+        : ["all"],
+    }));
+    return merged;
+  }
   // Old format had "avatars" array
   const profile: UserProfile = { ...defaultProfile };
   const presets: SearchPreset[] = [];
@@ -253,7 +264,7 @@ function migrateState(saved: any): UserState {
         useLifestyleMatching: false,
         lifestyleWeight: 20,
         preferredSources: [],
-        preferredSourceScope: "all",
+        preferredSourceScope: ["all"],
       });
     });
   }
