@@ -220,7 +220,18 @@ const defaultUser: UserState = {
 
 // Migrate old localStorage format
 function migrateState(saved: any): UserState {
-  if (saved.profile) return { ...defaultUser, ...saved };
+  if (saved.profile) {
+    const merged = { ...defaultUser, ...saved } as UserState;
+    merged.presets = (merged.presets || []).map((p: any) => ({
+      ...p,
+      preferredSourceScope: Array.isArray(p.preferredSourceScope)
+        ? p.preferredSourceScope
+        : p.preferredSourceScope
+        ? [p.preferredSourceScope]
+        : ["all"],
+    }));
+    return merged;
+  }
   // Old format had "avatars" array
   const profile: UserProfile = { ...defaultProfile };
   const presets: SearchPreset[] = [];
