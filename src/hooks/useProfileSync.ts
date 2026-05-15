@@ -82,6 +82,7 @@ export async function loadPresetsFromDB(userId: string): Promise<SearchPreset[]>
     salaryMin: Number(p.salary_min) || 0,
     salaryMax: Number(p.salary_max) || 0,
     salaryPeriod: ((p.match_weights as any)?.salaryPeriod === "hourly" ? "hourly" : "monthly"),
+    salaryCurrency: (p.match_weights as any)?.salaryCurrency || "EUR",
     housingPreference: p.housing_preference,
     desiredBonuses: (p.desired_bonuses as string[]) || [],
     matchWeights: { ...DEFAULT_MATCH_WEIGHTS, ...((p.match_weights as any) || {}) },
@@ -116,6 +117,8 @@ export async function savePresetToDB(userId: string, preset: SearchPreset) {
       lifestyleWeight: preset.lifestyleWeight,
       preferredSources: preset.preferredSources,
       preferredSourceScope: preset.preferredSourceScope,
+      salaryPeriod: preset.salaryPeriod,
+      salaryCurrency: preset.salaryCurrency,
     } as any,
     active: preset.active,
   });
