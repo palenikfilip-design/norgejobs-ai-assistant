@@ -336,7 +336,31 @@ const PresetEdit = () => {
           <h2 className="font-semibold text-foreground">Job Preferences</h2>
           <div className="space-y-2">
             <Label>Preferred Job Type</Label>
-            <SimpleTagSelector options={JOB_TYPES} selected={[form.preferredJobType]} onChange={(v) => update("preferredJobType", v[v.length - 1] || "Full-time")} single />
+            <div className="flex flex-wrap gap-2">
+              {JOB_TYPES.map((opt) => {
+                const active = form.preferredJobType.includes(opt);
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => {
+                      const next = active
+                        ? form.preferredJobType.filter((t) => t !== opt)
+                        : [...form.preferredJobType, opt];
+                      update("preferredJobType", next);
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 ${
+                      active
+                        ? "bg-accent-gradient text-accent-foreground shadow-sm"
+                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    }`}
+                  >
+                    {opt}
+                    <span className="text-base font-bold leading-none">{active ? "−" : "+"}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <div className="space-y-2">
             <Label>Target Countries</Label>

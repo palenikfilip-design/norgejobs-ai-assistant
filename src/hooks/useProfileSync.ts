@@ -77,7 +77,11 @@ export async function loadPresetsFromDB(userId: string): Promise<SearchPreset[]>
   return data.map((p) => ({
     id: p.id,
     name: p.name,
-    preferredJobType: p.preferred_job_type,
+    preferredJobType: (() => {
+      const fromMW = (p.match_weights as any)?.preferredJobTypes;
+      if (Array.isArray(fromMW) && fromMW.length > 0) return fromMW;
+      return p.preferred_job_type ? [p.preferred_job_type] : ["Full-time"];
+    })(),
     preferredCountries: (p.preferred_countries as string[]) || [],
     salaryMin: Number(p.salary_min) || 0,
     salaryMax: Number(p.salary_max) || 0,
@@ -105,7 +109,7 @@ export async function savePresetToDB(userId: string, preset: SearchPreset) {
     id: preset.id,
     user_id: userId,
     name: preset.name,
-    preferred_job_type: preset.preferredJobType,
+    preferred_job_type: preset.preferredJobType[0] ?? "Full-time",
     preferred_countries: preset.preferredCountries as any,
     salary_min: preset.salaryMin,
     salary_max: preset.salaryMax,
@@ -119,6 +123,7 @@ export async function savePresetToDB(userId: string, preset: SearchPreset) {
       preferredSourceScope: preset.preferredSourceScope,
       salaryPeriod: preset.salaryPeriod,
       salaryCurrency: preset.salaryCurrency,
+      preferredJobTypes: preset.preferredJobType,
     } as any,
     active: preset.active,
   });

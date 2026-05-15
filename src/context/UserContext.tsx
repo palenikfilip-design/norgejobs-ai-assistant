@@ -67,7 +67,7 @@ export const defaultProfile: UserProfile = {
 export interface SearchPreset {
   id: string;
   name: string;
-  preferredJobType: string;
+  preferredJobType: string[];
   preferredCountries: string[];
   salaryMin: number;
   salaryMax: number;
@@ -87,7 +87,7 @@ export interface SearchPreset {
 
 export const defaultPreset: Omit<SearchPreset, "id"> = {
   name: "",
-  preferredJobType: "Full-time",
+  preferredJobType: ["Full-time"],
   preferredCountries: [],
   salaryMin: 0,
   salaryMax: 0,
@@ -119,7 +119,7 @@ export interface AvatarProfile {
   experienceLevel: string;
   profession: string;
   skills: string[];
-  preferredJobType: string;
+  preferredJobType: string[];
   preferredCountries: string[];
   salaryMin: number;
   salaryMax: number;
@@ -257,7 +257,11 @@ function migrateState(saved: any): UserState {
       presets.push({
         id: av.id || crypto.randomUUID(),
         name: av.name || `Preset ${i + 1}`,
-        preferredJobType: av.preferredJobType || "Full-time",
+        preferredJobType: Array.isArray(av.preferredJobType)
+          ? av.preferredJobType
+          : av.preferredJobType
+          ? [av.preferredJobType]
+          : ["Full-time"],
         preferredCountries: av.preferredCountries || [],
         salaryMin: av.salaryMin || 0,
         salaryMax: av.salaryMax || 0,

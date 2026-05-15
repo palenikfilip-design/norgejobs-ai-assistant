@@ -61,7 +61,7 @@ const Dashboard = () => {
       languages: profile.languages,
       experience_level: profile.experienceLevel,
       preferred_countries: a?.preferredCountries ?? [],
-      preferred_job_type: a?.preferredJobType ?? null,
+      preferred_job_type: a?.preferredJobType?.[0] ?? null,
       salary_min: a?.salaryMin ?? null,
       salary_max: a?.salaryMax ?? null,
       desired_bonuses: a?.desiredBonuses ?? [],
@@ -503,7 +503,7 @@ const Dashboard = () => {
                   <div key={p.id} className="bg-secondary/30 rounded-lg p-2.5">
                     <span className="text-muted-foreground text-xs">{p.name}</span>
                     <p className="font-medium text-foreground text-xs mt-0.5">
-                      {p.preferredCountries.join(", ") || "Any"} · {p.preferredJobType}
+                      {p.preferredCountries.join(", ") || "Any"} · {p.preferredJobType.join(", ")}
                     </p>
                   </div>
                 ))}
