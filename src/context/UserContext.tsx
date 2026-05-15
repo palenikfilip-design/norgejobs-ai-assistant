@@ -79,8 +79,8 @@ export interface SearchPreset {
   lifestyleWeight: number; // 0–50 (percentage)
   /** Selected job portal source IDs to scope search to. Empty = all. */
   preferredSources: string[];
-  /** Geographic scope for portals. */
-  preferredSourceScope: "all" | "around_me" | "abroad" | "remote";
+  /** Geographic scope for portals. Multi-select. */
+  preferredSourceScope: ("all" | "around_me" | "abroad" | "remote")[];
 }
 
 export const defaultPreset: Omit<SearchPreset, "id"> = {
@@ -96,7 +96,7 @@ export const defaultPreset: Omit<SearchPreset, "id"> = {
   useLifestyleMatching: false,
   lifestyleWeight: 20,
   preferredSources: [],
-  preferredSourceScope: "all",
+  preferredSourceScope: ["all"],
 };
 
 /**
@@ -253,7 +253,7 @@ function migrateState(saved: any): UserState {
         useLifestyleMatching: false,
         lifestyleWeight: 20,
         preferredSources: [],
-        preferredSourceScope: "all",
+        preferredSourceScope: ["all"],
       });
     });
   }
