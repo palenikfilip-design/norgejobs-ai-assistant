@@ -353,9 +353,9 @@ const PresetEdit = () => {
               <button
                 key={value}
                 type="button"
-                onClick={() => update("preferredSourceScope", value)}
+                onClick={() => setPortalScopeTab(value)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
-                  form.preferredSourceScope === value
+                  portalScopeTab === value
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
@@ -367,7 +367,7 @@ const PresetEdit = () => {
           </div>
           {visiblePortals.length === 0 ? (
             <p className="text-xs text-muted-foreground">
-              {form.preferredSourceScope === "around_me" && !user.profile.country
+              {portalScopeTab === "around_me" && !user.profile.country
                 ? "Set your country in profile to see local portals."
                 : "No portals available in this scope."}
             </p>
