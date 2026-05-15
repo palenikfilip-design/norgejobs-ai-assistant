@@ -259,6 +259,7 @@ function migrateState(saved: any): UserState {
         preferredCountries: av.preferredCountries || [],
         salaryMin: av.salaryMin || 0,
         salaryMax: av.salaryMax || 0,
+        salaryPeriod: av.salaryPeriod || "monthly",
         housingPreference: av.housingPreference || false,
         desiredBonuses: av.desiredBonuses || [],
         matchWeights: av.matchWeights || { ...DEFAULT_MATCH_WEIGHTS },
