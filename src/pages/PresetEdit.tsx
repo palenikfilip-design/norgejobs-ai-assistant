@@ -15,6 +15,13 @@ import { useToast } from "@/hooks/use-toast";
 import { hasLifestyleData } from "@/types/lifestyleProfile";
 import InfoTooltip from "@/components/InfoTooltip";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -26,6 +33,21 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const JOB_TYPES = ["Full-time", "Part-time", "Seasonal", "Remote"];
+
+const CURRENCIES = [
+  { code: "EUR", symbol: "€" },
+  { code: "USD", symbol: "$" },
+  { code: "GBP", symbol: "£" },
+  { code: "NOK", symbol: "kr" },
+  { code: "SEK", symbol: "kr" },
+  { code: "DKK", symbol: "kr" },
+  { code: "CHF", symbol: "CHF" },
+  { code: "CZK", symbol: "Kč" },
+  { code: "PLN", symbol: "zł" },
+  { code: "AUD", symbol: "A$" },
+  { code: "NZD", symbol: "NZ$" },
+  { code: "CAD", symbol: "C$" },
+];
 
 type ScopeValue = "all" | "around_me" | "abroad" | "remote";
 
@@ -321,7 +343,7 @@ const PresetEdit = () => {
             <TagSelector options={countryOptions} selected={form.preferredCountries} onChange={(v) => update("preferredCountries", v)} />
           </div>
           <div className="space-y-2">
-            <Label>Salary Expectation ({form.salaryPeriod === "hourly" ? "€/hour" : "€/month"})</Label>
+            <Label>Salary Expectation</Label>
             <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit">
               {(["monthly", "hourly"] as const).map((p) => (
                 <button
@@ -342,6 +364,18 @@ const PresetEdit = () => {
               <Input type="number" value={form.salaryMin || ""} onChange={(e) => update("salaryMin", Number(e.target.value))} className="w-28" placeholder="Min" />
               <span className="text-muted-foreground">to</span>
               <Input type="number" value={form.salaryMax || ""} onChange={(e) => update("salaryMax", Number(e.target.value))} className="w-28" placeholder="Max" />
+              <Select value={form.salaryCurrency} onValueChange={(v) => update("salaryCurrency", v)}>
+                <SelectTrigger className="w-28">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover">
+                  {CURRENCIES.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>
+                      {c.symbol} {c.code}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="space-y-2">
