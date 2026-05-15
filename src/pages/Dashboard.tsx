@@ -128,18 +128,19 @@ const Dashboard = () => {
       }));
     }
     const userCountry = (profile.country || "").trim().toLowerCase();
-    const scopeFilter = (jobs: typeof allJobs, scope: string) => {
-      if (scope === "all") return jobs;
-      if (scope === "remote") {
-        return jobs.filter(j => j.country.toLowerCase() === "remote" || j.type.toLowerCase() === "remote");
-      }
-      if (scope === "around_me" && userCountry) {
-        return jobs.filter(j => j.country.toLowerCase() === userCountry);
-      }
-      if (scope === "abroad" && userCountry) {
-        return jobs.filter(j => j.country.toLowerCase() !== userCountry && j.country.toLowerCase() !== "remote");
-      }
-      return jobs;
+    const scopeFilter = (jobs: typeof allJobs, scope: string | string[]) => {
+      const scopes = Array.isArray(scope) ? scope : [scope];
+      if (scopes.length === 0 || scopes.includes("all")) return jobs;
+      return jobs.filter((j) => {
+        const c = j.country.toLowerCase();
+        const t = j.type.toLowerCase();
+        return scopes.some((s) => {
+          if (s === "remote") return c === "remote" || t === "remote";
+          if (s === "around_me") return userCountry && c === userCountry;
+          if (s === "abroad") return userCountry && c !== userCountry && c !== "remote";
+          return false;
+        });
+      });
     };
     const jobMap = new Map<string, EnhancedJob>();
     activePresets.forEach((preset, idx) => {
