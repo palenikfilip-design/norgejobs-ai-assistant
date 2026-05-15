@@ -126,18 +126,19 @@ function scoreLanguage(job: Job, avatar: AvatarProfile): { score: number; reason
 
 function scoreJobType(job: Job, avatar: AvatarProfile): { score: number; reasons: string[]; negatives: string[] } {
   const jobType = job.type.toLowerCase();
-  const pref = avatar.preferredJobType.toLowerCase();
+  const prefs = (avatar.preferredJobType || []).map((p) => p.toLowerCase());
+  if (prefs.length === 0) return { score: 70, reasons: [], negatives: [] };
 
-  if (jobType === pref) return { score: 100, reasons: [`${job.type} matches your preference`], negatives: [] };
+  if (prefs.includes(jobType)) {
+    return { score: 100, reasons: [`${job.type} matches your preference`], negatives: [] };
+  }
 
-  // Similar types
-  const similar = (a: string, b: string) => {
-    const remoteTypes = ["remote", "full-time"];
-    return remoteTypes.includes(a) && remoteTypes.includes(b);
-  };
-  if (similar(jobType, pref)) return { score: 70, reasons: [`${job.type} is similar to your preference`], negatives: [] };
+  const remoteTypes = ["remote", "full-time"];
+  if (remoteTypes.includes(jobType) && prefs.some((p) => remoteTypes.includes(p))) {
+    return { score: 70, reasons: [`${job.type} is similar to your preference`], negatives: [] };
+  }
 
-  return { score: 30, reasons: [], negatives: [`You prefer ${avatar.preferredJobType}`] };
+  return { score: 30, reasons: [], negatives: [`You prefer ${avatar.preferredJobType.join(", ")}`] };
 }
 
 function scoreLifestyle(job: Job, avatar: AvatarProfile): { score: number; reasons: string[]; negatives: string[] } {
