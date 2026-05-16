@@ -235,6 +235,9 @@ function migrateState(saved: any): UserState {
     const merged = { ...defaultUser, ...saved } as UserState;
     merged.presets = (merged.presets || []).map((p: any) => ({
       ...p,
+      preferredJobType: toStringArray(p.preferredJobType, ["Full-time"]),
+      preferredCountries: toStringArray(p.preferredCountries),
+      desiredBonuses: toStringArray(p.desiredBonuses),
       preferredSourceScope: Array.isArray(p.preferredSourceScope)
         ? p.preferredSourceScope
         : p.preferredSourceScope
@@ -264,18 +267,14 @@ function migrateState(saved: any): UserState {
       presets.push({
         id: av.id || crypto.randomUUID(),
         name: av.name || `Preset ${i + 1}`,
-        preferredJobType: Array.isArray(av.preferredJobType)
-          ? av.preferredJobType
-          : av.preferredJobType
-          ? [av.preferredJobType]
-          : ["Full-time"],
-        preferredCountries: av.preferredCountries || [],
+        preferredJobType: toStringArray(av.preferredJobType, ["Full-time"]),
+        preferredCountries: toStringArray(av.preferredCountries),
         salaryMin: av.salaryMin || 0,
         salaryMax: av.salaryMax || 0,
         salaryPeriod: av.salaryPeriod || "monthly",
         salaryCurrency: av.salaryCurrency || "EUR",
         housingPreference: av.housingPreference || false,
-        desiredBonuses: av.desiredBonuses || [],
+        desiredBonuses: toStringArray(av.desiredBonuses),
         matchWeights: av.matchWeights || { ...DEFAULT_MATCH_WEIGHTS },
         active: true,
         useLifestyleMatching: false,
