@@ -29,14 +29,19 @@ const DimensionSlider = ({ label, description, lowLabel = "Low", highLabel = "Hi
       </div>
       <div className="flex items-center gap-3">
         <span className="text-[10px] text-muted-foreground w-12 text-right shrink-0">{lowLabel}</span>
-        <Slider
-          min={0}
-          max={100}
-          step={5}
-          value={[dimension.value]}
-          onValueChange={([v]) => onChange({ ...dimension, value: v })}
-          className="flex-1"
-        />
+        <div className="flex-1 relative">
+          <Slider
+            min={0}
+            max={100}
+            step={5}
+            value={[dimension.value]}
+            onValueChange={([v]) => onChange({ ...dimension, value: v })}
+          />
+          <span
+            aria-hidden
+            className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-3 w-px bg-red-accent/60"
+          />
+        </div>
         <span className="text-[10px] text-muted-foreground w-12 shrink-0">{highLabel}</span>
       </div>
       <div className="flex items-center gap-1.5">
