@@ -4,6 +4,12 @@ import { parseSalaryRange, convertCurrency, type CurrencyCode } from "./currency
 import type { LifestyleProfile } from "@/types/lifestyleProfile";
 import { hasLifestyleData } from "@/types/lifestyleProfile";
 
+const toStringArray = (value: unknown): string[] => {
+  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  if (typeof value === "string" && value.trim().length > 0) return [value];
+  return [];
+};
+
 export interface MatchDetail {
   category: string;
   points: number;
@@ -126,7 +132,8 @@ function scoreLanguage(job: Job, avatar: AvatarProfile): { score: number; reason
 
 function scoreJobType(job: Job, avatar: AvatarProfile): { score: number; reasons: string[]; negatives: string[] } {
   const jobType = job.type.toLowerCase();
-  const prefs = (avatar.preferredJobType || []).map((p) => p.toLowerCase());
+  const preferredJobTypes = toStringArray(avatar.preferredJobType);
+  const prefs = preferredJobTypes.map((p) => p.toLowerCase());
   if (prefs.length === 0) return { score: 70, reasons: [], negatives: [] };
 
   if (prefs.includes(jobType)) {
@@ -138,7 +145,7 @@ function scoreJobType(job: Job, avatar: AvatarProfile): { score: number; reasons
     return { score: 70, reasons: [`${job.type} is similar to your preference`], negatives: [] };
   }
 
-  return { score: 30, reasons: [], negatives: [`You prefer ${avatar.preferredJobType.join(", ")}`] };
+  return { score: 30, reasons: [], negatives: [`You prefer ${preferredJobTypes.join(", ")}`] };
 }
 
 function scoreLifestyle(job: Job, avatar: AvatarProfile): { score: number; reasons: string[]; negatives: string[] } {
