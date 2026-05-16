@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
-import { useNavigate, useBlocker } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUser, UserProfile, defaultProfile } from "@/context/UserContext";
 import type { LanguageWithLevel } from "@/context/UserContext";
@@ -303,10 +303,9 @@ const ProfileEdit = () => {
     return () => window.removeEventListener("beforeunload", handler);
   }, [isDirty]);
 
-  // React Router navigation guard
-  const blocker = useBlocker(({ currentLocation, nextLocation }) => {
-    return isDirty && !saved && currentLocation.pathname !== nextLocation.pathname;
-  });
+  // React Router navigation guard (useBlocker requires a data router; we
+  // currently use BrowserRouter, so fall back to the beforeunload guard above).
+  const blocker = { state: "unblocked" as string, reset: () => {}, proceed: () => {} };
 
   const update = <K extends keyof UserProfile>(key: K, value: UserProfile[K]) =>
     setForm((current) => ({ ...current, [key]: value }));
