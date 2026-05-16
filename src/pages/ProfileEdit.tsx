@@ -305,7 +305,7 @@ const ProfileEdit = () => {
 
   // React Router navigation guard (useBlocker requires a data router; we
   // currently use BrowserRouter, so fall back to the beforeunload guard above).
-  const blocker = { state: "unblocked" as const, reset: () => {}, proceed: () => {} };
+  const blocker = { state: "unblocked" as string, reset: () => {}, proceed: () => {} };
 
   const update = <K extends keyof UserProfile>(key: K, value: UserProfile[K]) =>
     setForm((current) => ({ ...current, [key]: value }));
