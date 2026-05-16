@@ -103,6 +103,12 @@ export const defaultPreset: Omit<SearchPreset, "id"> = {
   preferredSourceScope: ["all"],
 };
 
+const toStringArray = (value: unknown, fallback: string[] = []): string[] => {
+  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  if (typeof value === "string" && value.trim().length > 0) return [value];
+  return fallback;
+};
+
 /**
  * For backward compatibility: merge profile + preset into the shape
  * that job matching utilities expect (AvatarProfile).
@@ -134,6 +140,7 @@ export interface AvatarProfile {
 }
 
 export function mergeProfilePreset(profile: UserProfile, preset: SearchPreset): AvatarProfile {
+  const preferredJobType = toStringArray((preset as any).preferredJobType);
   return {
     id: preset.id,
     name: preset.name,
@@ -148,12 +155,12 @@ export function mergeProfilePreset(profile: UserProfile, preset: SearchPreset): 
     skills: profile.skills,
     certifications: profile.certifications,
     personality: profile.personality,
-    preferredJobType: preset.preferredJobType,
-    preferredCountries: preset.preferredCountries,
+    preferredJobType,
+    preferredCountries: toStringArray((preset as any).preferredCountries),
     salaryMin: preset.salaryMin,
     salaryMax: preset.salaryMax,
     housingPreference: preset.housingPreference,
-    desiredBonuses: preset.desiredBonuses,
+    desiredBonuses: toStringArray((preset as any).desiredBonuses),
     matchWeights: preset.matchWeights,
     lifestyleProfile: profile.lifestyleProfile,
     useLifestyleMatching: preset.useLifestyleMatching,
