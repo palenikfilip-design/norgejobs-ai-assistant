@@ -103,6 +103,12 @@ export const defaultPreset: Omit<SearchPreset, "id"> = {
   preferredSourceScope: ["all"],
 };
 
+const toStringArray = (value: unknown, fallback: string[] = []): string[] => {
+  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  if (typeof value === "string" && value.trim().length > 0) return [value];
+  return fallback;
+};
+
 /**
  * For backward compatibility: merge profile + preset into the shape
  * that job matching utilities expect (AvatarProfile).
@@ -134,6 +140,7 @@ export interface AvatarProfile {
 }
 
 export function mergeProfilePreset(profile: UserProfile, preset: SearchPreset): AvatarProfile {
+  const preferredJobType = toStringArray((preset as any).preferredJobType);
   return {
     id: preset.id,
     name: preset.name,
@@ -148,12 +155,12 @@ export function mergeProfilePreset(profile: UserProfile, preset: SearchPreset): 
     skills: profile.skills,
     certifications: profile.certifications,
     personality: profile.personality,
-    preferredJobType: preset.preferredJobType,
-    preferredCountries: preset.preferredCountries,
+    preferredJobType,
+    preferredCountries: toStringArray((preset as any).preferredCountries),
     salaryMin: preset.salaryMin,
     salaryMax: preset.salaryMax,
     housingPreference: preset.housingPreference,
-    desiredBonuses: preset.desiredBonuses,
+    desiredBonuses: toStringArray((preset as any).desiredBonuses),
     matchWeights: preset.matchWeights,
     lifestyleProfile: profile.lifestyleProfile,
     useLifestyleMatching: preset.useLifestyleMatching,
@@ -228,6 +235,9 @@ function migrateState(saved: any): UserState {
     const merged = { ...defaultUser, ...saved } as UserState;
     merged.presets = (merged.presets || []).map((p: any) => ({
       ...p,
+      preferredJobType: toStringArray(p.preferredJobType, ["Full-time"]),
+      preferredCountries: toStringArray(p.preferredCountries),
+      desiredBonuses: toStringArray(p.desiredBonuses),
       preferredSourceScope: Array.isArray(p.preferredSourceScope)
         ? p.preferredSourceScope
         : p.preferredSourceScope
@@ -257,18 +267,14 @@ function migrateState(saved: any): UserState {
       presets.push({
         id: av.id || crypto.randomUUID(),
         name: av.name || `Preset ${i + 1}`,
-        preferredJobType: Array.isArray(av.preferredJobType)
-          ? av.preferredJobType
-          : av.preferredJobType
-          ? [av.preferredJobType]
-          : ["Full-time"],
-        preferredCountries: av.preferredCountries || [],
+        preferredJobType: toStringArray(av.preferredJobType, ["Full-time"]),
+        preferredCountries: toStringArray(av.preferredCountries),
         salaryMin: av.salaryMin || 0,
         salaryMax: av.salaryMax || 0,
         salaryPeriod: av.salaryPeriod || "monthly",
         salaryCurrency: av.salaryCurrency || "EUR",
         housingPreference: av.housingPreference || false,
-        desiredBonuses: av.desiredBonuses || [],
+        desiredBonuses: toStringArray(av.desiredBonuses),
         matchWeights: av.matchWeights || { ...DEFAULT_MATCH_WEIGHTS },
         active: true,
         useLifestyleMatching: false,
