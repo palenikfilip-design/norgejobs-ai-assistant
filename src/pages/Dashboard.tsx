@@ -39,6 +39,12 @@ import PatternInsightsPanel from "@/components/PatternInsightsPanel";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { Slider } from "@/components/ui/slider";
 
+const toDisplayList = (value: unknown): string[] => {
+  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  if (typeof value === "string" && value.trim().length > 0) return [value];
+  return [];
+};
+
 const Dashboard = () => {
   const { t, i18n } = useTranslation();
   const { user, activeAvatars, activePresets, logout, supabaseUser, inactivityMinutes, setInactivityMinutes } = useUser();
@@ -503,7 +509,7 @@ const Dashboard = () => {
                   <div key={p.id} className="bg-secondary/30 rounded-lg p-2.5">
                     <span className="text-muted-foreground text-xs">{p.name}</span>
                     <p className="font-medium text-foreground text-xs mt-0.5">
-                      {p.preferredCountries.join(", ") || "Any"} · {p.preferredJobType.join(", ")}
+                      {toDisplayList(p.preferredCountries).join(", ") || "Any"} · {toDisplayList(p.preferredJobType).join(", ") || "Any type"}
                     </p>
                   </div>
                 ))}
