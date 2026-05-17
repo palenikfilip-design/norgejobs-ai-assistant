@@ -178,12 +178,12 @@ export const getProfileCompletion = (profile: UserProfile): { percent: number; m
   const fields: { key: string; label: string; check: () => boolean }[] = [
     { key: "fullName", label: "Full Name", check: () => !!profile.fullName },
     { key: "gender", label: "Gender", check: () => !!profile.gender },
-    { key: "age", label: "Age", check: () => !!profile.age },
+    { key: "dateOfBirth", label: "Date of Birth", check: () => !!profile.dateOfBirth || !!profile.age },
     { key: "country", label: "Country", check: () => !!profile.country },
     { key: "languages", label: "Languages", check: () => profile.languages.length > 0 },
-    { key: "profession", label: "Profession", check: () => !!profile.profession },
+    { key: "profession", label: "Profession", check: () => !!profile.profession || !!profile.professions?.length },
     { key: "skills", label: "Skills", check: () => profile.skills.length > 0 },
-    { key: "experienceLevel", label: "Experience Level", check: () => !!profile.experienceLevel && profile.experienceLevel !== "any" },
+    { key: "experienceLevel", label: "Experience Level", check: () => (profile.professions?.length ? profile.professions.every(p => p.experienceLevel && p.experienceLevel !== "any") : !!profile.experienceLevel && profile.experienceLevel !== "any") },
     { key: "workExperience", label: "Work Experience", check: () => !!profile.workExperience },
     { key: "certifications", label: "Certifications", check: () => profile.certifications.length > 0 },
     { key: "personality", label: "Communication Tone", check: () => !!profile.personality },
@@ -213,8 +213,8 @@ interface UserContextType {
   signUpWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
   loginWithProvider: (provider: "google" | "apple") => Promise<void>;
   logout: () => Promise<void>;
-  updateProfile: (profile: UserProfile) => void;
-  setOnboarded: () => void;
+  updateProfile: (profile: UserProfile) => Promise<void>;
+  setOnboarded: () => Promise<void>;
   addPreset: (preset: SearchPreset) => void;
   updatePreset: (preset: SearchPreset) => void;
   deletePreset: (id: string) => void;
@@ -385,14 +385,14 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     setUser(defaultUser);
   };
 
-  const updateProfile = (profile: UserProfile) => {
+  const updateProfile = async (profile: UserProfile) => {
     setUser((u) => ({ ...u, profile }));
-    if (supabaseUser) saveProfileToDB(supabaseUser.id, profile, user.hasCompletedOnboarding);
+    if (supabaseUser) await saveProfileToDB(supabaseUser.id, profile, user.hasCompletedOnboarding);
   };
 
-  const setOnboarded = () => {
+  const setOnboarded = async () => {
     setUser((u) => ({ ...u, hasCompletedOnboarding: true }));
-    if (supabaseUser) saveProfileToDB(supabaseUser.id, user.profile, true);
+    if (supabaseUser) await saveProfileToDB(supabaseUser.id, user.profile, true);
   };
 
   const addPreset = (preset: SearchPreset) => {

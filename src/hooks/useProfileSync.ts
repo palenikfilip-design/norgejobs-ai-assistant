@@ -18,15 +18,18 @@ export async function loadProfileFromDB(userId: string): Promise<{
     .maybeSingle();
 
   if (error || !data) return null;
+  const row = data as any;
 
   return {
     profile: {
       fullName: data.full_name || "",
       gender: data.gender || undefined,
       age: data.age || undefined,
+      dateOfBirth: row.date_of_birth || undefined,
       country: data.country || "",
       languages: (data.languages as any[]) || [],
       profession: data.profession || "",
+      professions: Array.isArray(row.professions) ? row.professions : [],
       skills: (data.skills as string[]) || [],
       experienceLevel: data.experience_level || "any",
       workExperience: data.work_experience || "",
@@ -43,6 +46,13 @@ export async function loadProfileFromDB(userId: string): Promise<{
 
 /** Save profile to database */
 export async function saveProfileToDB(userId: string, profile: UserProfile, hasCompletedOnboarding: boolean) {
+  const dimensionsPayload = {
+    ...normalizeCandidateDimensions(profile.dimensions),
+    lifestyleProfile: profile.lifestyleProfile,
+    appLanguage: profile.appLanguage,
+    termsAccepted: profile.termsAccepted,
+  };
+
   const { error } = await supabase
     .from("profiles")
     .upsert({
@@ -50,19 +60,24 @@ export async function saveProfileToDB(userId: string, profile: UserProfile, hasC
       full_name: profile.fullName,
       gender: profile.gender || null,
       age: profile.age || null,
+      date_of_birth: profile.dateOfBirth || null,
       country: profile.country,
       languages: profile.languages as any,
       profession: profile.profession,
+      professions: (profile.professions ?? []) as any,
       skills: profile.skills as any,
       experience_level: profile.experienceLevel,
       work_experience: profile.workExperience,
       certifications: profile.certifications as any,
       personality: profile.personality || null,
-      dimensions: normalizeCandidateDimensions(profile.dimensions) as any,
+      dimensions: dimensionsPayload as any,
       has_completed_onboarding: hasCompletedOnboarding,
-    }, { onConflict: "user_id" });
+    } as any, { onConflict: "user_id" });
 
-  if (error) console.error("Error saving profile:", error);
+  if (error) {
+    console.error("Error saving profile:", error);
+    throw error;
+  }
 }
 
 /** Load presets from database */

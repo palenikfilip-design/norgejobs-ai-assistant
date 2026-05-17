@@ -56,6 +56,7 @@ const Dashboard = () => {
   // Gate: redirect to /onboarding if avatar_json is empty / onboarding not completed
   useEffect(() => {
     if (!supabaseUser?.id) return;
+    if (user.hasCompletedOnboarding) return;
     let cancelled = false;
     (async () => {
       const { data } = await supabase
@@ -71,7 +72,7 @@ const Dashboard = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [supabaseUser?.id, navigate]);
+  }, [supabaseUser?.id, user.hasCompletedOnboarding, navigate]);
 
   const { access, canViewJob, remainingViews, recordJobView, useFreedUnlock } = useUserAccess(supabaseUser?.id ?? null);
   const { isActive: isPremium } = useSubscription(supabaseUser?.id ?? null);

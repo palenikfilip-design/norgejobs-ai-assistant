@@ -302,19 +302,23 @@ const ProfileEdit = () => {
 
   const [form, setForm] = useState<UserProfile>(() => normalizeProfile(user.profile));
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const lastSyncedProfile = useRef<string | null>(null);
 
   const savedProfile = useMemo(() => normalizeProfile(user.profile), [user.profile, loading]);
-
-  useEffect(() => {
-    if (!loading) {
-      setForm(normalizeProfile(user.profile));
-      setSaved(false);
-    }
-  }, [loading, user.profile]);
 
   const isDirty = useMemo(() => {
     return JSON.stringify(form) !== JSON.stringify(savedProfile);
   }, [form, savedProfile]);
+
+  useEffect(() => {
+    const incoming = JSON.stringify(savedProfile);
+    if (!loading && (!isDirty || lastSyncedProfile.current === null) && lastSyncedProfile.current !== incoming) {
+      setForm(normalizeProfile(user.profile));
+      setSaved(false);
+      lastSyncedProfile.current = incoming;
+    }
+  }, [loading, user.profile, savedProfile, isDirty]);
 
   const incomplete = useMemo(() => {
     const dims = form.dimensions;
@@ -367,18 +371,30 @@ const ProfileEdit = () => {
       },
     }));
 
-  const handleSave = () => {
-    setSaved(true);
+  const handleSave = async () => {
+    if (saving) return;
+    setSaving(true);
     const normalized = normalizeProfile(form);
+    if (normalized.dateOfBirth) {
+      normalized.age = differenceInYears(new Date(), parseISO(normalized.dateOfBirth));
+    }
     // Keep legacy single-value fields in sync with first selected profession
     const first = normalized.professions?.[0];
     if (first) {
       normalized.profession = first.category;
       normalized.experienceLevel = first.experienceLevel;
     }
-    updateProfile(normalized);
-    toast({ title: "Profile updated!", description: "Your profile has been saved." });
-    navigate("/dashboard");
+    try {
+      await updateProfile(normalized);
+      setSaved(true);
+      toast({ title: "Profile updated!", description: "Your profile has been saved." });
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Profile save failed:", error);
+      toast({ title: "Profile not saved", description: "Please stay on this page and try again.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
@@ -396,8 +412,8 @@ const ProfileEdit = () => {
           <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
             <ArrowLeft className="w-4 h-4 mr-1" /> Back to Dashboard
           </Button>
-          <Button size="sm" onClick={handleSave} className="bg-accent-gradient text-accent-foreground hover:opacity-90">
-            <Save className="w-4 h-4 mr-1" /> Save Changes
+          <Button size="sm" onClick={handleSave} disabled={saving} className="bg-accent-gradient text-accent-foreground hover:opacity-90">
+            {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />} Save Changes
           </Button>
         </div>
       </header>
@@ -802,8 +818,8 @@ const ProfileEdit = () => {
         </section>
 
         <div className="flex justify-end pb-8">
-          <Button size="lg" onClick={handleSave} className="bg-accent-gradient text-accent-foreground hover:opacity-90">
-            <Save className="w-4 h-4 mr-1" /> Save Changes
+          <Button size="lg" onClick={handleSave} disabled={saving} className="bg-accent-gradient text-accent-foreground hover:opacity-90">
+            {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />} Save Changes
           </Button>
         </div>
       </main>

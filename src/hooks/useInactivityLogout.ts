@@ -24,15 +24,6 @@ export function useInactivityLogout(minutes: number, enabled: boolean, onTimeout
       }, timeoutMs);
     };
 
-    // If user was already idle past the threshold (e.g. closed laptop), log out immediately.
-    try {
-      const last = Number(localStorage.getItem(STORAGE_KEY_LAST_ACTIVITY) ?? 0);
-      if (last && Date.now() - last > timeoutMs) {
-        onTimeoutRef.current();
-        return;
-      }
-    } catch { /* ignore */ }
-
     reset();
     ACTIVITY_EVENTS.forEach((e) => window.addEventListener(e, reset, { passive: true }));
     return () => {
