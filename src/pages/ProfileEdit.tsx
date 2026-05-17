@@ -398,9 +398,52 @@ const ProfileEdit = () => {
             <Label>Gender</Label>
             <SimpleTagSelector options={GENDERS} selected={form.gender ? [form.gender] : []} onChange={(value) => update("gender", value[value.length - 1] || undefined)} single />
           </div>
-          <div className="space-y-2 w-32">
-            <Label>Age</Label>
-            <Input type="number" value={form.age ?? ""} onChange={(e) => update("age", e.target.value ? Number(e.target.value) : undefined)} />
+          <div className="space-y-2">
+            <Label>Date of Birth</Label>
+            <div className="flex items-center gap-3">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[240px] justify-start text-left font-normal",
+                      !form.dateOfBirth && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="w-4 h-4 mr-2" />
+                    {form.dateOfBirth ? format(parseISO(form.dateOfBirth), "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={form.dateOfBirth ? parseISO(form.dateOfBirth) : undefined}
+                    onSelect={(d) => {
+                      if (!d) {
+                        update("dateOfBirth", undefined);
+                        update("age", undefined);
+                        return;
+                      }
+                      const iso = format(d, "yyyy-MM-dd");
+                      update("dateOfBirth", iso);
+                      update("age", differenceInYears(new Date(), d));
+                    }}
+                    captionLayout="dropdown-buttons"
+                    fromYear={1925}
+                    toYear={new Date().getFullYear()}
+                    defaultMonth={form.dateOfBirth ? parseISO(form.dateOfBirth) : new Date(2000, 0, 1)}
+                    disabled={(date) => date > new Date() || date < new Date("1925-01-01")}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+              {form.dateOfBirth && (
+                <span className="text-sm text-muted-foreground">
+                  Age: <span className="text-foreground font-medium">{differenceInYears(new Date(), parseISO(form.dateOfBirth))}</span>
+                </span>
+              )}
+            </div>
           </div>
         </section>
 
