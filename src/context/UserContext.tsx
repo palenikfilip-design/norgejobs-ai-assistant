@@ -40,6 +40,8 @@ export interface UserProfile {
   experienceLevel: string;
   profession: string;
   skills: string[];
+  /** Multiple profession categories, each with its own experience level. */
+  professions?: { category: string; experienceLevel: string }[];
   certifications: string[];
   personality?: string;
   dimensions: CandidateDimensions;
@@ -56,6 +58,7 @@ export const defaultProfile: UserProfile = {
   experienceLevel: "any",
   profession: "",
   skills: [],
+  professions: [],
   certifications: [],
   dimensions: { ...defaultCandidateDimensions },
   lifestyleProfile: { ...defaultLifestyleProfile },
