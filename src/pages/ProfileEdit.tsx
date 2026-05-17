@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Check, X, Plus, Trash2, Save, Upload, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, X, Plus, Trash2, Save, Upload, FileText, Loader2, AlertCircle } from "lucide-react";
 import { CalendarIcon } from "lucide-react";
 import { format, parseISO, differenceInYears } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -36,6 +36,18 @@ import {
 
 const GENDERS = ["Male", "Female", "Non-binary", "Prefer not to say"];
 const PERSONALITY_TONES = ["Professional", "Friendly", "Direct"];
+
+const IncompleteBadge = ({ show }: { show: boolean }) => {
+  if (!show) return null;
+  return (
+    <span
+      title="This section is incomplete"
+      className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-destructive text-destructive-foreground animate-pulse"
+    >
+      <AlertCircle className="w-3.5 h-3.5" />
+    </span>
+  );
+};
 
 const SimpleTagSelector = ({
   options,
