@@ -316,6 +316,31 @@ const ProfileEdit = () => {
     return JSON.stringify(form) !== JSON.stringify(savedProfile);
   }, [form, savedProfile]);
 
+  const incomplete = useMemo(() => {
+    const dims = form.dimensions;
+    const hasDim = (d?: DimensionValue) => !!d && typeof d.value === "number";
+    return {
+      basic: !form.fullName || !form.country || !form.gender || !form.dateOfBirth,
+      languages: !form.languages || form.languages.length === 0 || form.languages.some(l => !l.language || !l.level),
+      experience:
+        !(form.professions && form.professions.length > 0) ||
+        (form.professions ?? []).some(p => !p.experienceLevel || p.experienceLevel === "any") ||
+        !form.workExperience ||
+        form.skills.length === 0,
+      workStyle: !(
+        hasDim(dims.workStyle?.independence_level) &&
+        hasDim(dims.workStyle?.stress_tolerance) &&
+        hasDim(dims.workStyle?.routine_vs_dynamic) &&
+        hasDim(dims.workStyle?.social_need) &&
+        hasDim(dims.workStyle?.authority_acceptance)
+      ),
+      workPrefs: !hasDim(dims.workPreferences?.physical_vs_mental) || !dims.workPreferences?.shift_type || !dims.workPreferences?.hours_per_week,
+      lifestyleDims: !dims.lifestyle?.climate_tolerance || !hasDim(dims.lifestyle?.isolation_tolerance) || !hasDim(dims.lifestyle?.nature_vs_city) || !hasDim(dims.lifestyle?.nightlife_need),
+      financial: !hasDim(dims.financial?.risk_tolerance) || !dims.financial?.spending_pattern,
+      tone: !form.personality,
+    };
+  }, [form]);
+
   // Browser tab close / refresh guard
   useEffect(() => {
     if (!isDirty) return;
@@ -384,7 +409,7 @@ const ProfileEdit = () => {
         </motion.div>
 
         <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
-          <h2 className="font-semibold text-foreground">Basic Information</h2>
+          <h2 className="font-semibold text-foreground flex items-center gap-2">Basic Information <IncompleteBadge show={incomplete.basic} /></h2>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Full Name</Label>
@@ -460,12 +485,12 @@ const ProfileEdit = () => {
         </section>
 
         <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
-          <h2 className="font-semibold text-foreground">Languages</h2>
+          <h2 className="font-semibold text-foreground flex items-center gap-2">Languages <IncompleteBadge show={incomplete.languages} /></h2>
           <LanguageSelector languages={form.languages} onChange={(value) => update("languages", value)} />
         </section>
 
         <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
-          <h2 className="font-semibold text-foreground">Experience & Skills</h2>
+          <h2 className="font-semibold text-foreground flex items-center gap-2">Experience & Skills <IncompleteBadge show={incomplete.experience} /></h2>
           <div className="space-y-3">
             <Label>Profession Categories</Label>
             <p className="text-xs text-muted-foreground">Select one or more — each will let you set its own experience level.</p>
@@ -545,7 +570,7 @@ const ProfileEdit = () => {
         </section>
 
         <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
-          <h2 className="font-semibold text-foreground">🧠 Work Style</h2>
+          <h2 className="font-semibold text-foreground flex items-center gap-2">🧠 Work Style <IncompleteBadge show={incomplete.workStyle} /></h2>
           <p className="text-xs text-muted-foreground">How do you work best? Set your confidence level for each.</p>
           <DimensionSlider label="Independence" description="How much do you prefer working alone?" lowLabel="Team" highLabel="Solo" dimension={form.dimensions.workStyle.independence_level} onChange={(value) => updateDim("workStyle", "independence_level", value)} />
           <DimensionSlider label="Stress Tolerance" description="How well do you handle pressure?" lowLabel="Low" highLabel="High" dimension={form.dimensions.workStyle.stress_tolerance} onChange={(value) => updateDim("workStyle", "stress_tolerance", value)} />
@@ -555,7 +580,7 @@ const ProfileEdit = () => {
         </section>
 
         <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
-          <h2 className="font-semibold text-foreground">⚙️ Work Preferences</h2>
+          <h2 className="font-semibold text-foreground flex items-center gap-2">⚙️ Work Preferences <IncompleteBadge show={incomplete.workPrefs} /></h2>
           <DimensionSlider label="Physical vs Mental" description="What type of work suits you?" lowLabel="Mental" highLabel="Physical" dimension={form.dimensions.workPreferences.physical_vs_mental} onChange={(value) => updateDim("workPreferences", "physical_vs_mental", value)} />
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -601,7 +626,7 @@ const ProfileEdit = () => {
         </section>
 
         <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
-          <h2 className="font-semibold text-foreground">🌍 Lifestyle</h2>
+          <h2 className="font-semibold text-foreground flex items-center gap-2">🌍 Lifestyle <IncompleteBadge show={incomplete.lifestyleDims} /></h2>
           <div className="space-y-2">
             <Label>Climate Preference</Label>
             <div className="flex gap-2">
@@ -631,7 +656,7 @@ const ProfileEdit = () => {
         </section>
 
         <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
-          <h2 className="font-semibold text-foreground">💰 Financial Preferences</h2>
+          <h2 className="font-semibold text-foreground flex items-center gap-2">💰 Financial Preferences <IncompleteBadge show={incomplete.financial} /></h2>
           <DimensionSlider label="Risk Tolerance" description="Are you okay with variable income?" lowLabel="Stable" highLabel="Variable OK" dimension={form.dimensions.financial.risk_tolerance} onChange={(value) => updateDim("financial", "risk_tolerance", value)} />
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -772,7 +797,7 @@ const ProfileEdit = () => {
         </section>
 
         <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
-          <h2 className="font-semibold text-foreground">Communication Tone</h2>
+          <h2 className="font-semibold text-foreground flex items-center gap-2">Communication Tone <IncompleteBadge show={incomplete.tone} /></h2>
           <SimpleTagSelector options={PERSONALITY_TONES} selected={form.personality ? [form.personality] : []} onChange={(value) => update("personality", value[value.length - 1] || undefined)} single />
         </section>
 
