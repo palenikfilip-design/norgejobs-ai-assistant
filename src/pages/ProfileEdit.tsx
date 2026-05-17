@@ -303,19 +303,22 @@ const ProfileEdit = () => {
   const [form, setForm] = useState<UserProfile>(() => normalizeProfile(user.profile));
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const lastSyncedProfile = useRef<string | null>(null);
 
   const savedProfile = useMemo(() => normalizeProfile(user.profile), [user.profile, loading]);
-
-  useEffect(() => {
-    if (!loading) {
-      setForm(normalizeProfile(user.profile));
-      setSaved(false);
-    }
-  }, [loading, user.profile]);
 
   const isDirty = useMemo(() => {
     return JSON.stringify(form) !== JSON.stringify(savedProfile);
   }, [form, savedProfile]);
+
+  useEffect(() => {
+    const incoming = JSON.stringify(savedProfile);
+    if (!loading && (!isDirty || lastSyncedProfile.current === null) && lastSyncedProfile.current !== incoming) {
+      setForm(normalizeProfile(user.profile));
+      setSaved(false);
+      lastSyncedProfile.current = incoming;
+    }
+  }, [loading, user.profile, savedProfile, isDirty]);
 
   const incomplete = useMemo(() => {
     const dims = form.dimensions;
