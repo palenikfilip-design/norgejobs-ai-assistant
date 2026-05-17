@@ -99,7 +99,15 @@ const Chat = () => {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border/50">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              if (window.history.length > 1) navigate(-1);
+              else navigate("/dashboard");
+            }}
+            aria-label="Back"
+          >
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <LeslieAvatar className="w-8 h-8" />
