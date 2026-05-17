@@ -82,25 +82,44 @@ export default function Onboarding() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [i18n.resolvedLanguage]);
 
+  const markOnboardingComplete = async () => {
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) return;
+    await supabase
+      .from("profiles")
+      .update({ has_completed_onboarding: true })
+      .eq("user_id", u.user.id);
+  };
+
   const finalize = async (allMessages: ChatMsg[]) => {
     setSubmitting(true);
     try {
       const { error } = await supabase.functions.invoke("extract-preferences", {
         body: { messages: allMessages },
       });
-      if (error) throw error;
+      if (error) console.warn("extract-preferences failed (continuing):", error);
+      await markOnboardingComplete();
       toast({ title: t("onboarding.doneToast"), description: t("onboarding.doneToastDesc") });
       navigate("/dashboard");
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      console.error("extract-preferences failed:", msg);
+      console.error("finalize failed:", msg);
+      // Still mark onboarding complete so the user isn't trapped in a loop
+      await markOnboardingComplete().catch(() => {});
       toast({
         title: t("onboarding.errorTitle"),
         description: t("onboarding.errorDesc"),
         variant: "destructive",
       });
       setSubmitting(false);
+      navigate("/dashboard");
     }
+  };
+
+  const handleSkip = async () => {
+    setSubmitting(true);
+    await markOnboardingComplete().catch(() => {});
+    navigate("/dashboard");
   };
 
   const handleSend = async () => {
@@ -169,6 +188,15 @@ export default function Onboarding() {
             <div className="text-xs text-muted-foreground tabular-nums">
               {progress}/{QUESTIONS.length}
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSkip}
+              disabled={submitting}
+              className="text-xs"
+            >
+              {t("onboarding.skip", { defaultValue: "Skip" })}
+            </Button>
           </div>
         </div>
       </header>
@@ -239,6 +267,16 @@ export default function Onboarding() {
             <Send className="w-4 h-4" />
           </Button>
         </form>
+        <div className="pb-4 flex justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSkip}
+            disabled={submitting}
+          >
+            {t("onboarding.finishLater", { defaultValue: "Save & finish later" })}
+          </Button>
+        </div>
       </main>
     </div>
   );
