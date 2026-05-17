@@ -53,6 +53,26 @@ const Dashboard = () => {
   const profile = user.profile;
   const firstName = profile.fullName.split(" ")[0] || "there";
 
+  // Gate: redirect to /onboarding if avatar_json is empty / onboarding not completed
+  useEffect(() => {
+    if (!supabaseUser?.id) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("avatar_json, has_completed_onboarding")
+        .eq("user_id", supabaseUser.id)
+        .maybeSingle();
+      if (cancelled) return;
+      const av = data?.avatar_json as Record<string, unknown> | null | undefined;
+      const hasAvatar = av && typeof av === "object" && Object.keys(av).length > 0;
+      if (!hasAvatar || data?.has_completed_onboarding === false) {
+        navigate("/onboarding", { replace: true });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [supabaseUser?.id, navigate]);
+
   const { access, canViewJob, remainingViews, recordJobView, useFreedUnlock } = useUserAccess(supabaseUser?.id ?? null);
   const { isActive: isPremium } = useSubscription(supabaseUser?.id ?? null);
   const { track } = useJobInteractions(supabaseUser?.id ?? null);
