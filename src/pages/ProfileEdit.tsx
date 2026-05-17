@@ -406,13 +406,69 @@ const ProfileEdit = () => {
 
         <section className="bg-card rounded-xl p-6 border border-border shadow-sm space-y-4">
           <h2 className="font-semibold text-foreground">Experience & Skills</h2>
-          <div className="space-y-2">
-            <Label>Profession Category</Label>
-            <TagSelector options={PROFESSION_CATEGORIES} selected={form.profession ? [form.profession] : []} onChange={(value) => update("profession", value[value.length - 1] || "")} single />
-          </div>
-          <div className="space-y-2">
-            <Label>Experience Level</Label>
-            <TagSelector options={EXPERIENCE_LEVELS} selected={[form.experienceLevel]} onChange={(value) => update("experienceLevel", value[value.length - 1] || "any")} single />
+          <div className="space-y-3">
+            <Label>Profession Categories</Label>
+            <p className="text-xs text-muted-foreground">Select one or more — each will let you set its own experience level.</p>
+            <div className="flex flex-wrap gap-2">
+              {PROFESSION_CATEGORIES.map((opt) => {
+                const list = form.professions ?? [];
+                const active = list.some((p) => p.category === opt.value);
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      const next = active
+                        ? list.filter((p) => p.category !== opt.value)
+                        : [...list, { category: opt.value, experienceLevel: "any" }];
+                      update("professions", next);
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${active ? "bg-accent-gradient text-accent-foreground shadow-sm" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}
+                  >
+                    {opt.label}
+                    {active && <Check className="w-3 h-3 inline ml-1" />}
+                  </button>
+                );
+              })}
+            </div>
+            {(form.professions ?? []).length > 0 && (
+              <div className="space-y-2 pt-2">
+                {(form.professions ?? []).map((item, idx) => {
+                  const label = PROFESSION_CATEGORIES.find((c) => c.value === item.category)?.label ?? item.category;
+                  return (
+                    <div
+                      key={item.category}
+                      className="flex items-center gap-2 p-3 rounded-lg border border-border/50 bg-secondary/10"
+                    >
+                      <span className="text-sm font-medium flex-1">{label}</span>
+                      <select
+                        value={item.experienceLevel}
+                        onChange={(e) => {
+                          const next = [...(form.professions ?? [])];
+                          next[idx] = { ...item, experienceLevel: e.target.value };
+                          update("professions", next);
+                        }}
+                        className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {EXPERIENCE_LEVELS.map((lvl) => (
+                          <option key={lvl.value} value={lvl.value}>
+                            {lvl.label}
+                          </option>
+                        ))}
+                      </select>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => update("professions", (form.professions ?? []).filter((_, i) => i !== idx))}
+                      >
+                        <Trash2 className="w-4 h-4 text-muted-foreground" />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Work Experience</Label>
