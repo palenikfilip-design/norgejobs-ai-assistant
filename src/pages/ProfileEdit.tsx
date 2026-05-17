@@ -270,6 +270,12 @@ const normalizeProfile = (profile?: UserProfile): UserProfile => ({
   languages: profile?.languages ?? [],
   skills: profile?.skills ?? [],
   certifications: profile?.certifications ?? [],
+  professions:
+    profile?.professions && profile.professions.length > 0
+      ? profile.professions
+      : profile?.profession
+      ? [{ category: profile.profession, experienceLevel: profile.experienceLevel || "any" }]
+      : [],
 });
 
 const ProfileEdit = () => {
@@ -321,7 +327,14 @@ const ProfileEdit = () => {
 
   const handleSave = () => {
     setSaved(true);
-    updateProfile(normalizeProfile(form));
+    const normalized = normalizeProfile(form);
+    // Keep legacy single-value fields in sync with first selected profession
+    const first = normalized.professions?.[0];
+    if (first) {
+      normalized.profession = first.category;
+      normalized.experienceLevel = first.experienceLevel;
+    }
+    updateProfile(normalized);
     toast({ title: "Profile updated!", description: "Your profile has been saved." });
     navigate("/dashboard");
   };
