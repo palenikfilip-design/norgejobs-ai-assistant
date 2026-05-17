@@ -40,6 +40,8 @@ export interface UserProfile {
   experienceLevel: string;
   profession: string;
   skills: string[];
+  /** ISO date string (YYYY-MM-DD) for date of birth. Age is derived from this. */
+  dateOfBirth?: string;
   /** Multiple profession categories, each with its own experience level. */
   professions?: { category: string; experienceLevel: string }[];
   certifications: string[];
