@@ -66,7 +66,7 @@ function mergeAvatar(existing: Record<string, unknown>, incoming: Extracted): Re
   return merged;
 }
 
-async function extractWithClaude(messages: ChatMessage[], apiKey: string): Promise<Extracted> {
+async function extractPreferences(messages: ChatMessage[], apiKey: string): Promise<Extracted> {
   const convo = messages
     .slice(-6)
     .map((m) => `${m.role === "user" ? "User" : "Leslie"}: ${m.content}`)
@@ -74,34 +74,32 @@ async function extractWithClaude(messages: ChatMessage[], apiKey: string): Promi
 
   const prompt = `Extract any new job preferences from this conversation. Return ONLY JSON with these keys (omit if not mentioned): {target_countries: [], job_categories: [], languages_spoken: [], min_salary: null, accommodation_needed: null, seasonal_preference: null, additional_notes: ''}. Conversation:\n${convo}`;
 
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "content-type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 400,
+      model: "google/gemini-2.5-flash",
       messages: [{ role: "user", content: prompt }],
     }),
   });
 
   if (!resp.ok) {
     const t = await resp.text();
-    console.error("Claude error:", resp.status, t.slice(0, 300));
-    throw new Error(`claude_${resp.status}`);
+    console.error("AI gateway error:", resp.status, t.slice(0, 300));
+    throw new Error(`ai_${resp.status}`);
   }
 
   const data = await resp.json();
-  const text: string = data?.content?.[0]?.text ?? "";
+  const text: string = data?.choices?.[0]?.message?.content ?? "";
   const match = text.match(/\{[\s\S]*\}/);
   if (!match) return {};
   try {
     return JSON.parse(match[0]) as Extracted;
   } catch (e) {
-    console.warn("Could not parse Claude JSON:", e);
+    console.warn("Could not parse AI JSON:", e);
     return {};
   }
 }
@@ -112,8 +110,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!apiKey) throw new Error("ANTHROPIC_API_KEY missing");
+    const apiKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!apiKey) throw new Error("LOVABLE_API_KEY missing");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -150,7 +148,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const extracted = await extractWithClaude(messages, apiKey);
+    const extracted = await extractPreferences(messages, apiKey);
 
     // Read current avatar_json with service role (bypass RLS for cross-user safety isn't needed,
     // but service role guarantees we can read+write the row owned by userId)
