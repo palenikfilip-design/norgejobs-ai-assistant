@@ -405,6 +405,7 @@ export type Database = {
           certifications: Json
           country: string
           created_at: string
+          date_of_birth: string | null
           dimensions: Json
           experience_level: string
           full_name: string
@@ -416,6 +417,7 @@ export type Database = {
           personality: string | null
           preferences_updated_at: string | null
           profession: string
+          professions: Json
           skills: Json
           updated_at: string
           user_id: string
@@ -427,6 +429,7 @@ export type Database = {
           certifications?: Json
           country?: string
           created_at?: string
+          date_of_birth?: string | null
           dimensions?: Json
           experience_level?: string
           full_name?: string
@@ -438,6 +441,7 @@ export type Database = {
           personality?: string | null
           preferences_updated_at?: string | null
           profession?: string
+          professions?: Json
           skills?: Json
           updated_at?: string
           user_id: string
@@ -449,6 +453,7 @@ export type Database = {
           certifications?: Json
           country?: string
           created_at?: string
+          date_of_birth?: string | null
           dimensions?: Json
           experience_level?: string
           full_name?: string
@@ -460,6 +465,7 @@ export type Database = {
           personality?: string | null
           preferences_updated_at?: string | null
           profession?: string
+          professions?: Json
           skills?: Json
           updated_at?: string
           user_id?: string
