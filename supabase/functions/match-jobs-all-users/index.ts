@@ -1,0 +1,98 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
+
+  const { data: profiles, error } = await supabase
+    .from("profiles")
+    .select("user_id, avatar_json")
+    .neq("avatar_json", {});
+
+  if (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const eligible = (profiles ?? []).filter((p: any) => {
+    const av = p.avatar_json;
+    return av && typeof av === "object" && Object.keys(av).length > 0;
+  });
+
+  let usersScored = 0;
+  let newMatches = 0;
+
+  for (const p of eligible) {
+    try {
+      const r = await fetch(`${SUPABASE_URL}/functions/v1/match-jobs`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${SERVICE_ROLE}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ avatar: p.avatar_json, language: "cs" }),
+      });
+      if (!r.ok) {
+        console.error(`match-jobs failed for ${p.user_id}:`, r.status);
+        continue;
+      }
+      const data = await r.json();
+      const matches = Array.isArray(data?.matches) ? data.matches : [];
+      if (matches.length === 0) {
+        usersScored++;
+        continue;
+      }
+
+      // Deactivate previous matches
+      await supabase
+        .from("cached_matches")
+        .update({ is_active: false })
+        .eq("user_id", p.user_id);
+
+      const rows = matches.map((m: any) => ({
+        user_id: p.user_id,
+        job_title: m.title ?? "",
+        job_location: m.location ?? null,
+        job_country: m.country ?? null,
+        job_salary: m.salary_display ?? null,
+        job_url: m.url,
+        source_portal: m.source_portal ?? null,
+        score: m.score ?? 0,
+        reasons: m.reasons ?? [],
+        is_active: true,
+        category: m.category ?? null,
+        is_seasonal: m.is_seasonal ?? null,
+      }));
+
+      const { error: insErr } = await supabase.from("cached_matches").insert(rows);
+      if (insErr) {
+        console.error(`insert failed for ${p.user_id}:`, insErr.message);
+        continue;
+      }
+      usersScored++;
+      newMatches += rows.length;
+    } catch (e) {
+      console.error(`error for user ${p.user_id}:`, e);
+    }
+  }
+
+  return new Response(
+    JSON.stringify({
+      ok: true,
+      summary: `Scored ${usersScored} users, ${newMatches} new matches added`,
+      users_scored: usersScored,
+      new_matches: newMatches,
+    }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+  );
+});
