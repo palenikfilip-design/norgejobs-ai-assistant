@@ -3,8 +3,9 @@ import { motion } from "framer-motion";
 import { useUser } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
 import { Bot, ArrowRight, Sparkles, Globe, BriefcaseBusiness, MessageCircle } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import LeslieAvatar from "@/components/LeslieAvatar";
+import { supabase } from "@/integrations/supabase/client";
 
 const features = [
   {
@@ -32,6 +33,14 @@ const features = [
 const Index = () => {
   const navigate = useNavigate();
   const { user } = useUser();
+  const [jobCount, setJobCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    supabase
+      .from("public_jobs")
+      .select("*", { count: "exact", head: true })
+      .then(({ count }) => setJobCount(count ?? 0));
+  }, []);
 
   useEffect(() => {
     if (user.isAuthenticated && user.hasCompletedOnboarding) {
@@ -91,6 +100,14 @@ const Index = () => {
               <p className="text-lg md:text-xl text-primary-foreground/60 max-w-xl mb-8">
                 I'll learn your skills, preferences and goals — then find the best job opportunities abroad, tailored just for you.
               </p>
+
+              {jobCount !== null && (
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent-gradient/20 border border-red-accent/30 text-primary-foreground text-sm mb-8">
+                  <BriefcaseBusiness className="w-4 h-4 text-red-accent" />
+                  <span className="font-semibold text-gradient-accent">{jobCount.toLocaleString()}</span>
+                  <span className="text-primary-foreground/70">jobs ready for AI scoring</span>
+                </div>
+              )}
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
                 <Button
