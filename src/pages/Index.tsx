@@ -36,10 +36,9 @@ const Index = () => {
   const [jobCount, setJobCount] = useState<number | null>(null);
 
   useEffect(() => {
-    supabase
-      .from("public_jobs")
-      .select("*", { count: "exact", head: true })
-      .then(({ count }) => setJobCount(count ?? 0));
+    supabase.rpc("get_public_jobs_count").then(({ data, error }) => {
+      if (!error && typeof data === "number") setJobCount(data);
+    });
   }, []);
 
   useEffect(() => {
