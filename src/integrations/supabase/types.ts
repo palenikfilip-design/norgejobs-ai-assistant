@@ -819,6 +819,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_public_jobs_count: { Args: never; Returns: number }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
