@@ -102,10 +102,10 @@ const Index = () => {
               </p>
 
               {jobCount !== null && (
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent-gradient/20 border border-red-accent/30 text-primary-foreground text-sm mb-8">
-                  <BriefcaseBusiness className="w-4 h-4 text-red-accent" />
-                  <span className="font-semibold text-gradient-accent">{jobCount.toLocaleString()}</span>
-                  <span className="text-primary-foreground/70">jobs ready for AI scoring</span>
+                <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-accent-gradient/20 border border-red-accent/30 text-primary-foreground mb-8">
+                  <BriefcaseBusiness className="w-7 h-7 text-red-accent" />
+                  <span className="font-display font-bold text-gradient-accent text-3xl md:text-4xl leading-none">{jobCount.toLocaleString()}</span>
+                  <span className="text-primary-foreground/70 text-base md:text-lg">jobs ready for AI scoring</span>
                 </div>
               )}
 
