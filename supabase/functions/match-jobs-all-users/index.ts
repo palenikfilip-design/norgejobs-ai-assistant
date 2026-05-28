@@ -97,6 +97,9 @@ Deno.serve(async (req) => {
         console.error(`insert failed for ${p.user_id}:`, insErr.message);
         continue;
       }
+      if (p.needs_rescore) {
+        await supabase.from("profiles").update({ needs_rescore: false }).eq("user_id", p.user_id);
+      }
       usersScored++;
       newMatches += rows.length;
     } catch (e) {
