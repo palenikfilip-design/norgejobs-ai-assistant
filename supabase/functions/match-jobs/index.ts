@@ -254,6 +254,7 @@ interface ScoreResult {
 async function scoreJobWithAI(
   job: NormalizedJob,
   avatar: unknown,
+  preset: unknown,
   apiKey: string,
   language: string = "cs",
 ): Promise<{
@@ -267,7 +268,7 @@ async function scoreJobWithAI(
     job.salary_min || job.salary_max
       ? `${job.salary_min ?? "?"}–${job.salary_max ?? "?"} ${job.currency ?? ""}`.trim()
       : "unknown";
-  const prompt = `You are Leslie's job matching engine. Score this job for the user across 5 dimensions (0-100 each):
+  const prompt = `You are Leslie's job matching engine. Score this job across 5 dimensions (0-100 each) considering BOTH the user's avatar (stable identity, capability) AND their current search preset (what they search for RIGHT NOW).
 
 1. role_match: Does job role match user's job_categories?
 2. location_match: Does location match user's target_countries? Bonus for exact city match.
@@ -281,8 +282,9 @@ Provide 1-3 "reasons" (positive points, Czech, max 4 words each) and 0-2 "warnin
 
 Add "company_signal": "established" (big known company), "growing" (mid-size), "unknown" (small/no signal), "warning" (red flags in description like "no salary mentioned" + "must pay upfront").
 
-Job: ${job.title} at ${job.source_portal} in ${job.location ?? "unknown"}, ${job.country ?? "unknown"}. Salary: ${salaryStr}.
-User: ${JSON.stringify(avatar)}
+AVATAR (who the user IS — stable identity): ${JSON.stringify(avatar)}
+CURRENT SEARCH PRESET (what they search NOW): ${JSON.stringify(preset ?? {})}
+JOB: ${job.title} at ${job.source_portal} in ${job.location ?? "unknown"}, ${job.country ?? "unknown"}. Salary: ${salaryStr}.
 
 Return ONLY valid JSON in this exact shape, no markdown, no explanation:
 {"overall":<number>,"dimensions":{"role_match":<number>,"location_match":<number>,"seasonality_match":<number>,"language_match":<number>,"salary_match":<number>},"reasons":[<strings>],"warnings":[<strings>],"company_signal":"established|growing|unknown|warning"}`;
@@ -360,7 +362,7 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) throw new Error("LOVABLE_API_KEY missing");
 
-    const { avatar, sources, language } = await req.json().catch(() => ({}));
+    const { avatar, preset, sources, language } = await req.json().catch(() => ({}));
     const lang = typeof language === "string" && ["cs", "sk", "en", "de", "pl"].includes(language) ? language : "cs";
     if (!avatar || typeof avatar !== "object") {
       return new Response(JSON.stringify({ error: "avatar required" }), {
@@ -398,7 +400,7 @@ Deno.serve(async (req) => {
     // Score at most 30 jobs per call with Claude Haiku 4.5
     const toScore = allJobs.slice(0, 30);
     const results = await Promise.all(
-      toScore.map((j) => scoreJobWithAI(j, avatar, apiKey, lang)),
+      toScore.map((j) => scoreJobWithAI(j, avatar, preset ?? null, apiKey, lang)),
     );
 
     const matches = toScore
