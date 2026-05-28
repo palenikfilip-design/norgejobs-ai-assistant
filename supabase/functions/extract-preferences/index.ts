@@ -151,6 +151,26 @@ Deno.serve(async (req) => {
 
     const extracted = await extractPreferences(messages, apiKey);
 
+    // Determine routing classification for admin observability log
+    const hasIdentity = Array.isArray(extracted.languages_spoken) && extracted.languages_spoken.length > 0;
+    const hasSearch = !!(
+      (Array.isArray(extracted.target_countries) && extracted.target_countries.length > 0) ||
+      (typeof extracted.min_salary === "number" && extracted.min_salary > 0) ||
+      typeof extracted.accommodation_needed === "boolean" ||
+      (typeof extracted.seasonal_preference === "string" && extracted.seasonal_preference) ||
+      (Array.isArray(extracted.job_categories) && extracted.job_categories.length > 0)
+    );
+    const routedTo = hasIdentity && hasSearch ? "both" : hasIdentity ? "avatar" : hasSearch ? "preset" : "none";
+    const extractedKeys = Object.keys(extracted).filter((k) => {
+      const v = (extracted as Record<string, unknown>)[k];
+      if (v === null || v === undefined) return false;
+      if (Array.isArray(v)) return v.length > 0;
+      if (typeof v === "string") return v.trim().length > 0;
+      return true;
+    });
+    const confidence = extractedKeys.length >= 2 ? "high" : "low";
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
+
     // Read current avatar_json with service role (bypass RLS for cross-user safety isn't needed,
     // but service role guarantees we can read+write the row owned by userId)
     const admin = createClient(supabaseUrl, serviceKey, {
@@ -247,6 +267,19 @@ Deno.serve(async (req) => {
       }
     } catch (presetErr) {
       console.warn("preset routing failed (non-fatal):", presetErr);
+    }
+
+    // Log extraction for admin dashboard (non-fatal)
+    try {
+      await admin.from("chat_extractions").insert({
+        user_id: userId,
+        raw_message: lastUserMsg.slice(0, 2000),
+        extracted_data: extracted as unknown as Record<string, unknown>,
+        routed_to: routedTo,
+        confidence,
+      });
+    } catch (logErr) {
+      console.warn("chat_extractions log failed (non-fatal):", logErr);
     }
 
     return new Response(
