@@ -72,6 +72,10 @@ Deno.serve(async (req) => {
         is_active: true,
         category: m.category ?? null,
         is_seasonal: m.is_seasonal ?? null,
+        score_dimensions: m.dimensions ?? {},
+        warnings: m.warnings ?? [],
+        company_signal: m.company_signal ?? "unknown",
+        scored_at: new Date().toISOString(),
       }));
 
       const { error: insErr } = await supabase.from("cached_matches").insert(rows);
