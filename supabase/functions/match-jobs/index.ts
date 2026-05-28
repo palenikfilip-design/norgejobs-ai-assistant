@@ -314,7 +314,7 @@ Return ONLY valid JSON in this exact shape, no markdown, no explanation:
     const match = text.match(/\{[\s\S]*\}/);
     if (!match) return { score: 50, dimensions: {}, reasons: [], warnings: [], company_signal: "unknown" };
     const parsed = JSON.parse(match[0]);
-    const clamp = (n: unknown) => Math.max(0, Math.min(100, Number(n) || 0));
+    const clamp = (n: unknown) => Math.round(Math.max(0, Math.min(100, Number(n) || 0)));
     const dimsRaw = parsed.dimensions ?? {};
     const dimensions = {
       role_match: clamp(dimsRaw.role_match),
