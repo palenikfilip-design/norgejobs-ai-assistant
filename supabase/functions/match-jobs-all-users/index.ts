@@ -14,8 +14,7 @@ Deno.serve(async (req) => {
 
   const { data: profiles, error } = await supabase
     .from("profiles")
-    .select("user_id, avatar_json, needs_rescore")
-    .neq("avatar_json", {});
+    .select("user_id, avatar_json, needs_rescore");
 
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), {
