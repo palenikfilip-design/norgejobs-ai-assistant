@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import Chat from "./pages/Chat";
 import ProfileEdit from "./pages/ProfileEdit";
 import PresetEdit from "./pages/PresetEdit";
+import Presets from "./pages/Presets";
 import JobSources from "./pages/JobSources";
 import Premium from "./pages/Premium";
 import SavedJobs from "./pages/SavedJobs";
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/profile/edit" element={<ProfileEdit />} />
             <Route path="/preset/new" element={<PresetEdit />} />
             <Route path="/preset/edit/:id" element={<PresetEdit />} />
+            <Route path="/presets" element={<Presets />} />
             <Route path="/sources" element={<JobSources />} />
             <Route path="/premium" element={<Premium />} />
             <Route path="/saved" element={<SavedJobs />} />
