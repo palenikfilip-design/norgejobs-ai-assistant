@@ -18,6 +18,7 @@ import Premium from "./pages/Premium";
 import SavedJobs from "./pages/SavedJobs";
 import DailyInsights from "./pages/DailyInsights";
 import Admin from "./pages/Admin";
+import AdminStats from "./pages/AdminStats";
 import PortalsMap from "./pages/PortalsMap";
 import AdminSources from "./pages/AdminSources";
 import NotFound from "./pages/NotFound";
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/saved" element={<SavedJobs />} />
             <Route path="/insights" element={<DailyInsights />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/stats" element={<AdminStats />} />
             <Route path="/admin/portals" element={<PortalsMap />} />
             <Route path="/admin/sources" element={<AdminSources />} />
             <Route path="*" element={<NotFound />} />
