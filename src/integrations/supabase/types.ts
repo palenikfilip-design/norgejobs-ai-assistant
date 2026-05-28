@@ -80,6 +80,36 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_extractions: {
+        Row: {
+          confidence: string
+          created_at: string
+          extracted_data: Json
+          id: string
+          raw_message: string
+          routed_to: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: string
+          created_at?: string
+          extracted_data?: Json
+          id?: string
+          raw_message?: string
+          routed_to?: string
+          user_id: string
+        }
+        Update: {
+          confidence?: string
+          created_at?: string
+          extracted_data?: Json
+          id?: string
+          raw_message?: string
+          routed_to?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       employer_sources: {
         Row: {
           ats_config: Json
