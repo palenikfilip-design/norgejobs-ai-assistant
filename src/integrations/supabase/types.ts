@@ -27,6 +27,7 @@ export type Database = {
           job_salary: string | null
           job_title: string
           job_url: string
+          preset_id: string | null
           reasons: Json
           score: number
           score_dimensions: Json
@@ -47,6 +48,7 @@ export type Database = {
           job_salary?: string | null
           job_title?: string
           job_url: string
+          preset_id?: string | null
           reasons?: Json
           score?: number
           score_dimensions?: Json
@@ -67,6 +69,7 @@ export type Database = {
           job_salary?: string | null
           job_title?: string
           job_url?: string
+          preset_id?: string | null
           reasons?: Json
           score?: number
           score_dimensions?: Json
@@ -761,45 +764,63 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
+          description: string | null
           desired_bonuses: Json
+          duration_preference: string | null
           housing_preference: boolean
           id: string
+          language_requirements: Json
+          last_used_at: string | null
+          learning_data: Json
           match_weights: Json
           name: string
           preferred_countries: Json
           preferred_job_type: string
           salary_max: number
           salary_min: number
+          seasonal_preference: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           active?: boolean
           created_at?: string
+          description?: string | null
           desired_bonuses?: Json
+          duration_preference?: string | null
           housing_preference?: boolean
           id?: string
+          language_requirements?: Json
+          last_used_at?: string | null
+          learning_data?: Json
           match_weights?: Json
           name?: string
           preferred_countries?: Json
           preferred_job_type?: string
           salary_max?: number
           salary_min?: number
+          seasonal_preference?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           active?: boolean
           created_at?: string
+          description?: string | null
           desired_bonuses?: Json
+          duration_preference?: string | null
           housing_preference?: boolean
           id?: string
+          language_requirements?: Json
+          last_used_at?: string | null
+          learning_data?: Json
           match_weights?: Json
           name?: string
           preferred_countries?: Json
           preferred_job_type?: string
           salary_max?: number
           salary_min?: number
+          seasonal_preference?: string | null
           updated_at?: string
           user_id?: string
         }

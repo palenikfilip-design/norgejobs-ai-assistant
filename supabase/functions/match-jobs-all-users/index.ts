@@ -33,6 +33,20 @@ Deno.serve(async (req) => {
 
   for (const p of eligible) {
     try {
+      // Fetch user's active preset (search intent). Skip if none.
+      const { data: presetRow } = await supabase
+        .from("user_presets")
+        .select("*")
+        .eq("user_id", p.user_id)
+        .eq("active", true)
+        .limit(1)
+        .maybeSingle();
+      if (!presetRow) {
+        console.log(`no active preset for ${p.user_id}, skipping`);
+        continue;
+      }
+      const presetId = presetRow.id as string;
+
       // Cache: skip when user has fresh active matches and avatar hasn't changed
       if (!p.needs_rescore) {
         const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
@@ -40,6 +54,7 @@ Deno.serve(async (req) => {
           .from("cached_matches")
           .select("id", { count: "exact", head: true })
           .eq("user_id", p.user_id)
+          .eq("preset_id", presetId)
           .eq("is_active", true)
           .gte("scored_at", cutoff);
         if ((count ?? 0) > 0) {
@@ -53,7 +68,7 @@ Deno.serve(async (req) => {
           Authorization: `Bearer ${SERVICE_ROLE}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ avatar: p.avatar_json, language: "cs" }),
+        body: JSON.stringify({ avatar: p.avatar_json, preset: presetRow, language: "cs" }),
       });
       if (!r.ok) {
         console.error(`match-jobs failed for ${p.user_id}:`, r.status);
@@ -66,14 +81,16 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Deactivate previous matches
+      // Deactivate previous matches for this preset only
       await supabase
         .from("cached_matches")
         .update({ is_active: false })
-        .eq("user_id", p.user_id);
+        .eq("user_id", p.user_id)
+        .eq("preset_id", presetId);
 
       const rows = matches.map((m: any) => ({
         user_id: p.user_id,
+        preset_id: presetId,
         job_title: m.title ?? "",
         job_location: m.location ?? null,
         job_country: m.country ?? null,

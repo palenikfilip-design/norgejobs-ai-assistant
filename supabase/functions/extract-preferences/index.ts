@@ -1,6 +1,7 @@
-// Extracts structured job preferences from a short conversation,
-// merges them into profiles.avatar_json (preserving existing keys),
-// stamps preferences_updated_at, and sets needs_rescore = true.
+// Extracts structured info from a short conversation and routes it into:
+//   - profiles (AVATAR — stable identity: languages, profession, etc.)
+//   - user_presets (PRESET — current search intent: countries, salary, seasonal, …)
+// Falls back to also merging into profiles.avatar_json for legacy/back-compat.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -178,6 +179,76 @@ Deno.serve(async (req) => {
       .eq("user_id", userId);
     if (upErr) throw upErr;
 
+    // --- Route SEARCH-INTENT fields into the user's active preset ---
+    // Identity fields (languages_spoken) stay on the profile/avatar.
+    // Search fields (countries, min_salary, accommodation, seasonal) update the active preset.
+    try {
+      let { data: presetRow } = await admin
+        .from("user_presets")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("active", true)
+        .limit(1)
+        .maybeSingle();
+
+      // Auto-create a first preset if user has none yet
+      if (!presetRow) {
+        const { data: created } = await admin
+          .from("user_presets")
+          .insert({
+            user_id: userId,
+            name: "Můj první preset",
+            active: true,
+            preferred_countries: extracted.target_countries ?? [],
+            salary_min: extracted.min_salary ?? 0,
+            salary_max: 0,
+            housing_preference: extracted.accommodation_needed ?? false,
+            language_requirements: extracted.languages_spoken ?? [],
+            seasonal_preference:
+              typeof extracted.seasonal_preference === "string"
+                ? mapSeasonal(extracted.seasonal_preference)
+                : "any",
+            last_used_at: new Date().toISOString(),
+          })
+          .select("*")
+          .maybeSingle();
+        presetRow = created;
+      } else {
+        const patch: Record<string, unknown> = {};
+        if (Array.isArray(extracted.target_countries) && extracted.target_countries.length > 0) {
+          const existingCountries = Array.isArray(presetRow.preferred_countries)
+            ? (presetRow.preferred_countries as string[])
+            : [];
+          patch.preferred_countries = Array.from(
+            new Set([...existingCountries, ...extracted.target_countries]),
+          );
+        }
+        if (typeof extracted.min_salary === "number" && extracted.min_salary > 0) {
+          patch.salary_min = extracted.min_salary;
+        }
+        if (typeof extracted.accommodation_needed === "boolean") {
+          patch.housing_preference = extracted.accommodation_needed;
+        }
+        if (typeof extracted.seasonal_preference === "string" && extracted.seasonal_preference) {
+          patch.seasonal_preference = mapSeasonal(extracted.seasonal_preference);
+        }
+        if (Array.isArray(extracted.languages_spoken) && extracted.languages_spoken.length > 0) {
+          const existingLangs = Array.isArray(presetRow.language_requirements)
+            ? (presetRow.language_requirements as string[])
+            : [];
+          patch.language_requirements = Array.from(
+            new Set([...existingLangs, ...extracted.languages_spoken]),
+          );
+        }
+        patch.last_used_at = new Date().toISOString();
+        if (Object.keys(patch).length > 0) {
+          await admin.from("user_presets").update(patch).eq("id", presetRow.id);
+        }
+      }
+    } catch (presetErr) {
+      console.warn("preset routing failed (non-fatal):", presetErr);
+    }
+
     return new Response(
       JSON.stringify({ extracted, avatar_json: merged }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -191,3 +262,11 @@ Deno.serve(async (req) => {
     });
   }
 });
+
+function mapSeasonal(raw: string): string {
+  const s = raw.toLowerCase();
+  if (s.includes("permanent") || s.includes("trval")) return "permanent";
+  if (s.includes("summer") || s.includes("letn")) return "summer";
+  if (s.includes("winter") || s.includes("zimn")) return "winter";
+  return "any";
+}

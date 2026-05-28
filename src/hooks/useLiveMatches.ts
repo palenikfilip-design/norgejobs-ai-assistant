@@ -3,6 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Job } from "@/data/mockJobs";
 import i18n from "@/i18n";
 
+/**
+ * Architecture note: matches are scoped by (user_id, preset_id).
+ * - AVATAR  = stable identity (profiles row)
+ * - PRESET  = current search intent (user_presets row, one active at a time)
+ * Dashboard reads cached_matches for the *active* preset only.
+ */
+
 export interface LiveMatch {
   source_portal: string;
   external_id: string;
@@ -140,39 +147,65 @@ export function useLiveMatches(avatar: unknown | null) {
   const [newlyAdded, setNewlyAdded] = useState<number | null>(null);
   const [hiddenCount, setHiddenCount] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
+  const [activePresetId, setActivePresetId] = useState<string | null>(null);
+  const [activePreset, setActivePreset] = useState<Record<string, unknown> | null>(null);
+
+  const loadActivePreset = useCallback(async () => {
+    const { data: u } = await supabase.auth.getUser();
+    const uid = u.user?.id;
+    if (!uid) return null;
+    const { data } = await supabase
+      .from("user_presets")
+      .select("*")
+      .eq("user_id", uid)
+      .eq("active", true)
+      .limit(1)
+      .maybeSingle();
+    if (data) {
+      setActivePresetId(data.id);
+      setActivePreset(data as Record<string, unknown>);
+      return data;
+    }
+    setActivePresetId(null);
+    setActivePreset(null);
+    return null;
+  }, []);
 
   const refreshHiddenStats = useCallback(async () => {
     const { data: u } = await supabase.auth.getUser();
     const uid = u.user?.id;
     if (!uid) return;
-    const [{ count: total }, { count: active }] = await Promise.all([
-      supabase
-        .from("cached_matches")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", uid),
-      supabase
-        .from("cached_matches")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", uid)
-        .eq("is_active", true),
-    ]);
+    let totalQ = supabase
+      .from("cached_matches")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", uid);
+    let activeQ = supabase
+      .from("cached_matches")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", uid)
+      .eq("is_active", true);
+    if (activePresetId) {
+      totalQ = totalQ.eq("preset_id", activePresetId);
+      activeQ = activeQ.eq("preset_id", activePresetId);
+    }
+    const [{ count: total }, { count: active }] = await Promise.all([totalQ, activeQ]);
     const totalN = total ?? 0;
     const activeN = active ?? 0;
     setActiveCount(activeN);
     setHiddenCount(Math.max(0, totalN - activeN));
-  }, []);
+  }, [activePresetId]);
 
   const loadFromCache = useCallback(async (): Promise<LiveMatch[]> => {
     const { data: u } = await supabase.auth.getUser();
     const uid = u.user?.id;
     if (!uid) return [];
-    const { data, error } = await supabase
+    let q = supabase
       .from("cached_matches")
       .select("job_title, job_location, job_country, job_salary, job_url, source_portal, score, reasons, created_at, category, is_seasonal, score_dimensions, warnings, company_signal")
       .eq("user_id", uid)
-      .eq("is_active", true)
-      .order("score", { ascending: false })
-      .limit(50);
+      .eq("is_active", true);
+    if (activePresetId) q = q.eq("preset_id", activePresetId);
+    const { data, error } = await q.order("score", { ascending: false }).limit(50);
     if (error) {
       console.error("cached_matches load failed:", error);
       return [];
@@ -187,13 +220,13 @@ export function useLiveMatches(avatar: unknown | null) {
     }
     void refreshHiddenStats();
     return rows.map(cachedRowToMatch);
-  }, [refreshHiddenStats]);
+  }, [refreshHiddenStats, activePresetId]);
 
   const fetchFromApiAndCache = useCallback(async (): Promise<{ matches: LiveMatch[]; added: number }> => {
     if (!avatar) return { matches: [], added: 0 };
     const language = i18n.resolvedLanguage || i18n.language || "cs";
     const { data, error } = await supabase.functions.invoke("match-jobs", {
-      body: { avatar, language },
+      body: { avatar, preset: activePreset, language },
     });
     if (error) throw error;
     const fresh = ((data?.matches as LiveMatch[]) ?? []).filter((m) => m && m.url);
@@ -214,6 +247,7 @@ export function useLiveMatches(avatar: unknown | null) {
         .filter((m) => !seen.has(m.url))
         .map((m) => ({
           user_id: uid,
+          preset_id: activePresetId,
           job_title: m.title ?? "",
           job_location: m.location,
           job_country: m.country,
@@ -241,7 +275,7 @@ export function useLiveMatches(avatar: unknown | null) {
       }
     }
     return { matches: fresh, added };
-  }, [avatar]);
+  }, [avatar, activePreset, activePresetId]);
 
   const refresh = useCallback(async () => {
     if (!avatar) return;
@@ -249,6 +283,7 @@ export function useLiveMatches(avatar: unknown | null) {
     setError(null);
     setNewlyAdded(null);
     try {
+      await loadActivePreset();
       const { added } = await fetchFromApiAndCache();
       setNewlyAdded(added);
       const cached = await loadFromCache();
@@ -259,7 +294,7 @@ export function useLiveMatches(avatar: unknown | null) {
     } finally {
       setLoading(false);
     }
-  }, [avatar, fetchFromApiAndCache, loadFromCache]);
+  }, [avatar, fetchFromApiAndCache, loadFromCache, loadActivePreset]);
 
   // Initial load: cache-first, fallback to API+cache when empty.
   useEffect(() => {
@@ -268,6 +303,8 @@ export function useLiveMatches(avatar: unknown | null) {
       setLoading(true);
       setError(null);
       try {
+        await loadActivePreset();
+        if (cancelled) return;
         // If profile says preferences changed since last scoring, force a fresh fetch
         let mustRescore = false;
         const { data: u } = await supabase.auth.getUser();
@@ -315,7 +352,7 @@ export function useLiveMatches(avatar: unknown | null) {
     return () => {
       cancelled = true;
     };
-  }, [avatar, loadFromCache, fetchFromApiAndCache]);
+  }, [avatar, loadFromCache, fetchFromApiAndCache, loadActivePreset]);
 
   return {
     matches,
@@ -326,6 +363,8 @@ export function useLiveMatches(avatar: unknown | null) {
     newlyAdded,
     hiddenCount,
     activeCount,
+    activePresetId,
+    reloadActivePreset: loadActivePreset,
   };
 }
 
