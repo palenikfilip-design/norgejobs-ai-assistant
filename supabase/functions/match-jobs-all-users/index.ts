@@ -14,8 +14,7 @@ Deno.serve(async (req) => {
 
   const { data: profiles, error } = await supabase
     .from("profiles")
-    .select("user_id, avatar_json")
-    .neq("avatar_json", {});
+    .select("user_id, avatar_json, needs_rescore");
 
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), {
@@ -34,6 +33,20 @@ Deno.serve(async (req) => {
 
   for (const p of eligible) {
     try {
+      // Cache: skip when user has fresh active matches and avatar hasn't changed
+      if (!p.needs_rescore) {
+        const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+        const { count } = await supabase
+          .from("cached_matches")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", p.user_id)
+          .eq("is_active", true)
+          .gte("scored_at", cutoff);
+        if ((count ?? 0) > 0) {
+          continue;
+        }
+      }
+
       const r = await fetch(`${SUPABASE_URL}/functions/v1/match-jobs`, {
         method: "POST",
         headers: {
@@ -72,12 +85,21 @@ Deno.serve(async (req) => {
         is_active: true,
         category: m.category ?? null,
         is_seasonal: m.is_seasonal ?? null,
+        score_dimensions: m.dimensions ?? {},
+        warnings: m.warnings ?? [],
+        company_signal: m.company_signal ?? "unknown",
+        scored_at: new Date().toISOString(),
       }));
 
-      const { error: insErr } = await supabase.from("cached_matches").insert(rows);
+      const { error: insErr } = await supabase
+        .from("cached_matches")
+        .upsert(rows, { onConflict: "user_id,job_url" });
       if (insErr) {
         console.error(`insert failed for ${p.user_id}:`, insErr.message);
         continue;
+      }
+      if (p.needs_rescore) {
+        await supabase.from("profiles").update({ needs_rescore: false }).eq("user_id", p.user_id);
       }
       usersScored++;
       newMatches += rows.length;

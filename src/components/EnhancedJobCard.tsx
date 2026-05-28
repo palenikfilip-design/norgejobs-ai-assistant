@@ -30,13 +30,43 @@ interface EnhancedJobCardProps {
   onSaveJob?: (job: EnhancedJob) => void;
 }
 
+const DIMENSION_LABELS: Record<string, string> = {
+  role_match: "Role",
+  location_match: "Lokace",
+  seasonality_match: "Sezónnost",
+  language_match: "Jazyk",
+  salary_match: "Plat",
+};
+
+const COMPANY_SIGNAL_BADGE: Record<string, { label: string; className: string }> = {
+  established: { label: "Ověřená firma", className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30" },
+  growing: { label: "Rostoucí firma", className: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30" },
+  unknown: { label: "Méně známá", className: "bg-muted text-muted-foreground border-border" },
+  warning: { label: "Pozor!", className: "bg-destructive/15 text-destructive border-destructive/40" },
+};
+
+const dimColor = (n: number) =>
+  n >= 70 ? "bg-emerald-500" : n >= 40 ? "bg-amber-500" : "bg-red-500";
+
 const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLetter, onSaveJob }: EnhancedJobCardProps) => {
   const [expanded, setExpanded] = useState(false);
+  const [dimensionsOpen, setDimensionsOpen] = useState(false);
   const [saved, setSaved] = useState(false);
   const [langTestOpen, setLangTestOpen] = useState(false);
   const [langTestLang, setLangTestLang] = useState("English");
   const { activeAvatars, user } = useUser();
   const activeAvatar = activeAvatars[0] ?? null;
+
+  const jobExtras = job as EnhancedJob & {
+    scoreDimensions?: Record<string, number> | null;
+    warnings?: string[];
+    companySignal?: string | null;
+    sourcePortal?: string;
+  };
+  const scoreDimensions = jobExtras.scoreDimensions ?? null;
+  const jobWarnings = Array.isArray(jobExtras.warnings) ? jobExtras.warnings : [];
+  const companySignalKey = jobExtras.companySignal ?? null;
+  const companySignalBadge = companySignalKey ? COMPANY_SIGNAL_BADGE[companySignalKey] ?? null : null;
 
   const scoreColor = job.matchScore >= 80
     ? "text-emerald-500 bg-emerald-500/10 border-emerald-500/30"
@@ -122,7 +152,14 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-foreground text-lg leading-tight">{job.title}</h3>
-              <p className="text-muted-foreground text-sm mt-0.5">{job.company}</p>
+              <div className="text-muted-foreground text-sm mt-0.5 flex items-center gap-2 flex-wrap">
+                <span>{job.company}</span>
+                {companySignalBadge && (
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full border ${companySignalBadge.className}`}>
+                    {companySignalBadge.label}
+                  </span>
+                )}
+              </div>
             </div>
             <div className={`flex flex-col items-center px-3 py-2 rounded-lg border ${scoreColor} relative`}>
               <div className="flex items-center gap-1">
@@ -152,6 +189,47 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
               </div>
             );
           })()}
+
+          {/* Dimension breakdown (collapsible) */}
+          {scoreDimensions && Object.keys(scoreDimensions).length > 0 && (
+            <div className="mb-3 border border-border/40 rounded-lg overflow-hidden">
+              <button
+                onClick={() => setDimensionsOpen((v) => !v)}
+                className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary/40 transition-colors"
+              >
+                <span>Detaily shody</span>
+                {dimensionsOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              </button>
+              {dimensionsOpen && (
+                <div className="px-3 py-2 space-y-1.5 bg-secondary/20">
+                  {Object.entries(DIMENSION_LABELS).map(([key, label]) => {
+                    const v = Math.max(0, Math.min(100, Number(scoreDimensions[key] ?? 0)));
+                    return (
+                      <div key={key} className="flex items-center gap-2">
+                        <span className="text-[11px] text-muted-foreground w-16 shrink-0">{label}</span>
+                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                          <div className={`h-full ${dimColor(v)} transition-all`} style={{ width: `${v}%` }} />
+                        </div>
+                        <span className="text-[11px] font-medium text-foreground w-8 text-right">{v}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Warnings */}
+          {jobWarnings.length > 0 && (
+            <div className="mb-3 flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
+              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="text-xs text-amber-800 dark:text-amber-200 space-y-0.5">
+                {jobWarnings.map((w, i) => (
+                  <p key={i}>⚠️ {w}</p>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Hard filter warning */}
           {job.hardFiltered && (

@@ -17,6 +17,7 @@ export type Database = {
       cached_matches: {
         Row: {
           category: string | null
+          company_signal: string | null
           created_at: string
           id: string
           is_active: boolean
@@ -28,11 +29,15 @@ export type Database = {
           job_url: string
           reasons: Json
           score: number
+          score_dimensions: Json
+          scored_at: string
           source_portal: string | null
           user_id: string
+          warnings: Json
         }
         Insert: {
           category?: string | null
+          company_signal?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -44,11 +49,15 @@ export type Database = {
           job_url: string
           reasons?: Json
           score?: number
+          score_dimensions?: Json
+          scored_at?: string
           source_portal?: string | null
           user_id: string
+          warnings?: Json
         }
         Update: {
           category?: string | null
+          company_signal?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -60,8 +69,11 @@ export type Database = {
           job_url?: string
           reasons?: Json
           score?: number
+          score_dimensions?: Json
+          scored_at?: string
           source_portal?: string | null
           user_id?: string
+          warnings?: Json
         }
         Relationships: []
       }

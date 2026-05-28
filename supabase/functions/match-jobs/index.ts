@@ -256,18 +256,36 @@ async function scoreJobWithAI(
   avatar: unknown,
   apiKey: string,
   language: string = "cs",
-): Promise<ScoreResult> {
+): Promise<{
+  score: number;
+  dimensions: Record<string, number>;
+  reasons: string[];
+  warnings: string[];
+  company_signal: string;
+}> {
   const salaryStr =
     job.salary_min || job.salary_max
       ? `${job.salary_min ?? "?"}–${job.salary_max ?? "?"} ${job.currency ?? ""}`.trim()
       : "unknown";
-  const langLabel =
-    language === "sk" ? "Slovak"
-    : language === "en" ? "English"
-    : language === "de" ? "German"
-    : language === "pl" ? "Polish"
-    : "Czech";
-  const prompt = `Score 0-100 how this job matches user. Return ONLY JSON: {"score": <number>, "reasons": [<max 3 short ${langLabel} reasons, each max 3 words>]}.\nThe "reasons" array MUST be written in ${langLabel}.\n\nJob: ${job.title} in ${job.location ?? "unknown"}, ${job.country ?? "unknown"}. Salary: ${salaryStr}.\nUser preferences: ${JSON.stringify(avatar)}`;
+  const prompt = `You are Leslie's job matching engine. Score this job for the user across 5 dimensions (0-100 each):
+
+1. role_match: Does job role match user's job_categories?
+2. location_match: Does location match user's target_countries? Bonus for exact city match.
+3. seasonality_match: If user wants seasonal AND job is seasonal (or vice versa) = high. Mismatch = low.
+4. language_match: Are user's languages_spoken sufficient for this job/country?
+5. salary_match: Is salary at or above user's min_salary? Unknown salary = 50.
+
+Calculate "overall" as weighted average: role 35%, location 25%, seasonality 15%, language 15%, salary 10%.
+
+Provide 1-3 "reasons" (positive points, Czech, max 4 words each) and 0-2 "warnings" (concerns, Czech).
+
+Add "company_signal": "established" (big known company), "growing" (mid-size), "unknown" (small/no signal), "warning" (red flags in description like "no salary mentioned" + "must pay upfront").
+
+Job: ${job.title} at ${job.source_portal} in ${job.location ?? "unknown"}, ${job.country ?? "unknown"}. Salary: ${salaryStr}.
+User: ${JSON.stringify(avatar)}
+
+Return ONLY valid JSON in this exact shape, no markdown, no explanation:
+{"overall":<number>,"dimensions":{"role_match":<number>,"location_match":<number>,"seasonality_match":<number>,"language_match":<number>,"salary_match":<number>},"reasons":[<strings>],"warnings":[<strings>],"company_signal":"established|growing|unknown|warning"}`;
 
   try {
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -288,24 +306,48 @@ async function scoreJobWithAI(
       if (resp.status === 429) throw new Error("rate_limited");
       if (resp.status === 402) throw new Error("payment_required");
       if (resp.status === 401 || resp.status === 403) throw new Error("ai_error");
-      return { score: 50, reasons: [] };
+      return { score: 50, dimensions: {}, reasons: [], warnings: [], company_signal: "unknown" };
     }
 
     const data = await resp.json();
     const text: string = data?.choices?.[0]?.message?.content ?? "";
-    // Extract first JSON object from text
     const match = text.match(/\{[\s\S]*\}/);
-    if (!match) return { score: 50, reasons: [] };
+    if (!match) return { score: 50, dimensions: {}, reasons: [], warnings: [], company_signal: "unknown" };
     const parsed = JSON.parse(match[0]);
-    const score = Math.max(0, Math.min(100, Number(parsed.score) || 0));
+    const clamp = (n: unknown) => Math.round(Math.max(0, Math.min(100, Number(n) || 0)));
+    const dimsRaw = parsed.dimensions ?? {};
+    const dimensions = {
+      role_match: clamp(dimsRaw.role_match),
+      location_match: clamp(dimsRaw.location_match),
+      seasonality_match: clamp(dimsRaw.seasonality_match),
+      language_match: clamp(dimsRaw.language_match),
+      salary_match: clamp(dimsRaw.salary_match),
+    };
+    let overall = clamp(parsed.overall);
+    if (!overall) {
+      overall = Math.round(
+        dimensions.role_match * 0.35 +
+          dimensions.location_match * 0.25 +
+          dimensions.seasonality_match * 0.15 +
+          dimensions.language_match * 0.15 +
+          dimensions.salary_match * 0.1,
+      );
+    }
     const reasons = Array.isArray(parsed.reasons)
       ? parsed.reasons.slice(0, 3).map((r: unknown) => String(r))
       : [];
-    return { score, reasons };
+    const warnings = Array.isArray(parsed.warnings)
+      ? parsed.warnings.slice(0, 2).map((r: unknown) => String(r))
+      : [];
+    const allowed = new Set(["established", "growing", "unknown", "warning"]);
+    const signal = allowed.has(String(parsed.company_signal))
+      ? String(parsed.company_signal)
+      : "unknown";
+    return { score: overall, dimensions, reasons, warnings, company_signal: signal };
   } catch (e) {
     if (e instanceof Error && (e.message === "rate_limited" || e.message === "payment_required")) throw e;
     console.error("scoreJobWithAI failed:", e);
-    return { score: 50, reasons: [] };
+    return { score: 50, dimensions: {}, reasons: [], warnings: [], company_signal: "unknown" };
   }
 }
 
@@ -364,6 +406,9 @@ Deno.serve(async (req) => {
         ...job,
         score: results[i]?.score ?? 50,
         reasons: results[i]?.reasons ?? [],
+        dimensions: results[i]?.dimensions ?? {},
+        warnings: results[i]?.warnings ?? [],
+        company_signal: results[i]?.company_signal ?? "unknown",
       }))
       .filter((m) => m.score >= 50)
       .sort((a, b) => b.score - a.score);
