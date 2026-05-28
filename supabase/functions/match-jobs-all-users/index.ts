@@ -91,7 +91,9 @@ Deno.serve(async (req) => {
         scored_at: new Date().toISOString(),
       }));
 
-      const { error: insErr } = await supabase.from("cached_matches").insert(rows);
+      const { error: insErr } = await supabase
+        .from("cached_matches")
+        .upsert(rows, { onConflict: "user_id,job_url" });
       if (insErr) {
         console.error(`insert failed for ${p.user_id}:`, insErr.message);
         continue;
