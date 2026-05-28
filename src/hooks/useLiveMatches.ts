@@ -19,6 +19,9 @@ export interface LiveMatch {
   reasons?: string[];
   category?: string | null;
   is_seasonal?: boolean | null;
+  dimensions?: Record<string, number> | null;
+  warnings?: string[] | null;
+  company_signal?: string | null;
 }
 
 function formatSalary(
@@ -69,7 +72,18 @@ export function liveMatchToJob(m: LiveMatch): Job & { matchScore?: number } {
     matchReasons: Array.isArray(m.reasons) ? m.reasons : [],
     category: m.category ?? null,
     isSeasonal: m.is_seasonal ?? null,
-  } as Job & { matchScore?: number; matchReasons?: string[]; category?: string | null; isSeasonal?: boolean | null };
+    scoreDimensions: m.dimensions ?? null,
+    warnings: Array.isArray(m.warnings) ? m.warnings : [],
+    companySignal: m.company_signal ?? null,
+  } as Job & {
+    matchScore?: number;
+    matchReasons?: string[];
+    category?: string | null;
+    isSeasonal?: boolean | null;
+    scoreDimensions?: Record<string, number> | null;
+    warnings?: string[];
+    companySignal?: string | null;
+  };
 }
 
 interface CachedRow {
@@ -84,6 +98,9 @@ interface CachedRow {
   created_at: string;
   category: string | null;
   is_seasonal: boolean | null;
+  score_dimensions: unknown;
+  warnings: unknown;
+  company_signal: string | null;
 }
 
 function cachedRowToMatch(r: CachedRow): LiveMatch {
@@ -103,6 +120,9 @@ function cachedRowToMatch(r: CachedRow): LiveMatch {
     reasons: Array.isArray(r.reasons) ? (r.reasons as string[]) : [],
     category: r.category,
     is_seasonal: r.is_seasonal,
+    dimensions: r.score_dimensions && typeof r.score_dimensions === "object" ? (r.score_dimensions as Record<string, number>) : null,
+    warnings: Array.isArray(r.warnings) ? (r.warnings as string[]) : [],
+    company_signal: r.company_signal,
   };
 }
 
@@ -148,7 +168,7 @@ export function useLiveMatches(avatar: unknown | null) {
     if (!uid) return [];
     const { data, error } = await supabase
       .from("cached_matches")
-      .select("job_title, job_location, job_country, job_salary, job_url, source_portal, score, reasons, created_at, category, is_seasonal")
+      .select("job_title, job_location, job_country, job_salary, job_url, source_portal, score, reasons, created_at, category, is_seasonal, score_dimensions, warnings, company_signal")
       .eq("user_id", uid)
       .eq("is_active", true)
       .order("score", { ascending: false })
@@ -205,6 +225,9 @@ export function useLiveMatches(avatar: unknown | null) {
           is_active: true,
           category: m.category ?? null,
           is_seasonal: m.is_seasonal ?? null,
+          score_dimensions: m.dimensions ?? {},
+          warnings: m.warnings ?? [],
+          company_signal: m.company_signal ?? "unknown",
         }));
       if (toInsert.length > 0) {
         const { error: insErr } = await supabase
