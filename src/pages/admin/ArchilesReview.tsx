@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, ExternalLink, Loader2, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronRight, ExternalLink, Hourglass, Loader2, RefreshCw } from "lucide-react";
 import ArchilesLayout, { formatRelative } from "./ArchilesLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,12 +57,14 @@ function CompletenessBadge({ value }: { value: string }) {
   return <Badge variant="outline" className={tone}>{value}</Badge>;
 }
 
-const PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 20;
 
 export default function ArchilesReview() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [pageSizeInput, setPageSizeInput] = useState(String(DEFAULT_PAGE_SIZE));
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -108,7 +110,7 @@ export default function ArchilesReview() {
         .gte("archiles_confidence", confRange[0])
         .lte("archiles_confidence", confRange[1])
         .order("created_at", { ascending: false })
-        .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
+        .range(page * pageSize, page * pageSize + pageSize - 1);
 
       if (sourceFilter) q = q.eq("source_portal", sourceFilter);
       if (country) q = q.eq("country", country);
@@ -131,11 +133,11 @@ export default function ArchilesReview() {
     } finally {
       setLoading(false);
     }
-  }, [page, sourceFilter, country, trustRange, confRange, completeness, hasSalary, redFlags]);
+  }, [page, pageSize, sourceFilter, country, trustRange, confRange, completeness, hasSalary, redFlags]);
 
   useEffect(() => { load(); }, [load]);
 
-  const pages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const pages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   const toggleSel = (id: string) => {
     setSelected((s) => {
@@ -336,7 +338,14 @@ export default function ArchilesReview() {
                   <Fragment key={j.id}>
                     <tr className="border-t border-border hover:bg-muted/20">
                       <td className="p-2"><Checkbox checked={selected.has(j.id)} onCheckedChange={() => toggleSel(j.id)} /></td>
-                      <td className="p-2"><TrustDot score={j.trust_score} /></td>
+                      <td className="p-2">
+                        <div className="flex items-center gap-1">
+                          <TrustDot score={j.trust_score} />
+                          {j.needs_review && (
+                            <Hourglass className="h-4 w-4 text-amber-400" aria-label="Čeká na schválení" />
+                          )}
+                        </div>
+                      </td>
                       <td className="p-2 max-w-[280px]">
                         <button className="text-left" onClick={() => setExpanded((e) => e === j.id ? null : j.id)}>
                           <div className="font-medium truncate flex items-center gap-1">
@@ -412,7 +421,22 @@ export default function ArchilesReview() {
 
       <div className="flex items-center justify-between mt-3 text-sm">
         <div className="text-muted-foreground">Stránka {page + 1} / {pages}</div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <Label className="text-xs whitespace-nowrap">Na stránku:</Label>
+          <Input
+            type="number"
+            min={1}
+            max={500}
+            value={pageSizeInput}
+            onChange={(e) => setPageSizeInput(e.target.value)}
+            onBlur={() => {
+              const n = parseInt(pageSizeInput, 10);
+              if (!isNaN(n) && n > 0 && n <= 500) { setPageSize(n); setPage(0); }
+              else setPageSizeInput(String(pageSize));
+            }}
+            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+            className="h-8 w-20"
+          />
           <Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>Předchozí</Button>
           <Button size="sm" variant="outline" disabled={page + 1 >= pages} onClick={() => setPage((p) => p + 1)}>Další</Button>
         </div>
