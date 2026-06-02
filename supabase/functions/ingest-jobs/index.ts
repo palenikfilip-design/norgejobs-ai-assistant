@@ -42,19 +42,15 @@ interface NormalizedJob {
   location: string | null;
   country: string | null;
   url: string;
-  job_type: null;
-  salary_min: null;
-  salary_max: null;
-  currency: null;
+  job_type: string | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  currency: string | null;
+  salary?: string | null;
+  additional_locations?: string[];
   posted_at: string | null;
   raw_data: Record<string, unknown>;
   fetched_at: string;
-}
-
-interface EnrichedJob extends Omit<NormalizedJob, "job_type"> {
-  job_type: string | null;
-  salary: string | null;
-  additional_locations: string[];
 }
 
 const nowIso = () => new Date().toISOString();
