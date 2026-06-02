@@ -7,6 +7,7 @@ import {
   ArrowDown,
   ArrowUp,
   Database,
+  ExternalLink,
   Loader2,
   MessageCircle,
   PlayCircle,
@@ -38,6 +39,7 @@ interface Activity {
   created_at: string;
   job_title: string | null;
   job_source: string | null;
+  job_url: string | null;
 }
 
 function ConfidenceBadge({ value }: { value: number }) {
@@ -107,10 +109,10 @@ export default function ArchilesDashboard() {
       // Enrich activity with job info
       const decisions = activityRes.data ?? [];
       const jobIds = Array.from(new Set(decisions.map((d) => (d as any).job_id).filter(Boolean)));
-      let jobMap: Record<string, { title: string; source: string }> = {};
+      let jobMap: Record<string, { title: string; source: string; url: string }> = {};
       if (jobIds.length) {
-        const jr = await supabase.from("public_jobs").select("id, title, source_portal").in("id", jobIds);
-        (jr.data ?? []).forEach((j: any) => { jobMap[j.id] = { title: j.title, source: j.source_portal }; });
+        const jr = await supabase.from("public_jobs").select("id, title, source_portal, url").in("id", jobIds);
+        (jr.data ?? []).forEach((j: any) => { jobMap[j.id] = { title: j.title, source: j.source_portal, url: j.url }; });
       }
       setActivity(
         decisions.map((d: any) => ({
@@ -121,6 +123,7 @@ export default function ArchilesDashboard() {
           created_at: d.created_at,
           job_title: jobMap[d.job_id]?.title ?? null,
           job_source: jobMap[d.job_id]?.source ?? null,
+          job_url: jobMap[d.job_id]?.url ?? null,
         })),
       );
     } catch (e) {
@@ -198,10 +201,14 @@ export default function ArchilesDashboard() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Sparse data</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground" title="Podíl jobů, kde Archiles získal jen velmi málo informací (chybí popis, plat, jazyk apod.). Doporučeno ověřit na původním zdroji.">
+              Sparse data
+            </CardTitle>
+          </CardHeader>
           <CardContent>
             <div className="text-2xl font-semibold flex items-center gap-2"><AlertCircle className="h-5 w-5 text-amber-400" />{metrics?.sparsePct ?? 0}%</div>
-            <div className="text-xs text-muted-foreground">z enrichnutých jobů</div>
+            <div className="text-xs text-muted-foreground">jobů s minimem dat (chybí popis/plat). Ověřit na zdroji.</div>
           </CardContent>
         </Card>
       </div>
@@ -216,11 +223,11 @@ export default function ArchilesDashboard() {
           {!loading && activity.length === 0 && <div className="text-sm text-muted-foreground">Zatím žádná aktivita.</div>}
           {activity.map((a) => (
             <div key={a.id} className="border border-border rounded-md p-3 text-sm">
-              <button
-                className="w-full flex items-start justify-between gap-3 text-left"
-                onClick={() => setExpanded((e) => (e === a.id ? null : a.id))}
-              >
-                <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-3">
+                <button
+                  className="flex-1 min-w-0 text-left"
+                  onClick={() => setExpanded((e) => (e === a.id ? null : a.id))}
+                >
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant="outline" className="text-xs">{a.decision_type}</Badge>
                     <span className="text-xs text-muted-foreground">{formatRelative(a.created_at)}</span>
@@ -228,8 +235,20 @@ export default function ArchilesDashboard() {
                   </div>
                   <div className="mt-1 font-medium truncate">{a.job_title ?? "—"}</div>
                   <div className="text-xs text-muted-foreground">{a.job_source ?? "—"}</div>
-                </div>
-              </button>
+                </button>
+                {a.job_url && (
+                  <a
+                    href={a.job_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline shrink-0 mt-1"
+                    title="Otevřít původní inzerát"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    Originál
+                  </a>
+                )}
+              </div>
               {expanded === a.id && (
                 <pre className="mt-3 bg-muted/40 rounded p-2 text-xs overflow-x-auto max-h-64">{JSON.stringify(a.archiles_choice, null, 2)}</pre>
               )}
