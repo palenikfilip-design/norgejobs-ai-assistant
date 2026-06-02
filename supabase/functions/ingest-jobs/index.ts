@@ -187,13 +187,16 @@ async function adapterLever(s: JobSource): Promise<NormalizedJob[]> {
     source_id: s.id,
     title: String(it.text),
     company: s.name,
-    description: it.descriptionPlain ?? null,
+    description: it.descriptionPlain ?? stripHtml(it.descriptionHtml ?? it.description ?? null),
     location: it.categories?.location ?? null,
     country: s.country,
     url: String(it.hostedUrl),
     job_type: null, salary_min: null, salary_max: null, currency: null,
     posted_at: it.createdAt ? new Date(it.createdAt).toISOString() : null,
-    raw_data: {},
+    raw_data: {
+      department: it.categories?.department ?? null,
+      commitment: it.categories?.commitment ?? null,
+    },
     fetched_at: nowIso(),
   }));
 }
@@ -232,21 +235,30 @@ async function adapterWorkday(s: JobSource): Promise<NormalizedJob[]> {
     body: JSON.stringify({ appliedFacets: {}, limit: 20, offset: 0, searchText: "" }),
   });
   const items: any[] = Array.isArray(data?.jobPostings) ? data.jobPostings : [];
-  return items.filter((it) => it?.title && it?.externalPath).map((it) => ({
-    external_id: it.bulletFields?.[0] ?? it.externalPath ?? null,
-    source_portal: `workday:${tenant}`,
-    source_id: s.id,
-    title: String(it.title),
-    company: s.name,
-    description: null,
-    location: it.locationsText ?? null,
-    country: s.country,
-    url: `https://${tenant}.wd${wd}.myworkdayjobs.com${it.externalPath}`,
-    job_type: null, salary_min: null, salary_max: null, currency: null,
-    posted_at: it.postedOn ?? null,
-    raw_data: {},
-    fetched_at: nowIso(),
-  }));
+  return items.filter((it) => it?.title && it?.externalPath).map((it) => {
+    // Workday detail pages are HTML and fragile — expand what list endpoint gives us.
+    const bullets = Array.isArray(it.bulletFields) ? it.bulletFields : [];
+    const summary = bullets.slice(1).join(" • ");
+    return {
+      external_id: bullets[0] ?? it.externalPath ?? null,
+      source_portal: `workday:${tenant}`,
+      source_id: s.id,
+      title: String(it.title),
+      company: s.name,
+      description: summary || it.jobPostingInfo?.summary || null,
+      location: it.locationsText ?? null,
+      country: s.country,
+      url: `https://${tenant}.wd${wd}.myworkdayjobs.com${it.externalPath}`,
+      job_type: null, salary_min: null, salary_max: null, currency: null,
+      posted_at: it.postedOn ?? null,
+      raw_data: {
+        workday_limited_data: true,
+        bullet_fields: bullets,
+        job_posting_info: it.jobPostingInfo ?? null,
+      },
+      fetched_at: nowIso(),
+    };
+  });
 }
 
 async function adapterPersonio(s: JobSource): Promise<NormalizedJob[]> {
