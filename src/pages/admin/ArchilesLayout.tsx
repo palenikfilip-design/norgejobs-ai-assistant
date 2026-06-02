@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   CheckSquare,
   Database,
+  Inbox,
   MessageCircle,
   Sliders,
   BarChart3,
@@ -21,6 +22,7 @@ type AuthState = "loading" | "denied" | "ok";
 const NAV = [
   { to: "/admin/archiles", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/admin/archiles/review", label: "Review Queue", icon: CheckSquare },
+  { to: "/admin/archiles/sources-queue", label: "Sources Queue", icon: Inbox },
   { to: "/admin/archiles/sources", label: "Sources", icon: Database },
   { to: "/admin/archiles/chat", label: "Chat s Archilem", icon: MessageCircle },
   { to: "/admin/archiles/autonomy", label: "Autonomie", icon: Sliders },
