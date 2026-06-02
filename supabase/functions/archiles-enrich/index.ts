@@ -426,6 +426,11 @@ async function enrichJob(
       data_completeness: completeness.label,
       enriched_at: new Date().toISOString(),
     };
+    // Persist backfilled description / raw_data from late Greenhouse detail refetch.
+    if (lateDetail?.description) {
+      updatePayload.description = job.description;
+      updatePayload.raw_data = job.raw_data;
+    }
     // Category & is_seasonal only if confident
     if (aiConfidence > 70 && ai.category_suggestion) {
       updatePayload.category = String(ai.category_suggestion);
