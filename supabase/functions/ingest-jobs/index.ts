@@ -291,18 +291,38 @@ async function runSource(supabase: ReturnType<typeof createClient>, s: JobSource
     const rows = await adapter(s);
 
     let added = 0;
+    const insertedIds: string[] = [];
     const CHUNK = 500;
     for (let i = 0; i < rows.length; i += CHUNK) {
       const chunk = rows.slice(i, i + CHUNK);
-      const { error: upErr, count } = await supabase
+      const { error: upErr, count, data: upserted } = await supabase
         .from("public_jobs")
         .upsert(chunk, {
           onConflict: "source_portal,external_id",
           ignoreDuplicates: false,
           count: "exact",
-        });
+        })
+        .select("id");
       if (upErr) throw upErr;
       added += count ?? chunk.length;
+      if (Array.isArray(upserted)) {
+        for (const r of upserted) if ((r as any)?.id) insertedIds.push(String((r as any).id));
+      }
+    }
+
+    // Fire-and-forget Archiles enrichment in batches of 30 (don't await — stay within timeout).
+    if (insertedIds.length > 0) {
+      const ARCH_BATCH = 30;
+      const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/archiles-enrich`;
+      const auth = `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`;
+      for (let i = 0; i < insertedIds.length; i += ARCH_BATCH) {
+        const slice = insertedIds.slice(i, i + ARCH_BATCH);
+        fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: auth },
+          body: JSON.stringify({ job_ids: slice }),
+        }).catch((e) => console.error("[ingest-jobs] archiles-enrich trigger failed", e));
+      }
     }
 
     const { data: cur } = await supabase.from("job_sources").select("jobs_added_total").eq("id", s.id).maybeSingle();
