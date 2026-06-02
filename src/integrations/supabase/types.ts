@@ -44,6 +44,57 @@ export type Database = {
         }
         Relationships: []
       }
+      archiles_autonomy_log: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          id: string
+          new_values: Json
+          old_values: Json
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          new_values?: Json
+          old_values?: Json
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          new_values?: Json
+          old_values?: Json
+        }
+        Relationships: []
+      }
+      archiles_chat_history: {
+        Row: {
+          admin_id: string
+          created_at: string
+          id: string
+          message_content: string
+          message_role: string
+          tool_calls: Json | null
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          id?: string
+          message_content?: string
+          message_role: string
+          tool_calls?: Json | null
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          id?: string
+          message_content?: string
+          message_role?: string
+          tool_calls?: Json | null
+        }
+        Relationships: []
+      }
       archiles_decisions: {
         Row: {
           admin_choice: Json | null
