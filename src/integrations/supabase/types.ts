@@ -645,6 +645,7 @@ export type Database = {
       }
       public_jobs: {
         Row: {
+          additional_locations: Json
           archiles_confidence: number
           archiles_notes: string | null
           category: string | null
@@ -652,6 +653,7 @@ export type Database = {
           country: string | null
           created_at: string
           currency: string | null
+          data_completeness: string
           description: string | null
           enriched_at: string | null
           expat_openness: string
@@ -668,6 +670,7 @@ export type Database = {
           region: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          salary: string | null
           salary_max: number | null
           salary_min: number | null
           salary_normalized_eur: number | null
@@ -681,6 +684,7 @@ export type Database = {
           url: string
         }
         Insert: {
+          additional_locations?: Json
           archiles_confidence?: number
           archiles_notes?: string | null
           category?: string | null
@@ -688,6 +692,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           currency?: string | null
+          data_completeness?: string
           description?: string | null
           enriched_at?: string | null
           expat_openness?: string
@@ -704,6 +709,7 @@ export type Database = {
           region?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          salary?: string | null
           salary_max?: number | null
           salary_min?: number | null
           salary_normalized_eur?: number | null
@@ -717,6 +723,7 @@ export type Database = {
           url: string
         }
         Update: {
+          additional_locations?: Json
           archiles_confidence?: number
           archiles_notes?: string | null
           category?: string | null
@@ -724,6 +731,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           currency?: string | null
+          data_completeness?: string
           description?: string | null
           enriched_at?: string | null
           expat_openness?: string
@@ -740,6 +748,7 @@ export type Database = {
           region?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          salary?: string | null
           salary_max?: number | null
           salary_min?: number | null
           salary_normalized_eur?: number | null

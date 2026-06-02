@@ -122,7 +122,7 @@ function normalizeSalaryToEur(
 
 function computeTrustScore(
   job: any,
-  companyMultiCount: number,
+  companyStats: { jobCount: number; countryCount: number },
   aiResult: any,
   salaryParsed: boolean,
 ): { score: number; signals: Record<string, unknown> } {
@@ -130,7 +130,19 @@ function computeTrustScore(
   let score = 50;
 
   if (job.company && String(job.company).trim()) { score += 10; signals.has_company = 10; }
-  if (companyMultiCount >= 3) { score += 5; signals.multi_job_employer = 5; }
+  if (companyStats.jobCount >= 3) { score += 5; signals.multi_job_employer = 5; }
+
+  // Multi-country presence — established multinational signal
+  signals.country_count = companyStats.countryCount;
+  signals.total_jobs_in_db = companyStats.jobCount;
+  let multiBonus = 0;
+  if (companyStats.countryCount >= 10) multiBonus = 15;
+  else if (companyStats.countryCount >= 4) multiBonus = 10;
+  else if (companyStats.countryCount >= 2) multiBonus = 5;
+  if (multiBonus) { score += multiBonus; signals.multinational_bonus = multiBonus; }
+
+  // Hiring volume
+  if (companyStats.jobCount >= 50) { score += 10; signals.volume_bonus = 10; }
 
   const portal = String(job.source_portal || "").toLowerCase();
   const atsPrefixes = ["greenhouse","lever","workday","smartrecruiters","personio"];
@@ -157,6 +169,27 @@ function computeTrustScore(
   if (aiResult?.description_quality === "low") { score -= 20; signals.low_quality = -20; }
 
   return { score: Math.max(0, Math.min(100, score)), signals };
+}
+
+/**
+ * Compute completeness based on what data we actually have.
+ * Transparent about sparse jobs rather than guessing.
+ */
+function computeCompleteness(job: any, langs: string[], skillLevel: string, salaryEur: number | null):
+  { label: "complete" | "partial" | "sparse"; score: number } {
+  let score = 0;
+  if (job.description && String(job.description).length > 200) score += 25;
+  if (salaryEur != null) score += 15;
+  if (job.company && String(job.company).trim()) score += 15;
+  if ((job.raw_data?.department) || (job.job_type)) score += 10;
+  const loc = String(job.location ?? "").toLowerCase();
+  if (loc && !["multiple", "remote", ""].includes(loc)) score += 10;
+  if (langs.length > 0) score += 10;
+  if (skillLevel && skillLevel !== "unknown") score += 5;
+  if (job.posted_at) score += 10;
+
+  const label = score >= 70 ? "complete" : score >= 40 ? "partial" : "sparse";
+  return { label, score };
 }
 
 async function callArchilesAi(job: any, lovableApiKey: string): Promise<any> {
@@ -264,17 +297,19 @@ async function enrichJob(
     const expatOpenness = ["high","medium","low","unknown"].includes(ai.expat_openness) ? ai.expat_openness : "unknown";
     const skillLevel = ["entry","mid","senior","any","unknown"].includes(ai.skill_level) ? ai.skill_level : "unknown";
 
-    // STEP D — Trust score
-    let companyCount = 0;
+    // STEP D — Trust score with multi-country company presence
+    let companyStats = { jobCount: 0, countryCount: 0 };
     if (job.company) {
-      const { count } = await supabase
+      const { data: companyJobs } = await supabase
         .from("public_jobs")
-        .select("id", { head: true, count: "exact" })
+        .select("country")
         .eq("company", job.company);
-      companyCount = count ?? 0;
+      const rows = (companyJobs ?? []) as { country: string | null }[];
+      const countries = new Set(rows.map((r) => r.country).filter((c): c is string => !!c));
+      companyStats = { jobCount: rows.length, countryCount: countries.size };
     }
     const { score: trustScore, signals: trustSignals } = computeTrustScore(
-      job, companyCount, ai, salaryEur != null,
+      job, companyStats, ai, salaryEur != null,
     );
 
     // STEP E — needs_review decision
@@ -292,6 +327,17 @@ async function enrichJob(
       needs_review = aiConfidence < (autonomy?.auto_publish_threshold ?? 90);
     }
 
+    // STEP F — Data completeness transparency
+    const completeness = computeCompleteness(job, langs, skillLevel, salaryEur);
+    if (completeness.label === "partial") {
+      notes.push("Některé informace chybí (popis/plat). Scoring je orientační.");
+    } else if (completeness.label === "sparse") {
+      notes.push("Velmi málo informací. Doporučujeme ověřit na originálu.");
+    }
+    // Carry through ingest-time hints (workday limited / detail fetch failed)
+    const ingestHint = job.raw_data?.archiles_hint;
+    if (ingestHint) notes.push(String(ingestHint));
+
     const updatePayload: Record<string, unknown> = {
       region,
       salary_normalized_eur: salaryEur,
@@ -303,6 +349,7 @@ async function enrichJob(
       archiles_confidence: aiConfidence,
       archiles_notes: notes.length > 0 ? notes.join(" | ") : null,
       needs_review,
+      data_completeness: completeness.label,
       enriched_at: new Date().toISOString(),
     };
     // Category & is_seasonal only if confident

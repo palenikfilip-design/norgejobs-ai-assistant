@@ -42,16 +42,93 @@ interface NormalizedJob {
   location: string | null;
   country: string | null;
   url: string;
-  job_type: null;
-  salary_min: null;
-  salary_max: null;
-  currency: null;
+  job_type: string | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  currency: string | null;
+  salary?: string | null;
+  additional_locations?: string[];
   posted_at: string | null;
   raw_data: Record<string, unknown>;
   fetched_at: string;
 }
 
 const nowIso = () => new Date().toISOString();
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+function stripHtml(html: string | null | undefined): string | null {
+  if (!html) return null;
+  return String(html)
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim() || null;
+}
+
+const SALARY_PATTERNS: RegExp[] = [
+  /\$\s?\d{1,3}(?:,\d{3})*(?:\.\d+)?\s?(?:-|–|to)\s?\$?\s?\d{1,3}(?:,\d{3})*(?:\.\d+)?/i,
+  /€\s?\d{1,3}(?:[.,]\d{3})*\s?(?:-|–|to)\s?€?\s?\d{1,3}(?:[.,]\d{3})*/i,
+  /\d{2,3}(?:[.,]\d{3})*\s?(?:-|–|to)\s?\d{2,3}(?:[.,]\d{3})*\s?(?:CZK|Kč|kč)/i,
+  /(?:NOK|kr)\s?\d{2,3}(?:[.,]?\d{3})*\s?(?:-|–|to)\s?(?:NOK|kr)?\s?\d{2,3}(?:[.,]?\d{3})*/i,
+  /£\s?\d{1,3}(?:,\d{3})*\s?(?:-|–|to)\s?£?\s?\d{1,3}(?:,\d{3})*/i,
+  /\d{2,3}(?:[.,]\d{3})*\s?(?:-|–|to)\s?\d{2,3}(?:[.,]\d{3})*\s?(?:EUR|euros?)\s*(?:\/|per)?\s*(?:month|měsíc|year|rok|hour|hodina)?/i,
+];
+
+function extractSalary(...sources: (string | null | undefined)[]): string | null {
+  for (const src of sources) {
+    if (!src) continue;
+    const text = String(src);
+    for (const re of SALARY_PATTERNS) {
+      const m = text.match(re);
+      if (m) return m[0].trim();
+    }
+  }
+  return null;
+}
+
+/**
+ * Detect if a location string spans multiple cities/countries.
+ * Returns { country, additional } where country = "Multiple" if multi-location.
+ */
+function parseMultiLocation(location: string | null, defaultCountry: string | null):
+  { country: string | null; additional: string[] } {
+  if (!location) return { country: defaultCountry, additional: [] };
+  const parts = location
+    .split(/\s*(?:;|\/|&|\bor\b|\band\b|,)\s*/i)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (parts.length > 1) {
+    return { country: "Multiple", additional: parts };
+  }
+  return { country: defaultCountry, additional: [] };
+}
+
+async function getExistingUrls(
+  supabase: ReturnType<typeof createClient>,
+  urls: string[],
+): Promise<Set<string>> {
+  const out = new Set<string>();
+  if (urls.length === 0) return out;
+  const CHUNK = 200;
+  for (let i = 0; i < urls.length; i += CHUNK) {
+    const slice = urls.slice(i, i + CHUNK);
+    const { data } = await supabase
+      .from("public_jobs")
+      .select("url")
+      .in("url", slice);
+    for (const r of (data ?? []) as any[]) {
+      if (r?.url) out.add(String(r.url));
+    }
+  }
+  return out;
+}
 
 function getByPath(obj: any, path: string): any {
   if (!path) return undefined;
@@ -106,13 +183,16 @@ async function adapterLever(s: JobSource): Promise<NormalizedJob[]> {
     source_id: s.id,
     title: String(it.text),
     company: s.name,
-    description: it.descriptionPlain ?? null,
+    description: it.descriptionPlain ?? stripHtml(it.descriptionHtml ?? it.description ?? null),
     location: it.categories?.location ?? null,
     country: s.country,
     url: String(it.hostedUrl),
     job_type: null, salary_min: null, salary_max: null, currency: null,
     posted_at: it.createdAt ? new Date(it.createdAt).toISOString() : null,
-    raw_data: {},
+    raw_data: {
+      department: it.categories?.department ?? null,
+      commitment: it.categories?.commitment ?? null,
+    },
     fetched_at: nowIso(),
   }));
 }
@@ -151,21 +231,30 @@ async function adapterWorkday(s: JobSource): Promise<NormalizedJob[]> {
     body: JSON.stringify({ appliedFacets: {}, limit: 20, offset: 0, searchText: "" }),
   });
   const items: any[] = Array.isArray(data?.jobPostings) ? data.jobPostings : [];
-  return items.filter((it) => it?.title && it?.externalPath).map((it) => ({
-    external_id: it.bulletFields?.[0] ?? it.externalPath ?? null,
-    source_portal: `workday:${tenant}`,
-    source_id: s.id,
-    title: String(it.title),
-    company: s.name,
-    description: null,
-    location: it.locationsText ?? null,
-    country: s.country,
-    url: `https://${tenant}.wd${wd}.myworkdayjobs.com${it.externalPath}`,
-    job_type: null, salary_min: null, salary_max: null, currency: null,
-    posted_at: it.postedOn ?? null,
-    raw_data: {},
-    fetched_at: nowIso(),
-  }));
+  return items.filter((it) => it?.title && it?.externalPath).map((it) => {
+    // Workday detail pages are HTML and fragile — expand what list endpoint gives us.
+    const bullets = Array.isArray(it.bulletFields) ? it.bulletFields : [];
+    const summary = bullets.slice(1).join(" • ");
+    return {
+      external_id: bullets[0] ?? it.externalPath ?? null,
+      source_portal: `workday:${tenant}`,
+      source_id: s.id,
+      title: String(it.title),
+      company: s.name,
+      description: summary || it.jobPostingInfo?.summary || null,
+      location: it.locationsText ?? null,
+      country: s.country,
+      url: `https://${tenant}.wd${wd}.myworkdayjobs.com${it.externalPath}`,
+      job_type: null, salary_min: null, salary_max: null, currency: null,
+      posted_at: it.postedOn ?? null,
+      raw_data: {
+        workday_limited_data: true,
+        bullet_fields: bullets,
+        job_posting_info: it.jobPostingInfo ?? null,
+      },
+      fetched_at: nowIso(),
+    };
+  });
 }
 
 async function adapterPersonio(s: JobSource): Promise<NormalizedJob[]> {
@@ -283,18 +372,124 @@ const ADAPTERS: Record<SourceType, (s: JobSource) => Promise<NormalizedJob[]>> =
   rss_feed: adapterRssFeed,
 };
 
+/**
+ * Per-source detail fetchers — only called for NEW jobs (URL not in DB yet).
+ * Mutates the job in place: description, salary, job_type, raw_data.
+ * On failure: records archiles_notes, keeps list-level data.
+ */
+async function fetchDetailGreenhouse(s: JobSource, job: NormalizedJob & { salary?: string | null }): Promise<void> {
+  const company = String(s.config.company ?? "");
+  if (!company || !job.external_id) return;
+  const url = `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(company)}/jobs/${encodeURIComponent(job.external_id)}`;
+  try {
+    const d = await fetchJson(url);
+    job.description = stripHtml(d.content) ?? job.description;
+    const dept = Array.isArray(d.departments) && d.departments[0]?.name ? d.departments[0].name : null;
+    let salaryFromMeta: string | null = null;
+    if (Array.isArray(d.metadata)) {
+      for (const m of d.metadata) {
+        const k = String(m?.name ?? "").toLowerCase();
+        if (/(salary|compensation|pay)/.test(k) && m?.value) {
+          salaryFromMeta = String(m.value);
+          break;
+        }
+      }
+    }
+    (job as any).raw_data = { ...(job.raw_data ?? {}), department: dept, gh_metadata: d.metadata ?? null };
+    job.salary = job.salary || salaryFromMeta;
+  } catch (e) {
+    (job as any).raw_data = { ...(job.raw_data ?? {}), detail_fetch_error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+async function fetchDetailSmartRecruiters(s: JobSource, job: NormalizedJob & { salary?: string | null }): Promise<void> {
+  const company = String(s.config.company ?? "");
+  if (!company || !job.external_id) return;
+  const url = `https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(company)}/postings/${encodeURIComponent(job.external_id)}`;
+  try {
+    const d = await fetchJson(url);
+    const desc = [
+      d?.jobAd?.sections?.jobDescription?.text,
+      d?.jobAd?.sections?.qualifications?.text,
+    ].filter(Boolean).map((t) => stripHtml(t) ?? "").filter(Boolean).join("\n\n");
+    if (desc) job.description = desc;
+    (job as any).job_type = d?.typeOfEmployment?.label ?? null;
+    (job as any).raw_data = {
+      ...(job.raw_data ?? {}),
+      experience_hint: d?.experienceLevel?.label ?? null,
+      sr_typeOfEmployment: d?.typeOfEmployment?.label ?? null,
+    };
+  } catch (e) {
+    (job as any).raw_data = { ...(job.raw_data ?? {}), detail_fetch_error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/**
+ * Enrich newly-discovered jobs with: detail fetches (per source_type),
+ * salary regex extraction across (salary field, description, title),
+ * multi-location detection.
+ */
+async function enrichNewJobs(
+  s: JobSource,
+  rows: (NormalizedJob & { salary?: string | null; additional_locations?: string[] })[],
+  existingUrls: Set<string>,
+): Promise<void> {
+  const newJobs = rows.filter((r) => !existingUrls.has(r.url));
+
+  // Per-source detail fetch (rate-limited)
+  if (s.source_type === "ats_greenhouse") {
+    for (const j of newJobs) {
+      await fetchDetailGreenhouse(s, j);
+      await sleep(200); // 5 req/s
+    }
+  } else if (s.source_type === "ats_smartrecruiters") {
+    for (const j of newJobs) {
+      await fetchDetailSmartRecruiters(s, j);
+      await sleep(340); // ~3 req/s
+    }
+  }
+
+  // Salary scan + multi-location detection apply to ALL rows (cheap, no network)
+  for (const j of rows) {
+    if (!j.salary) {
+      j.salary = extractSalary(j.title, j.description, (j.raw_data as any)?.gh_metadata ? JSON.stringify((j.raw_data as any).gh_metadata) : null);
+    }
+    const { country, additional } = parseMultiLocation(j.location, j.country);
+    if (additional.length > 1) {
+      j.country = country;
+      j.additional_locations = additional;
+    } else {
+      j.additional_locations = j.additional_locations ?? [];
+    }
+    // Workday transparency note
+    if ((j.raw_data as any)?.workday_limited_data) {
+      (j.raw_data as any).archiles_hint = "Detail fetch skipped (Workday HTML-only); enrichment based on list data.";
+    }
+    if ((j.raw_data as any)?.detail_fetch_error) {
+      (j.raw_data as any).archiles_hint = "Detail fetch failed, enrichment based on title/location only";
+    }
+  }
+}
+
 async function runSource(supabase: ReturnType<typeof createClient>, s: JobSource) {
   const started = Date.now();
   try {
     const adapter = ADAPTERS[s.source_type];
     if (!adapter) throw new Error(`unknown source_type: ${s.source_type}`);
-    const rows = await adapter(s);
+    const rows = (await adapter(s)) as (NormalizedJob & { salary?: string | null; additional_locations?: string[] })[];
+
+    // PART 1+3+5: enrich only new URLs with detail, salary, multi-location
+    const existingUrls = await getExistingUrls(supabase, rows.map((r) => r.url));
+    await enrichNewJobs(s, rows, existingUrls);
+
+    // Only insert NEW jobs — never overwrite existing rows (would wipe Archiles enrichment).
+    const toInsert = rows.filter((r) => !existingUrls.has(r.url));
 
     let added = 0;
     const insertedIds: string[] = [];
     const CHUNK = 500;
-    for (let i = 0; i < rows.length; i += CHUNK) {
-      const chunk = rows.slice(i, i + CHUNK);
+    for (let i = 0; i < toInsert.length; i += CHUNK) {
+      const chunk = toInsert.slice(i, i + CHUNK);
       const { error: upErr, count, data: upserted } = await supabase
         .from("public_jobs")
         .upsert(chunk, {
