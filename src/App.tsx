@@ -21,6 +21,11 @@ import Admin from "./pages/Admin";
 import AdminStats from "./pages/AdminStats";
 import PortalsMap from "./pages/PortalsMap";
 import AdminSources from "./pages/AdminSources";
+import ArchilesDashboard from "./pages/admin/ArchilesDashboard";
+import ArchilesReview from "./pages/admin/ArchilesReview";
+import ArchilesSources from "./pages/admin/ArchilesSources";
+import ArchilesChat from "./pages/admin/ArchilesChat";
+import ArchilesAutonomy from "./pages/admin/ArchilesAutonomy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +56,11 @@ const App = () => (
             <Route path="/admin/stats" element={<AdminStats />} />
             <Route path="/admin/portals" element={<PortalsMap />} />
             <Route path="/admin/sources" element={<AdminSources />} />
+            <Route path="/admin/archiles" element={<ArchilesDashboard />} />
+            <Route path="/admin/archiles/review" element={<ArchilesReview />} />
+            <Route path="/admin/archiles/sources" element={<ArchilesSources />} />
+            <Route path="/admin/archiles/chat" element={<ArchilesChat />} />
+            <Route path="/admin/archiles/autonomy" element={<ArchilesAutonomy />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
