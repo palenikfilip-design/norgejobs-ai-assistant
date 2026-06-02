@@ -400,6 +400,14 @@ const Dashboard = () => {
                 >
                   Admin
                 </Button>
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => navigate("/admin/archiles")}
+                >
+                  Archiles
+                </Button>
               </div>
             )}
           </div>
