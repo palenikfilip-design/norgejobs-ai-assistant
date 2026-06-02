@@ -376,12 +376,115 @@ const ADAPTERS: Record<SourceType, (s: JobSource) => Promise<NormalizedJob[]>> =
   rss_feed: adapterRssFeed,
 };
 
+/**
+ * Per-source detail fetchers — only called for NEW jobs (URL not in DB yet).
+ * Mutates the job in place: description, salary, job_type, raw_data.
+ * On failure: records archiles_notes, keeps list-level data.
+ */
+async function fetchDetailGreenhouse(s: JobSource, job: NormalizedJob & { salary?: string | null }): Promise<void> {
+  const company = String(s.config.company ?? "");
+  if (!company || !job.external_id) return;
+  const url = `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(company)}/jobs/${encodeURIComponent(job.external_id)}`;
+  try {
+    const d = await fetchJson(url);
+    job.description = stripHtml(d.content) ?? job.description;
+    const dept = Array.isArray(d.departments) && d.departments[0]?.name ? d.departments[0].name : null;
+    let salaryFromMeta: string | null = null;
+    if (Array.isArray(d.metadata)) {
+      for (const m of d.metadata) {
+        const k = String(m?.name ?? "").toLowerCase();
+        if (/(salary|compensation|pay)/.test(k) && m?.value) {
+          salaryFromMeta = String(m.value);
+          break;
+        }
+      }
+    }
+    (job as any).raw_data = { ...(job.raw_data ?? {}), department: dept, gh_metadata: d.metadata ?? null };
+    job.salary = job.salary || salaryFromMeta;
+  } catch (e) {
+    (job as any).raw_data = { ...(job.raw_data ?? {}), detail_fetch_error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+async function fetchDetailSmartRecruiters(s: JobSource, job: NormalizedJob & { salary?: string | null }): Promise<void> {
+  const company = String(s.config.company ?? "");
+  if (!company || !job.external_id) return;
+  const url = `https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(company)}/postings/${encodeURIComponent(job.external_id)}`;
+  try {
+    const d = await fetchJson(url);
+    const desc = [
+      d?.jobAd?.sections?.jobDescription?.text,
+      d?.jobAd?.sections?.qualifications?.text,
+    ].filter(Boolean).map((t) => stripHtml(t) ?? "").filter(Boolean).join("\n\n");
+    if (desc) job.description = desc;
+    (job as any).job_type = d?.typeOfEmployment?.label ?? null;
+    (job as any).raw_data = {
+      ...(job.raw_data ?? {}),
+      experience_hint: d?.experienceLevel?.label ?? null,
+      sr_typeOfEmployment: d?.typeOfEmployment?.label ?? null,
+    };
+  } catch (e) {
+    (job as any).raw_data = { ...(job.raw_data ?? {}), detail_fetch_error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/**
+ * Enrich newly-discovered jobs with: detail fetches (per source_type),
+ * salary regex extraction across (salary field, description, title),
+ * multi-location detection.
+ */
+async function enrichNewJobs(
+  s: JobSource,
+  rows: (NormalizedJob & { salary?: string | null; additional_locations?: string[] })[],
+  existingUrls: Set<string>,
+): Promise<void> {
+  const newJobs = rows.filter((r) => !existingUrls.has(r.url));
+
+  // Per-source detail fetch (rate-limited)
+  if (s.source_type === "ats_greenhouse") {
+    for (const j of newJobs) {
+      await fetchDetailGreenhouse(s, j);
+      await sleep(200); // 5 req/s
+    }
+  } else if (s.source_type === "ats_smartrecruiters") {
+    for (const j of newJobs) {
+      await fetchDetailSmartRecruiters(s, j);
+      await sleep(340); // ~3 req/s
+    }
+  }
+
+  // Salary scan + multi-location detection apply to ALL rows (cheap, no network)
+  for (const j of rows) {
+    if (!j.salary) {
+      j.salary = extractSalary(j.title, j.description, (j.raw_data as any)?.gh_metadata ? JSON.stringify((j.raw_data as any).gh_metadata) : null);
+    }
+    const { country, additional } = parseMultiLocation(j.location, j.country);
+    if (additional.length > 1) {
+      j.country = country;
+      j.additional_locations = additional;
+    } else {
+      j.additional_locations = j.additional_locations ?? [];
+    }
+    // Workday transparency note
+    if ((j.raw_data as any)?.workday_limited_data) {
+      (j.raw_data as any).archiles_hint = "Detail fetch skipped (Workday HTML-only); enrichment based on list data.";
+    }
+    if ((j.raw_data as any)?.detail_fetch_error) {
+      (j.raw_data as any).archiles_hint = "Detail fetch failed, enrichment based on title/location only";
+    }
+  }
+}
+
 async function runSource(supabase: ReturnType<typeof createClient>, s: JobSource) {
   const started = Date.now();
   try {
     const adapter = ADAPTERS[s.source_type];
     if (!adapter) throw new Error(`unknown source_type: ${s.source_type}`);
-    const rows = await adapter(s);
+    const rows = (await adapter(s)) as (NormalizedJob & { salary?: string | null; additional_locations?: string[] })[];
+
+    // PART 1+3+5: enrich only new URLs with detail, salary, multi-location
+    const existingUrls = await getExistingUrls(supabase, rows.map((r) => r.url));
+    await enrichNewJobs(s, rows, existingUrls);
 
     let added = 0;
     const insertedIds: string[] = [];
