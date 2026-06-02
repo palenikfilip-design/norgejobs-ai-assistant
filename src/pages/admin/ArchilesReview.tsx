@@ -160,20 +160,22 @@ export default function ArchilesReview() {
       if (userRes.user) updates.reviewed_by = userRes.user.id;
       const { error } = await supabase.from("public_jobs").update(updates).eq("id", job.id);
       if (error) throw error;
-      await supabase.from("archiles_decisions").insert({
-        job_id: job.id,
-        decision_type: "admin_review",
-        archiles_choice: {
-          category: job.category,
-          expat_openness: job.expat_openness,
-          skill_level: job.skill_level,
-          trust_score: job.trust_score,
+      await supabase.from("archiles_decisions").insert([
+        {
+          job_id: job.id,
+          decision_type: "admin_review",
+          archiles_choice: {
+            category: job.category,
+            expat_openness: job.expat_openness,
+            skill_level: job.skill_level,
+            trust_score: job.trust_score,
+          },
+          admin_choice: changed,
+          admin_id: userRes.user?.id ?? null,
+          confidence: job.archiles_confidence,
+          resolved_at: new Date().toISOString(),
         },
-        admin_choice: changed,
-        admin_id: userRes.user?.id ?? null,
-        confidence: job.archiles_confidence,
-        resolved_at: new Date().toISOString(),
-      });
+      ]);
       toast.success(`Schváleno: ${job.title}`);
       setEdits((e) => { const n = { ...e }; delete n[job.id]; return n; });
       setExpanded(null);
