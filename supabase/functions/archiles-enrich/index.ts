@@ -48,6 +48,49 @@ function normalizeLangCode(input: string): string | null {
   return null;
 }
 
+/**
+ * Decode HTML entities then strip tags. Greenhouse `content` is
+ * double-encoded (`&lt;p&gt;...`), so naive tag stripping leaves visible markup.
+ */
+function stripHtml(html: string | null | undefined): string | null {
+  if (!html) return null;
+  const decoded = String(html)
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+  return decoded
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim() || null;
+}
+
+/**
+ * Late detail-refetch for Greenhouse jobs that lack a description.
+ * Mirrors ingest-jobs/adapterGreenhouse detail fetch but is safe to call during enrichment.
+ */
+async function refetchGreenhouseDetail(job: any): Promise<{ description: string | null; department: string | null; metadata: any } | null> {
+  const portal = String(job.source_portal || "");
+  const m = portal.match(/^greenhouse:(.+)$/i);
+  if (!m || !job.external_id) return null;
+  const company = m[1];
+  const url = `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(company)}/jobs/${encodeURIComponent(String(job.external_id))}`;
+  try {
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) return null;
+    const d = await res.json();
+    const desc = stripHtml(d?.content);
+    const dept = Array.isArray(d?.departments) && d.departments[0]?.name ? d.departments[0].name : null;
+    return { description: desc, department: dept, metadata: d?.metadata ?? null };
+  } catch {
+    return null;
+  }
+}
+
 function detectCurrency(salaryStr: string, countryCode?: string | null): string | null {
   if (!salaryStr) return countryCode ? COUNTRY_DEFAULT_CURRENCY[countryCode] ?? null : null;
   const s = salaryStr;
