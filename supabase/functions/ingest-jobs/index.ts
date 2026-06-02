@@ -155,21 +155,35 @@ async function adapterGreenhouse(s: JobSource): Promise<NormalizedJob[]> {
   if (!company) throw new Error("greenhouse: missing config.company");
   const data = await fetchJson(`https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(company)}/jobs`);
   const items: any[] = Array.isArray(data?.jobs) ? data.jobs : [];
-  return items.filter((it) => it?.title && it?.absolute_url).map((it) => ({
-    external_id: it.id != null ? String(it.id) : null,
-    source_portal: `greenhouse:${company}`,
-    source_id: s.id,
-    title: String(it.title),
-    company: s.name,
-    description: null,
-    location: it.location?.name ?? null,
-    country: s.country,
-    url: String(it.absolute_url),
-    job_type: null, salary_min: null, salary_max: null, currency: null,
-    posted_at: it.updated_at ?? null,
-    raw_data: {},
-    fetched_at: nowIso(),
-  }));
+  return items.filter((it) => it?.title && it?.id != null).map((it) => {
+    const id = String(it.id);
+    const absolute = typeof it.absolute_url === "string" ? it.absolute_url : "";
+    // Some companies (Stripe, etc.) return a search/listing URL in absolute_url that
+    // doesn't deep-link to the actual job. Detect that and fall back to the canonical
+    // Greenhouse-hosted board URL which always deep-links.
+    const looksBroken =
+      !absolute ||
+      /\/jobs\/search\b/i.test(absolute) ||
+      (!absolute.includes(id) && !/job-boards\.greenhouse\.io|boards\.greenhouse\.io/.test(absolute));
+    const url = looksBroken
+      ? `https://job-boards.greenhouse.io/${encodeURIComponent(company)}/jobs/${id}`
+      : absolute;
+    return {
+      external_id: id,
+      source_portal: `greenhouse:${company}`,
+      source_id: s.id,
+      title: String(it.title),
+      company: s.name,
+      description: null,
+      location: it.location?.name ?? null,
+      country: s.country,
+      url,
+      job_type: null, salary_min: null, salary_max: null, currency: null,
+      posted_at: it.updated_at ?? null,
+      raw_data: {},
+      fetched_at: nowIso(),
+    };
+  });
 }
 
 async function adapterLever(s: JobSource): Promise<NormalizedJob[]> {

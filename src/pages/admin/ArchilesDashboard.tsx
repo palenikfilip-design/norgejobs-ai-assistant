@@ -200,7 +200,7 @@ export default function ArchilesDashboard() {
             <div className="text-2xl font-semibold flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-muted-foreground" />{metrics?.avgTrust ?? "—"}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="cursor-pointer hover:bg-muted/30" onClick={() => navigate("/admin/archiles/review?mode=sparse")}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground" title="Podíl jobů, kde Archiles získal jen velmi málo informací (chybí popis, plat, jazyk apod.). Doporučeno ověřit na původním zdroji.">
               Sparse data
@@ -208,7 +208,7 @@ export default function ArchilesDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-semibold flex items-center gap-2"><AlertCircle className="h-5 w-5 text-amber-400" />{metrics?.sparsePct ?? 0}%</div>
-            <div className="text-xs text-muted-foreground">jobů s minimem dat (chybí popis/plat). Ověřit na zdroji.</div>
+            <div className="text-xs text-primary">Otevřít Sparse Queue →</div>
           </CardContent>
         </Card>
       </div>
