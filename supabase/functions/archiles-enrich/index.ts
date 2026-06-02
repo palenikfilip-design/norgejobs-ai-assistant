@@ -48,6 +48,49 @@ function normalizeLangCode(input: string): string | null {
   return null;
 }
 
+/**
+ * Decode HTML entities then strip tags. Greenhouse `content` is
+ * double-encoded (`&lt;p&gt;...`), so naive tag stripping leaves visible markup.
+ */
+function stripHtml(html: string | null | undefined): string | null {
+  if (!html) return null;
+  const decoded = String(html)
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+  return decoded
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim() || null;
+}
+
+/**
+ * Late detail-refetch for Greenhouse jobs that lack a description.
+ * Mirrors ingest-jobs/adapterGreenhouse detail fetch but is safe to call during enrichment.
+ */
+async function refetchGreenhouseDetail(job: any): Promise<{ description: string | null; department: string | null; metadata: any } | null> {
+  const portal = String(job.source_portal || "");
+  const m = portal.match(/^greenhouse:(.+)$/i);
+  if (!m || !job.external_id) return null;
+  const company = m[1];
+  const url = `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(company)}/jobs/${encodeURIComponent(String(job.external_id))}`;
+  try {
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) return null;
+    const d = await res.json();
+    const desc = stripHtml(d?.content);
+    const dept = Array.isArray(d?.departments) && d.departments[0]?.name ? d.departments[0].name : null;
+    return { description: desc, department: dept, metadata: d?.metadata ?? null };
+  } catch {
+    return null;
+  }
+}
+
 function detectCurrency(salaryStr: string, countryCode?: string | null): string | null {
   if (!salaryStr) return countryCode ? COUNTRY_DEFAULT_CURRENCY[countryCode] ?? null : null;
   const s = salaryStr;
@@ -258,6 +301,21 @@ async function enrichJob(
   try {
     const notes: string[] = [];
 
+    // STEP 0 — Late detail refetch for Greenhouse jobs missing a description.
+    // Earlier ingest runs occasionally stored the row without a description
+    // (URL-fix migration overwrote enriched data, or detail fetch was skipped
+    // because the URL key changed). Refetch on demand instead of leaving sparse.
+    let lateDetail: { description: string | null; department: string | null; metadata: any } | null = null;
+    if ((!job.description || String(job.description).length < 50)
+        && String(job.source_portal || "").startsWith("greenhouse:")) {
+      lateDetail = await refetchGreenhouseDetail(job);
+      if (lateDetail?.description) {
+        job.description = lateDetail.description;
+        job.raw_data = { ...(job.raw_data ?? {}), department: lateDetail.department, gh_metadata: lateDetail.metadata };
+        notes.push("Description backfilled from Greenhouse detail endpoint.");
+      }
+    }
+
     // STEP A — Region
     let region: string | null = "Unknown";
     let countryCode: string | null = null;
@@ -297,16 +355,32 @@ async function enrichJob(
     const expatOpenness = ["high","medium","low","unknown"].includes(ai.expat_openness) ? ai.expat_openness : "unknown";
     const skillLevel = ["entry","mid","senior","any","unknown"].includes(ai.skill_level) ? ai.skill_level : "unknown";
 
-    // STEP D — Trust score with multi-country company presence
+    // STEP D — Trust score with multi-country company presence.
+    // For multinationals that mark country="Multiple" (e.g. Stripe) we also count
+    // distinct entries from additional_locations so the multinational bonus applies.
     let companyStats = { jobCount: 0, countryCount: 0 };
     if (job.company) {
       const { data: companyJobs } = await supabase
         .from("public_jobs")
-        .select("country")
+        .select("country, additional_locations")
         .eq("company", job.company);
-      const rows = (companyJobs ?? []) as { country: string | null }[];
-      const countries = new Set(rows.map((r) => r.country).filter((c): c is string => !!c));
-      companyStats = { jobCount: rows.length, countryCount: countries.size };
+      const rows = (companyJobs ?? []) as { country: string | null; additional_locations: unknown }[];
+      const locs = new Set<string>();
+      for (const r of rows) {
+        if (r.country && r.country !== "Multiple") locs.add(r.country);
+        if (Array.isArray(r.additional_locations)) {
+          for (const a of r.additional_locations) {
+            if (typeof a === "string" && a.trim()) locs.add(a.trim());
+          }
+        }
+      }
+      // Fallback: if we couldn't extract any individual location but the company
+      // has many "Multiple" jobs, treat it as at least bi-national.
+      if (locs.size === 0 && rows.some((r) => r.country === "Multiple")) {
+        locs.add("Multiple");
+        locs.add("Global");
+      }
+      companyStats = { jobCount: rows.length, countryCount: locs.size };
     }
     const { score: trustScore, signals: trustSignals } = computeTrustScore(
       job, companyStats, ai, salaryEur != null,
@@ -352,6 +426,11 @@ async function enrichJob(
       data_completeness: completeness.label,
       enriched_at: new Date().toISOString(),
     };
+    // Persist backfilled description / raw_data from late Greenhouse detail refetch.
+    if (lateDetail?.description) {
+      updatePayload.description = job.description;
+      updatePayload.raw_data = job.raw_data;
+    }
     // Category & is_seasonal only if confident
     if (aiConfidence > 70 && ai.category_suggestion) {
       updatePayload.category = String(ai.category_suggestion);

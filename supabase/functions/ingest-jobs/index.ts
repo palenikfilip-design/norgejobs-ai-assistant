@@ -58,16 +58,19 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function stripHtml(html: string | null | undefined): string | null {
   if (!html) return null;
-  return String(html)
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<[^>]+>/g, " ")
+  // Decode entities FIRST so double-encoded content (e.g. Greenhouse returns
+  // `&lt;p&gt;...`) is properly stripped of its tags afterwards.
+  const decoded = String(html)
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
+    .replace(/&#39;/g, "'");
+  return decoded
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim() || null;
 }
