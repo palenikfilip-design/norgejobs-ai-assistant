@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ChevronDown, ChevronRight, ExternalLink, Hourglass, Loader2, RefreshCw } from "lucide-react";
 import ArchilesLayout, { formatRelative } from "./ArchilesLayout";
@@ -60,6 +61,9 @@ function CompletenessBadge({ value }: { value: string }) {
 const DEFAULT_PAGE_SIZE = 20;
 
 export default function ArchilesReview() {
+  const [searchParams] = useSearchParams();
+  const mode = searchParams.get("mode"); // "sparse" or null
+  const sparseMode = mode === "sparse";
   const [jobs, setJobs] = useState<Job[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
@@ -76,7 +80,7 @@ export default function ArchilesReview() {
   const [country, setCountry] = useState<string>("");
   const [trustRange, setTrustRange] = useState<[number, number]>([0, 100]);
   const [confRange, setConfRange] = useState<[number, number]>([0, 100]);
-  const [completeness, setCompleteness] = useState<string[]>([]);
+  const [completeness, setCompleteness] = useState<string[]>(sparseMode ? ["sparse"] : []);
   const [hasSalary, setHasSalary] = useState(false);
   const [redFlags, setRedFlags] = useState(false);
 
@@ -86,14 +90,14 @@ export default function ArchilesReview() {
     supabase
       .from("public_jobs")
       .select("source_portal")
-      .eq("needs_review", true)
+      .match(sparseMode ? { data_completeness: "sparse" } : { needs_review: true })
       .limit(500)
       .then(({ data }) => {
         const set = new Set<string>();
         (data ?? []).forEach((r: any) => r.source_portal && set.add(r.source_portal));
         setSourceOptions(Array.from(set).sort());
       });
-  }, []);
+  }, [sparseMode]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -104,7 +108,6 @@ export default function ArchilesReview() {
           "id, title, company, country, region, source_portal, salary_normalized_eur, trust_score, archiles_confidence, data_completeness, needs_review, created_at, url, description, language_requirements, expat_openness, skill_level, category, trust_signals, archiles_notes, raw_data",
           { count: "exact" },
         )
-        .eq("needs_review", true)
         .gte("trust_score", trustRange[0])
         .lte("trust_score", trustRange[1])
         .gte("archiles_confidence", confRange[0])
@@ -112,6 +115,11 @@ export default function ArchilesReview() {
         .order("created_at", { ascending: false })
         .range(page * pageSize, page * pageSize + pageSize - 1);
 
+      if (sparseMode) {
+        q = q.eq("data_completeness", "sparse");
+      } else {
+        q = q.eq("needs_review", true);
+      }
       if (sourceFilter) q = q.eq("source_portal", sourceFilter);
       if (country) q = q.eq("country", country);
       if (completeness.length) q = q.in("data_completeness", completeness);
@@ -133,7 +141,7 @@ export default function ArchilesReview() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, sourceFilter, country, trustRange, confRange, completeness, hasSalary, redFlags]);
+  }, [page, pageSize, sourceFilter, country, trustRange, confRange, completeness, hasSalary, redFlags, sparseMode]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -225,7 +233,7 @@ export default function ArchilesReview() {
 
   return (
     <ArchilesLayout
-      title={`Review Queue (${totalCount})`}
+      title={`${sparseMode ? "Sparse Queue" : "Review Queue"} (${totalCount})`}
       actions={
         <Button size="sm" variant="outline" onClick={load} disabled={loading}>
           <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
