@@ -486,11 +486,14 @@ async function runSource(supabase: ReturnType<typeof createClient>, s: JobSource
     const existingUrls = await getExistingUrls(supabase, rows.map((r) => r.url));
     await enrichNewJobs(s, rows, existingUrls);
 
+    // Only insert NEW jobs — never overwrite existing rows (would wipe Archiles enrichment).
+    const toInsert = rows.filter((r) => !existingUrls.has(r.url));
+
     let added = 0;
     const insertedIds: string[] = [];
     const CHUNK = 500;
-    for (let i = 0; i < rows.length; i += CHUNK) {
-      const chunk = rows.slice(i, i + CHUNK);
+    for (let i = 0; i < toInsert.length; i += CHUNK) {
+      const chunk = toInsert.slice(i, i + CHUNK);
       const { error: upErr, count, data: upserted } = await supabase
         .from("public_jobs")
         .upsert(chunk, {
