@@ -51,7 +51,88 @@ interface NormalizedJob {
   fetched_at: string;
 }
 
+interface EnrichedJob extends Omit<NormalizedJob, "job_type"> {
+  job_type: string | null;
+  salary: string | null;
+  additional_locations: string[];
+}
+
 const nowIso = () => new Date().toISOString();
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+function stripHtml(html: string | null | undefined): string | null {
+  if (!html) return null;
+  return String(html)
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim() || null;
+}
+
+const SALARY_PATTERNS: RegExp[] = [
+  /\$\s?\d{1,3}(?:,\d{3})*(?:\.\d+)?\s?(?:-|–|to)\s?\$?\s?\d{1,3}(?:,\d{3})*(?:\.\d+)?/i,
+  /€\s?\d{1,3}(?:[.,]\d{3})*\s?(?:-|–|to)\s?€?\s?\d{1,3}(?:[.,]\d{3})*/i,
+  /\d{2,3}(?:[.,]\d{3})*\s?(?:-|–|to)\s?\d{2,3}(?:[.,]\d{3})*\s?(?:CZK|Kč|kč)/i,
+  /(?:NOK|kr)\s?\d{2,3}(?:[.,]?\d{3})*\s?(?:-|–|to)\s?(?:NOK|kr)?\s?\d{2,3}(?:[.,]?\d{3})*/i,
+  /£\s?\d{1,3}(?:,\d{3})*\s?(?:-|–|to)\s?£?\s?\d{1,3}(?:,\d{3})*/i,
+  /\d{2,3}(?:[.,]\d{3})*\s?(?:-|–|to)\s?\d{2,3}(?:[.,]\d{3})*\s?(?:EUR|euros?)\s*(?:\/|per)?\s*(?:month|měsíc|year|rok|hour|hodina)?/i,
+];
+
+function extractSalary(...sources: (string | null | undefined)[]): string | null {
+  for (const src of sources) {
+    if (!src) continue;
+    const text = String(src);
+    for (const re of SALARY_PATTERNS) {
+      const m = text.match(re);
+      if (m) return m[0].trim();
+    }
+  }
+  return null;
+}
+
+/**
+ * Detect if a location string spans multiple cities/countries.
+ * Returns { country, additional } where country = "Multiple" if multi-location.
+ */
+function parseMultiLocation(location: string | null, defaultCountry: string | null):
+  { country: string | null; additional: string[] } {
+  if (!location) return { country: defaultCountry, additional: [] };
+  const parts = location
+    .split(/\s*(?:;|\/|&|\bor\b|\band\b|,)\s*/i)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (parts.length > 1) {
+    return { country: "Multiple", additional: parts };
+  }
+  return { country: defaultCountry, additional: [] };
+}
+
+async function getExistingUrls(
+  supabase: ReturnType<typeof createClient>,
+  urls: string[],
+): Promise<Set<string>> {
+  const out = new Set<string>();
+  if (urls.length === 0) return out;
+  const CHUNK = 200;
+  for (let i = 0; i < urls.length; i += CHUNK) {
+    const slice = urls.slice(i, i + CHUNK);
+    const { data } = await supabase
+      .from("public_jobs")
+      .select("url")
+      .in("url", slice);
+    for (const r of (data ?? []) as any[]) {
+      if (r?.url) out.add(String(r.url));
+    }
+  }
+  return out;
+}
 
 function getByPath(obj: any, path: string): any {
   if (!path) return undefined;
