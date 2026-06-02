@@ -14,6 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
+      archiles_autonomy: {
+        Row: {
+          auto_delete_dead: boolean
+          auto_publish_threshold: number
+          auto_recategorize: boolean
+          auto_source_add: boolean
+          autonomy_level: number
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          auto_delete_dead?: boolean
+          auto_publish_threshold?: number
+          auto_recategorize?: boolean
+          auto_source_add?: boolean
+          autonomy_level?: number
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          auto_delete_dead?: boolean
+          auto_publish_threshold?: number
+          auto_recategorize?: boolean
+          auto_source_add?: boolean
+          autonomy_level?: number
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      archiles_decisions: {
+        Row: {
+          admin_choice: Json | null
+          admin_id: string | null
+          archiles_choice: Json
+          confidence: number
+          created_at: string
+          decision_type: string
+          id: string
+          job_id: string | null
+          resolved_at: string | null
+        }
+        Insert: {
+          admin_choice?: Json | null
+          admin_id?: string | null
+          archiles_choice: Json
+          confidence: number
+          created_at?: string
+          decision_type: string
+          id?: string
+          job_id?: string | null
+          resolved_at?: string | null
+        }
+        Update: {
+          admin_choice?: Json | null
+          admin_id?: string | null
+          archiles_choice?: Json
+          confidence?: number
+          created_at?: string
+          decision_type?: string
+          id?: string
+          job_id?: string | null
+          resolved_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "archiles_decisions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "public_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cached_matches: {
         Row: {
           category: string | null
@@ -107,6 +181,45 @@ export type Database = {
           raw_message?: string
           routed_to?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      country_context: {
+        Row: {
+          avg_salary_eur: number
+          continent: string
+          cost_of_living_index: number
+          country_code: string
+          country_name: string
+          expat_friendliness: number
+          languages_spoken: Json
+          region: string
+          updated_at: string
+          work_visa_difficulty: string
+        }
+        Insert: {
+          avg_salary_eur: number
+          continent: string
+          cost_of_living_index: number
+          country_code: string
+          country_name: string
+          expat_friendliness: number
+          languages_spoken?: Json
+          region: string
+          updated_at?: string
+          work_visa_difficulty: string
+        }
+        Update: {
+          avg_salary_eur?: number
+          continent?: string
+          cost_of_living_index?: number
+          country_code?: string
+          country_name?: string
+          expat_friendliness?: number
+          languages_spoken?: Json
+          region?: string
+          updated_at?: string
+          work_visa_difficulty?: string
         }
         Relationships: []
       }
@@ -449,7 +562,10 @@ export type Database = {
           avatar_json: Json
           certifications: Json
           country: string
+          country_of_origin: string | null
           created_at: string
+          cultural_context: Json
+          current_residence: string | null
           date_of_birth: string | null
           dimensions: Json
           experience_level: string
@@ -463,6 +579,7 @@ export type Database = {
           preferences_updated_at: string | null
           profession: string
           professions: Json
+          residence_since: string | null
           skills: Json
           updated_at: string
           user_id: string
@@ -473,7 +590,10 @@ export type Database = {
           avatar_json?: Json
           certifications?: Json
           country?: string
+          country_of_origin?: string | null
           created_at?: string
+          cultural_context?: Json
+          current_residence?: string | null
           date_of_birth?: string | null
           dimensions?: Json
           experience_level?: string
@@ -487,6 +607,7 @@ export type Database = {
           preferences_updated_at?: string | null
           profession?: string
           professions?: Json
+          residence_since?: string | null
           skills?: Json
           updated_at?: string
           user_id: string
@@ -497,7 +618,10 @@ export type Database = {
           avatar_json?: Json
           certifications?: Json
           country?: string
+          country_of_origin?: string | null
           created_at?: string
+          cultural_context?: Json
+          current_residence?: string | null
           date_of_birth?: string | null
           dimensions?: Json
           experience_level?: string
@@ -511,6 +635,7 @@ export type Database = {
           preferences_updated_at?: string | null
           profession?: string
           professions?: Json
+          residence_since?: string | null
           skills?: Json
           updated_at?: string
           user_id?: string
@@ -520,71 +645,110 @@ export type Database = {
       }
       public_jobs: {
         Row: {
+          archiles_confidence: number
+          archiles_notes: string | null
           category: string | null
           company: string | null
           country: string | null
           created_at: string
           currency: string | null
           description: string | null
+          enriched_at: string | null
+          expat_openness: string
           external_id: string | null
           fetched_at: string
           id: string
           is_seasonal: boolean | null
           job_type: string | null
+          language_requirements: Json
           location: string | null
+          needs_review: boolean
           posted_at: string | null
           raw_data: Json | null
+          region: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           salary_max: number | null
           salary_min: number | null
+          salary_normalized_eur: number | null
+          skill_level: string
           source_id: string | null
           source_portal: string
           title: string
+          trust_score: number
+          trust_signals: Json
           updated_at: string
           url: string
         }
         Insert: {
+          archiles_confidence?: number
+          archiles_notes?: string | null
           category?: string | null
           company?: string | null
           country?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
+          enriched_at?: string | null
+          expat_openness?: string
           external_id?: string | null
           fetched_at?: string
           id?: string
           is_seasonal?: boolean | null
           job_type?: string | null
+          language_requirements?: Json
           location?: string | null
+          needs_review?: boolean
           posted_at?: string | null
           raw_data?: Json | null
+          region?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           salary_max?: number | null
           salary_min?: number | null
+          salary_normalized_eur?: number | null
+          skill_level?: string
           source_id?: string | null
           source_portal: string
           title: string
+          trust_score?: number
+          trust_signals?: Json
           updated_at?: string
           url: string
         }
         Update: {
+          archiles_confidence?: number
+          archiles_notes?: string | null
           category?: string | null
           company?: string | null
           country?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
+          enriched_at?: string | null
+          expat_openness?: string
           external_id?: string | null
           fetched_at?: string
           id?: string
           is_seasonal?: boolean | null
           job_type?: string | null
+          language_requirements?: Json
           location?: string | null
+          needs_review?: boolean
           posted_at?: string | null
           raw_data?: Json | null
+          region?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           salary_max?: number | null
           salary_min?: number | null
+          salary_normalized_eur?: number | null
+          skill_level?: string
           source_id?: string | null
           source_portal?: string
           title?: string
+          trust_score?: number
+          trust_signals?: Json
           updated_at?: string
           url?: string
         }
@@ -882,6 +1046,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      compute_cultural_context: {
+        Args: { origin: string; residence: string; since: string }
+        Returns: Json
+      }
       get_public_jobs_count: { Args: never; Returns: number }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
