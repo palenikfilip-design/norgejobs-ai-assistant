@@ -24,6 +24,7 @@ import AdminSources from "./pages/AdminSources";
 import ArchilesDashboard from "./pages/admin/ArchilesDashboard";
 import ArchilesReview from "./pages/admin/ArchilesReview";
 import ArchilesSources from "./pages/admin/ArchilesSources";
+import ArchilesSourcesQueue from "./pages/admin/ArchilesSourcesQueue";
 import ArchilesChat from "./pages/admin/ArchilesChat";
 import ArchilesAutonomy from "./pages/admin/ArchilesAutonomy";
 import NotFound from "./pages/NotFound";
@@ -59,6 +60,7 @@ const App = () => (
             <Route path="/admin/archiles" element={<ArchilesDashboard />} />
             <Route path="/admin/archiles/review" element={<ArchilesReview />} />
             <Route path="/admin/archiles/sources" element={<ArchilesSources />} />
+            <Route path="/admin/archiles/sources-queue" element={<ArchilesSourcesQueue />} />
             <Route path="/admin/archiles/chat" element={<ArchilesChat />} />
             <Route path="/admin/archiles/autonomy" element={<ArchilesAutonomy />} />
             <Route path="*" element={<NotFound />} />
