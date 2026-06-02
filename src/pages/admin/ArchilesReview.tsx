@@ -170,7 +170,7 @@ export default function ArchilesReview() {
             skill_level: job.skill_level,
             trust_score: job.trust_score,
           },
-          admin_choice: changed,
+          admin_choice: changed as any,
           admin_id: userRes.user?.id ?? null,
           confidence: job.archiles_confidence,
           resolved_at: new Date().toISOString(),
