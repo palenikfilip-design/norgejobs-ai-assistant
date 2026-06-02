@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ChevronDown, ChevronRight, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import ArchilesLayout, { formatRelative } from "./ArchilesLayout";
@@ -333,8 +333,8 @@ export default function ArchilesReview() {
               </thead>
               <tbody>
                 {jobs.map((j) => (
-                  <>
-                    <tr key={j.id} className="border-t border-border hover:bg-muted/20">
+                  <Fragment key={j.id}>
+                    <tr className="border-t border-border hover:bg-muted/20">
                       <td className="p-2"><Checkbox checked={selected.has(j.id)} onCheckedChange={() => toggleSel(j.id)} /></td>
                       <td className="p-2"><TrustDot score={j.trust_score} /></td>
                       <td className="p-2 max-w-[280px]">
@@ -359,7 +359,7 @@ export default function ArchilesReview() {
                       </td>
                     </tr>
                     {expanded === j.id && (
-                      <tr key={j.id + "-detail"} className="border-t border-border bg-muted/10">
+                      <tr className="border-t border-border bg-muted/10">
                         <td colSpan={10} className="p-4">
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             <div>
@@ -402,7 +402,7 @@ export default function ArchilesReview() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>
