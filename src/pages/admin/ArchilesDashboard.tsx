@@ -14,12 +14,16 @@ import {
   RefreshCw,
   ShieldCheck,
   Sparkles,
+  Square,
+  Zap,
 } from "lucide-react";
 import ArchilesLayout, { formatRelative } from "./ArchilesLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface Metrics {
   jobsTotal: number;
