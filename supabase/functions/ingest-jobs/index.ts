@@ -345,7 +345,7 @@ async function adapterPortalApi(s: JobSource): Promise<NormalizedJob[]> {
   if (s.config.token) headers["Authorization"] = `Bearer ${s.config.token}`;
   const data = await fetchJson(url, { headers });
 
-  const path = String(s.config.json_path ?? "");
+  const path = String(s.config.json_path ?? s.config.items_path ?? "");
   let items: any[] = [];
   const candidate = path ? getByPath(data, path) : data;
   if (Array.isArray(candidate)) items = candidate;
@@ -355,18 +355,27 @@ async function adapterPortalApi(s: JobSource): Promise<NormalizedJob[]> {
   else if (Array.isArray(data?.jobs)) items = data.jobs;
 
   const fm = (s.config.field_map ?? {}) as Record<string, string>;
+  const urlTemplate = typeof s.config.url_template === "string" ? s.config.url_template : null;
+  const companyField = fm.company ? String(fm.company) : null;
   const portal = `portal:${s.name}`;
   return items.map((it) => {
     const title = (fm.title ? getByPath(it, fm.title) : it.title) ?? "";
-    const u = (fm.url ? getByPath(it, fm.url) : it.url) ?? "";
+    let u = (fm.url ? getByPath(it, fm.url) : it.url) ?? "";
+    if ((!u || String(u).trim() === "") && urlTemplate) {
+      u = urlTemplate.replace(/\{([\w.]+)\}/g, (_m, k) => {
+        const v = getByPath(it, k);
+        return v != null ? String(v) : "";
+      });
+    }
     const location = fm.location ? getByPath(it, fm.location) : null;
     const ext = (fm.id ? getByPath(it, fm.id) : it.id ?? null);
+    const company = companyField ? getByPath(it, companyField) : null;
     return {
       external_id: ext != null ? String(ext) : (u || null),
       source_portal: portal,
       source_id: s.id,
       title: String(title),
-      company: s.name,
+      company: company ? String(company) : s.name,
       description: null,
       location: location ? String(location) : null,
       country: s.country,
