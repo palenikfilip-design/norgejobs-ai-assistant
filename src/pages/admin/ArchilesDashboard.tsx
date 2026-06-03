@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -14,12 +14,16 @@ import {
   RefreshCw,
   ShieldCheck,
   Sparkles,
+  Square,
+  Zap,
 } from "lucide-react";
 import ArchilesLayout, { formatRelative } from "./ArchilesLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface Metrics {
   jobsTotal: number;
@@ -57,6 +61,15 @@ export default function ArchilesDashboard() {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+
+  // Backfill state
+  const [bfRunning, setBfRunning] = useState(false);
+  const [bfTotal, setBfTotal] = useState(0);
+  const [bfDone, setBfDone] = useState(0);
+  const [bfStartedAt, setBfStartedAt] = useState<number | null>(null);
+  const [bfError, setBfError] = useState<{ message: string; billing?: boolean } | null>(null);
+  const [bfSummary, setBfSummary] = useState<{ processed: number; avgTrust: number; sparsePct: number } | null>(null);
+  const bfStopRef = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -135,6 +148,97 @@ export default function ArchilesDashboard() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const runBackfill = useCallback(async () => {
+    setBfError(null);
+    setBfSummary(null);
+    bfStopRef.current = false;
+
+    // Initial pending count
+    const { count: initialPending, error: cntErr } = await supabase
+      .from("public_jobs")
+      .select("id", { count: "exact", head: true })
+      .is("enriched_at", null);
+    if (cntErr) {
+      setBfError({ message: `Nepodařilo se načíst frontu: ${cntErr.message}` });
+      return;
+    }
+    const total = initialPending ?? 0;
+    if (total === 0) {
+      toast.success("Fronta je prázdná — není co zpracovat.");
+      return;
+    }
+
+    setBfRunning(true);
+    setBfTotal(total);
+    setBfDone(0);
+    setBfStartedAt(Date.now());
+
+    let processed = 0;
+    const BATCH = 50;
+    while (!bfStopRef.current) {
+      const t0 = Date.now();
+      const { data, error } = await supabase.functions.invoke("archiles-enrich", {
+        body: { batch_size: BATCH },
+      });
+      if (error) {
+        const msg = String(error.message ?? error);
+        const billing = /402|payment_required|insufficient|credit/i.test(msg) ||
+          /402|payment_required|insufficient|credit/i.test(JSON.stringify((data as any) ?? {}));
+        setBfError({
+          message: billing
+            ? "AI Gateway: nedostatek kreditů (402 payment_required). Smyčka zastavena."
+            : `Dávka selhala: ${msg}`,
+          billing,
+        });
+        break;
+      }
+      const resp = (data ?? {}) as { processed?: number; succeeded?: number; failed?: number };
+      const batchProcessed = resp.processed ?? 0;
+      processed += batchProcessed;
+      setBfDone((d) => Math.min(total, d + batchProcessed));
+
+      if (batchProcessed === 0) break; // queue empty
+
+      // Brief breather to avoid hammering
+      const elapsed = Date.now() - t0;
+      if (elapsed < 500) await new Promise((r) => setTimeout(r, 500 - elapsed));
+    }
+
+    setBfRunning(false);
+
+    // Final summary
+    try {
+      const [trustRes, sparseRes, enrichedRes] = await Promise.all([
+        supabase.from("public_jobs").select("trust_score").not("enriched_at", "is", null).limit(2000),
+        supabase.from("public_jobs").select("id", { count: "exact", head: true }).eq("data_completeness", "sparse").not("enriched_at", "is", null),
+        supabase.from("public_jobs").select("id", { count: "exact", head: true }).not("enriched_at", "is", null),
+      ]);
+      const scores = (trustRes.data ?? []).map((r: any) => r.trust_score ?? 0);
+      const avgTrust = scores.length ? Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length) : 0;
+      const totalEnriched = enrichedRes.count ?? 0;
+      const sparseCount = sparseRes.count ?? 0;
+      const sparsePct = totalEnriched > 0 ? Math.round((sparseCount / totalEnriched) * 100) : 0;
+      setBfSummary({ processed, avgTrust, sparsePct });
+    } catch (e) {
+      console.error("summary", e);
+    }
+    load();
+  }, [load]);
+
+  const stopBackfill = () => {
+    bfStopRef.current = true;
+    toast.message("Zastavuji po dokončení aktuální dávky…");
+  };
+
+  const bfPct = bfTotal > 0 ? Math.min(100, Math.round((bfDone / bfTotal) * 100)) : 0;
+  const bfEtaMin = (() => {
+    if (!bfStartedAt || bfDone === 0) return null;
+    const elapsed = (Date.now() - bfStartedAt) / 1000;
+    const rate = bfDone / elapsed; // jobs/s
+    const remaining = Math.max(0, bfTotal - bfDone);
+    return rate > 0 ? Math.ceil(remaining / rate / 60) : null;
+  })();
 
   const trigger = async (fn: string, body?: Record<string, unknown>) => {
     setRunning(fn);
@@ -269,10 +373,67 @@ export default function ArchilesDashboard() {
             {running === "archiles-enrich" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
             Spustit enrichment (50)
           </Button>
+          {!bfRunning ? (
+            <Button variant="default" onClick={runBackfill} disabled={running !== null}>
+              <Zap className="h-4 w-4 mr-2" />
+              Run Backfill
+            </Button>
+          ) : (
+            <Button variant="destructive" onClick={stopBackfill}>
+              <Square className="h-4 w-4 mr-2" />
+              Zastavit backfill
+            </Button>
+          )}
           <Button variant="outline" onClick={() => navigate("/admin/archiles/chat")}>
             <MessageCircle className="h-4 w-4 mr-2" />
             Otevřít chat s Archilem
           </Button>
+
+          {(bfRunning || bfDone > 0 || bfError || bfSummary) && (
+            <div className="w-full mt-3 space-y-2">
+              {(bfRunning || bfDone > 0) && (
+                <>
+                  <Progress value={bfPct} />
+                  <div className="text-xs text-muted-foreground">
+                    Zpracováno {bfDone} / {bfTotal}
+                    {bfEtaMin !== null && bfRunning ? `, zbývá ~${bfEtaMin} min` : ""}
+                    {!bfRunning && bfDone > 0 ? " — zastaveno" : ""}
+                  </div>
+                </>
+              )}
+              {bfError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Backfill selhal</AlertTitle>
+                  <AlertDescription>
+                    {bfError.message}
+                    {bfError.billing && (
+                      <>
+                        {" "}
+                        <a
+                          href="https://lovable.dev/settings/workspace/billing"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline text-primary"
+                        >
+                          Otevřít Billing →
+                        </a>
+                      </>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              )}
+              {bfSummary && !bfError && (
+                <Alert>
+                  <ShieldCheck className="h-4 w-4" />
+                  <AlertTitle>Hotovo</AlertTitle>
+                  <AlertDescription>
+                    Zpracováno {bfSummary.processed} jobů. Avg trust score: {bfSummary.avgTrust}. Sparse: {bfSummary.sparsePct}%.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </ArchilesLayout>
