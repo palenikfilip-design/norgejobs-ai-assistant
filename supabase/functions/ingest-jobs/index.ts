@@ -103,14 +103,47 @@ function extractSalary(...sources: (string | null | undefined)[]): string | null
 function parseMultiLocation(location: string | null, defaultCountry: string | null):
   { country: string | null; additional: string[] } {
   if (!location) return { country: defaultCountry, additional: [] };
-  const parts = location
-    .split(/\s*(?:;|\/|&|\bor\b|\band\b|,)\s*/i)
-    .map((p) => p.trim())
-    .filter(Boolean);
-  if (parts.length > 1) {
-    return { country: "Multiple", additional: parts };
+
+  // Strong multi-country separators only — comma is NOT one (it usually means city,region).
+  const strongSep = /\s*(?:;|\/|&|\bor\b|\band\b)\s*/i;
+  const strongParts = location.split(strongSep).map((p) => p.trim()).filter(Boolean);
+  if (strongParts.length > 1) {
+    return { country: "Multiple", additional: strongParts };
   }
-  return { country: defaultCountry, additional: [] };
+
+  // Comma-split for city/region detection.
+  const commaParts = location.split(/\s*,\s*/).map((p) => p.trim()).filter(Boolean);
+  if (commaParts.length <= 1) {
+    return { country: defaultCountry, additional: [] };
+  }
+
+  // 3+ comma parts → likely a cross-country list.
+  if (commaParts.length >= 3) {
+    return { country: "Multiple", additional: commaParts };
+  }
+
+  // 2 parts → check if second part is a known region (Bundesland / län / kraj / etc.)
+  const REGION_NAMES = new Set([
+    // German Bundesländer + regions
+    "bayern","sachsen","mecklenburg","mecklenburg-vorpommern","thüringen","thuringen",
+    "niedersachsen","schleswig-holstein","nordrhein-westfalen","baden-württemberg","baden-wurttemberg",
+    "rheinland-pfalz","hessen","brandenburg","sachsen-anhalt","berlin","hamburg","bremen","saarland",
+    "ostfriesland","württemberg","wurttemberg","mittelfranken","oberfranken","unterfranken","oberpfalz",
+    "schwaben","oberbayern","niederbayern","westfalen","franken",
+    // Swedish län (common)
+    "stockholms län","skåne län","västra götalands län","uppsala län","östergötlands län",
+    "jönköpings län","kronobergs län","kalmar län","gotlands län","blekinge län","hallands län",
+    "värmlands län","örebro län","västmanlands län","dalarnas län","gävleborgs län","västernorrlands län",
+    "jämtlands län","västerbottens län","norrbottens län","södermanlands län",
+  ]);
+  const REGION_SUFFIXES = /\b(län|kreis|kraj|voivodeship|county|region|province|state|landkreis)\b/i;
+  const second = commaParts[1].toLowerCase();
+  if (REGION_NAMES.has(second) || REGION_SUFFIXES.test(commaParts[1])) {
+    return { country: defaultCountry, additional: commaParts };
+  }
+
+  // Two distinct comma parts that don't look like city,region → treat as multi.
+  return { country: "Multiple", additional: commaParts };
 }
 
 async function getExistingUrls(
