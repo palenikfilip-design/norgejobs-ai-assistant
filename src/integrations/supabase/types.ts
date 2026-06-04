@@ -274,6 +274,33 @@ export type Database = {
         }
         Relationships: []
       }
+      display_categories: {
+        Row: {
+          color: string
+          icon: string
+          id: string
+          label_cs: string
+          label_en: string
+          sort_order: number
+        }
+        Insert: {
+          color: string
+          icon: string
+          id: string
+          label_cs: string
+          label_en: string
+          sort_order: number
+        }
+        Update: {
+          color?: string
+          icon?: string
+          id?: string
+          label_cs?: string
+          label_en?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       employer_sources: {
         Row: {
           ats_config: Json
@@ -706,6 +733,7 @@ export type Database = {
           currency: string | null
           data_completeness: string
           description: string | null
+          display_category: string
           enriched_at: string | null
           expat_openness: string
           external_id: string | null
@@ -716,6 +744,7 @@ export type Database = {
           language_requirements: Json
           location: string | null
           needs_review: boolean
+          positions_available: number
           posted_at: string | null
           raw_data: Json | null
           region: string | null
@@ -745,6 +774,7 @@ export type Database = {
           currency?: string | null
           data_completeness?: string
           description?: string | null
+          display_category?: string
           enriched_at?: string | null
           expat_openness?: string
           external_id?: string | null
@@ -755,6 +785,7 @@ export type Database = {
           language_requirements?: Json
           location?: string | null
           needs_review?: boolean
+          positions_available?: number
           posted_at?: string | null
           raw_data?: Json | null
           region?: string | null
@@ -784,6 +815,7 @@ export type Database = {
           currency?: string | null
           data_completeness?: string
           description?: string | null
+          display_category?: string
           enriched_at?: string | null
           expat_openness?: string
           external_id?: string | null
@@ -794,6 +826,7 @@ export type Database = {
           language_requirements?: Json
           location?: string | null
           needs_review?: boolean
+          positions_available?: number
           posted_at?: string | null
           raw_data?: Json | null
           region?: string | null
@@ -1103,7 +1136,48 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      leslie_stats: {
+        Row: {
+          active_companies: number | null
+          active_sources: number | null
+          computed_at: string | null
+          countries_covered: number | null
+          jobs_this_week: number | null
+          jobs_today: number | null
+          last_ingest_run: string | null
+          last_job_added: string | null
+          total_active_jobs: number | null
+          total_positions: number | null
+        }
+        Relationships: []
+      }
+      leslie_stats_by_category: {
+        Row: {
+          category_id: string | null
+          color: string | null
+          company_count: number | null
+          country_count: number | null
+          icon: string | null
+          job_count: number | null
+          label_cs: string | null
+          position_count: number | null
+          sort_order: number | null
+        }
+        Relationships: []
+      }
+      leslie_stats_by_country: {
+        Row: {
+          category_count: number | null
+          company_count: number | null
+          continent: string | null
+          country: string | null
+          country_code: string | null
+          job_count: number | null
+          position_count: number | null
+          region: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       compute_cultural_context: {
@@ -1122,6 +1196,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      map_display_category: { Args: { _cat: string }; Returns: string }
       set_ingest_cron_secret: { Args: { _value: string }; Returns: undefined }
       verify_ingest_cron_secret: {
         Args: { _provided: string }
