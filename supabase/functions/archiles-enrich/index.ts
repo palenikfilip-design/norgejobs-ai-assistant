@@ -255,8 +255,11 @@ Return ONLY valid JSON with these fields:
   "is_seasonal": true | false | null,
   "description_quality": "high" | "medium" | "low",
   "red_flags": ["upfront_payment", "no_contract_info", "vague_description", "too_good_to_be_true", "missing_employer_info", "none"],
+  "positions_available": 1,
   "confidence": 0-100
 }
+
+Detect how many positions are offered. Look for phrases like "hiring 5 chefs", "X positions available", "více pozic", "multiple positions", "X otevřených pozic". If found, return that integer for positions_available. If not mentioned, default to 1.
 
 Be conservative. If unsure, use "unknown" or null. Better to mark for human review than guess wrong.`;
 
@@ -434,9 +437,25 @@ async function enrichJob(
     // Category & is_seasonal only if confident
     if (aiConfidence > 70 && ai.category_suggestion) {
       updatePayload.category = String(ai.category_suggestion);
+      // Map detailed category → display_category for UI grouping
+      const catMap: Record<string, string> = {
+        gastronomy: "hospitality", construction: "construction", it: "tech",
+        healthcare: "healthcare", agriculture: "agriculture", skiresort: "ski_resort",
+        aupair: "aupair", marine: "maritime", logistics: "logistics", office: "office",
+        manufacturing: "manufacturing", transport: "logistics", sales: "sales",
+        education: "education",
+      };
+      updatePayload.display_category = catMap[String(ai.category_suggestion).toLowerCase()] ?? "other";
     }
     if (aiConfidence > 70 && (ai.is_seasonal === true || ai.is_seasonal === false)) {
       updatePayload.is_seasonal = ai.is_seasonal;
+    }
+    // positions_available — default 1, accept positive integers only
+    const pos = Number(ai.positions_available);
+    if (Number.isFinite(pos) && pos >= 1 && pos <= 500) {
+      updatePayload.positions_available = Math.floor(pos);
+    } else {
+      updatePayload.positions_available = 1;
     }
 
     const fullResult = { ...updatePayload, ai_raw: ai, ms: Date.now() - started };
