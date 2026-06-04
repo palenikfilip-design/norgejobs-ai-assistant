@@ -473,6 +473,15 @@ async function enrichJob(
       };
       updatePayload.display_category = catMap[String(ai.category_suggestion).toLowerCase()] ?? "other";
     }
+    // Title-based fallback: when AI returned "other" / unsure and we lack a description,
+    // try to infer category from the job title (German/Swedish/English keywords).
+    if (!updatePayload.display_category || updatePayload.display_category === "other") {
+      const titleCat = categorizeFromTitle(job.title);
+      if (titleCat) {
+        updatePayload.display_category = titleCat;
+        notes.push(`Category inferred from title: ${titleCat}`);
+      }
+    }
     if (aiConfidence > 70 && (ai.is_seasonal === true || ai.is_seasonal === false)) {
       updatePayload.is_seasonal = ai.is_seasonal;
     }
