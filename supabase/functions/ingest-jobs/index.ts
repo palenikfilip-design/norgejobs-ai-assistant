@@ -357,8 +357,8 @@ async function adapterPortalApi(s: JobSource): Promise<NormalizedJob[]> {
   else if (Array.isArray(data?.items)) items = data.items;
   else if (Array.isArray(data?.jobs)) items = data.jobs;
 
-  if (s.config.debug) {
-    throw new Error(`DEBUG ${s.name}: items=${items.length} keys=${Object.keys(data ?? {}).join(',')} sample=${JSON.stringify(data).slice(0, 800)}`);
+  if (items.length === 0) {
+    throw new Error(`DEBUG ${s.name}: items=0 keys=${Object.keys(data ?? {}).join(',')} sample=${JSON.stringify(data).slice(0, 1000)}`);
   }
 
   const fm = (s.config.field_map ?? {}) as Record<string, string>;
