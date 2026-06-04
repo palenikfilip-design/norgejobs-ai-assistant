@@ -235,6 +235,32 @@ function computeCompleteness(job: any, langs: string[], skillLevel: string, sala
   return { label, score };
 }
 
+/**
+ * Title-based category fallback for SE/DE jobs without descriptions.
+ * Returns a display_category id ("tech", "office", ...) or null.
+ */
+function categorizeFromTitle(title: string | null | undefined): string | null {
+  if (!title) return null;
+  const t = String(title).toLowerCase();
+  const rules: Array<{ cat: string; words: string[] }> = [
+    { cat: "tech", words: ["software","developer","entwickler","programmer","programmierer","devops","sysadmin","data engineer","data scientist"," it ","it-"," it,","frontend","backend","fullstack","mjukvaru","utvecklare"] },
+    { cat: "healthcare", words: ["pflege","krankenschwester","krankenpfleger","pflegehelfer","nurse","sjuksköterska","vårdbiträde","undersköterska","arzt","ärztin","doctor","läkare","therapeut","therapist","sjukgymnast"] },
+    { cat: "construction", words: ["bau","maurer","construction","bygg","elektriker","installatör","schreiner","zimmerer","betong","snickare","rörmokare","plumber"] },
+    { cat: "hospitality", words: ["koch","köchin","kellner","kellnerin","restaurant","hotel","chef","kock","servitör","servitris","restaurang","barista","barman","bartender","reinigungs","städ","housekeeping"] },
+    { cat: "education", words: ["lehrer","lehrerin","teacher","lärare","förskollärare","professor","dozent","erzieher","pädagog","barnskötare"] },
+    { cat: "logistics", words: ["fahrer","driver","förare","lager","logist","lkw","truck","kurier","chaufför","transport","spediteur","warehouse"] },
+    { cat: "sales", words: ["verkäufer","verkäuferin","sales","säljare","vertrieb","account manager","kassa","kassierer","butikssäljare"] },
+    { cat: "manufacturing", words: ["produktion","maschine","operatör","montage","montör","schweißer","svetsare","cnc","produktionsmitarbeiter","industrimekaniker","fabrik"] },
+    { cat: "office", words: ["steuer","steuerfach","buchhalter","accounting","ekonom","redovisning","controller","sekretär","sekretariat","administration","sachbearbeit","kundtjänst","kundenservice","assistent","hr ","personal","jurist","advokat"] },
+    { cat: "agriculture", words: ["lantbruk","landwirt","bauern","agrar","gartenbau","trädgård","skogs","forst","farm"] },
+    { cat: "maritime", words: ["maritim","sjöman","seafarer","cruise","fartyg","schiff"] },
+  ];
+  for (const r of rules) {
+    if (r.words.some((w) => t.includes(w))) return r.cat;
+  }
+  return null;
+}
+
 async function callArchilesAi(job: any, lovableApiKey: string): Promise<any> {
   const description = (job.description || "").slice(0, 2000);
   const prompt = `You are Archiles, a job librarian. Analyze this job posting and extract structured metadata.
@@ -446,6 +472,15 @@ async function enrichJob(
         education: "education",
       };
       updatePayload.display_category = catMap[String(ai.category_suggestion).toLowerCase()] ?? "other";
+    }
+    // Title-based fallback: when AI returned "other" / unsure and we lack a description,
+    // try to infer category from the job title (German/Swedish/English keywords).
+    if (!updatePayload.display_category || updatePayload.display_category === "other") {
+      const titleCat = categorizeFromTitle(job.title);
+      if (titleCat) {
+        updatePayload.display_category = titleCat;
+        notes.push(`Category inferred from title: ${titleCat}`);
+      }
     }
     if (aiConfidence > 70 && (ai.is_seasonal === true || ai.is_seasonal === false)) {
       updatePayload.is_seasonal = ai.is_seasonal;
