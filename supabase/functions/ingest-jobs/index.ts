@@ -341,7 +341,10 @@ async function adapterPortalApi(s: JobSource): Promise<NormalizedJob[]> {
   if (s.config.token_required && !s.config.token) {
     throw new Error("portal_api: token_required but no config.token set");
   }
-  const headers: Record<string, string> = { ...(s.config.headers ?? {}) };
+  const headers: Record<string, string> = {
+    "User-Agent": "Mozilla/5.0 (compatible; LeslieBot/1.0; +https://leslie.app)",
+    ...(s.config.headers ?? {}),
+  };
   if (s.config.token) headers["Authorization"] = `Bearer ${s.config.token}`;
   const data = await fetchJson(url, { headers });
 
@@ -353,6 +356,8 @@ async function adapterPortalApi(s: JobSource): Promise<NormalizedJob[]> {
   else if (Array.isArray(data?.content)) items = data.content;
   else if (Array.isArray(data?.items)) items = data.items;
   else if (Array.isArray(data?.jobs)) items = data.jobs;
+
+  console.log(`[portal_api] ${s.name}: fetched ${items.length} raw items from ${url}`);
 
   const fm = (s.config.field_map ?? {}) as Record<string, string>;
   const urlTemplate = typeof s.config.url_template === "string" ? s.config.url_template : null;
