@@ -1,1 +1,10 @@
 project_id = "ezcenlkjuxvfuagxqikj"
+
+[functions.get-leslie-stats]
+verify_jwt = false
+
+[functions.get-stats-by-country]
+verify_jwt = false
+
+[functions.get-stats-by-category]
+verify_jwt = false
