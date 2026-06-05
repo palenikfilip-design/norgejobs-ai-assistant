@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUser } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
-import { Bot, ArrowRight, Sparkles, Globe, MessageCircle, MessagesSquare, Search, CheckCircle2, X, Check } from "lucide-react";
+import { Bot, ArrowRight, Sparkles, Globe, MessageCircle, MessagesSquare, Search, CheckCircle2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import LeslieAvatar from "@/components/LeslieAvatar";
@@ -85,11 +85,6 @@ const Index = () => {
   // Prefer the "quality" count (enriched, complete/partial) for the headline.
   const jobCount =
     stats?.quality_active_jobs ?? stats?.total_active_jobs ?? null;
-  const positions =
-    stats?.quality_total_positions ??
-    stats?.total_positions ??
-    stats?.total_active_jobs ??
-    null;
   const companies = stats?.active_companies ?? null;
   const countries = stats?.countries_covered ?? null;
   const sources = stats?.active_sources ?? 9;
@@ -114,13 +109,6 @@ const Index = () => {
     if (minutes < 1) return t("landing.updatedJustNow");
     return t("landing.updatedAgo", { minutes });
   })();
-
-  const compareRows = [
-    [t("landing.compareRow1Bad"), t("landing.compareRow1Good")],
-    [t("landing.compareRow2Bad"), t("landing.compareRow2Good")],
-    [t("landing.compareRow3Bad"), t("landing.compareRow3Good")],
-    [t("landing.compareRow4Bad"), t("landing.compareRow4Good")],
-  ];
 
   return (
     <div className="min-h-screen">
@@ -205,15 +193,7 @@ const Index = () => {
                       {t("landing.activeJobsLabel")}
                     </div>
                   </div>
-                  <div className="mt-5 pt-5 border-t border-primary-foreground/10 grid grid-cols-3 gap-3 text-center">
-                    <div>
-                      <div className="text-xl md:text-2xl font-display font-semibold text-primary-foreground">
-                        📊 <CountUp value={positions} locale={numberLocale} />
-                      </div>
-                      <div className="text-[11px] md:text-xs text-primary-foreground/60 mt-1">
-                        {t("landing.positionsLabel")}
-                      </div>
-                    </div>
+                  <div className="mt-5 pt-5 border-t border-primary-foreground/10 grid grid-cols-2 gap-3 text-center">
                     <div>
                       <div className="text-xl md:text-2xl font-display font-semibold text-primary-foreground">
                         🏢 <CountUp value={companies} locale={numberLocale} />
@@ -296,47 +276,6 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
               </motion.div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Comparison: Proč Leslie a ne Indeed */}
-      <section className="py-20 bg-card border-t border-border">
-        <div className="max-w-4xl mx-auto px-4">
-          <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-10 text-center">
-            {t("landing.compareTitle")}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            {/* Without */}
-            <div className="rounded-xl border border-border bg-background/40 p-5 md:p-6">
-              <div className="flex items-center gap-2 mb-4 text-muted-foreground font-semibold">
-                <X className="w-4 h-4" />
-                {t("landing.compareWithout")}
-              </div>
-              <ul className="space-y-3 text-sm">
-                {compareRows.map(([bad]) => (
-                  <li key={bad} className="flex items-start gap-2 text-muted-foreground">
-                    <X className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground/70" />
-                    <span>{bad}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            {/* With */}
-            <div className="rounded-xl border border-red-accent/30 bg-accent-gradient/10 p-5 md:p-6">
-              <div className="flex items-center gap-2 mb-4 text-foreground font-semibold">
-                <Check className="w-4 h-4 text-red-accent" />
-                {t("landing.compareWith")}
-              </div>
-              <ul className="space-y-3 text-sm">
-                {compareRows.map(([, good]) => (
-                  <li key={good} className="flex items-start gap-2 text-foreground">
-                    <Check className="w-4 h-4 mt-0.5 shrink-0 text-red-accent" />
-                    <span>{good}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
           </div>
         </div>
       </section>
