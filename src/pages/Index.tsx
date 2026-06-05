@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUser } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
-import { Bot, ArrowRight, Sparkles, Globe, MessageCircle, MessagesSquare, Search, CheckCircle2, X, Check } from "lucide-react";
+import { Bot, ArrowRight, Sparkles, Globe, MessageCircle, MessagesSquare, Search, CheckCircle2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import LeslieAvatar from "@/components/LeslieAvatar";
