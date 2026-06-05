@@ -1146,6 +1146,8 @@ export type Database = {
           jobs_today: number | null
           last_ingest_run: string | null
           last_job_added: string | null
+          quality_active_jobs: number | null
+          quality_total_positions: number | null
           total_active_jobs: number | null
           total_positions: number | null
         }
