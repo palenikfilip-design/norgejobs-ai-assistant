@@ -117,12 +117,23 @@ export default function ArchilesStatistics() {
   const runReenrich = async () => {
     setRunning(true);
     try {
+      const { data: ids, error: idsErr } = await supabase
+        .from("public_jobs")
+        .select("id")
+        .eq("data_completeness", "sparse")
+        .limit(50);
+      if (idsErr) throw idsErr;
+      const jobIds = (ids ?? []).map((r: any) => r.id);
+      if (jobIds.length === 0) {
+        toast.message("Žádné sparse joby k re-enrichmentu.");
+        return;
+      }
       const { data, error } = await supabase.functions.invoke("archiles-enrich", {
-        body: { batch_size: 50, only_sparse: true },
+        body: { job_ids: jobIds },
       });
       if (error) throw error;
-      const processed = (data as any)?.processed ?? 0;
-      toast.success(`Spuštěno re-enrichment, zpracováno ${processed} jobů.`);
+      const processed = (data as any)?.processed ?? jobIds.length;
+      toast.success(`Re-enrichment dokončen, zpracováno ${processed} jobů.`);
       setTimeout(load, 1500);
     } catch (e: any) {
       toast.error(`Re-enrichment selhal: ${e.message ?? e}`);
