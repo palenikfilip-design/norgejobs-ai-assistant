@@ -44,24 +44,33 @@ export default function ArchilesStatistics() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [catRes, jobsRes, dispCatsRes] = await Promise.all([
+      const [catRes, dispCatsRes] = await Promise.all([
         supabase
           .from("leslie_stats_by_category")
           .select("category_id, label_cs, icon, color, job_count, company_count, sort_order")
           .order("job_count", { ascending: false }),
         supabase
-          .from("public_jobs")
-          .select("source_portal, display_category, data_completeness"),
-        supabase
           .from("display_categories")
           .select("id, label_cs, icon"),
       ]);
       if (catRes.error) throw catRes.error;
-      if (jobsRes.error) throw jobsRes.error;
+
+      // Paginate public_jobs (Supabase caps at 1000 rows/query)
+      const PAGE = 1000;
+      const rows: Array<{ source_portal: string; display_category: string; data_completeness: string }> = [];
+      for (let offset = 0; ; offset += PAGE) {
+        const { data, error } = await supabase
+          .from("public_jobs")
+          .select("source_portal, display_category, data_completeness")
+          .range(offset, offset + PAGE - 1);
+        if (error) throw error;
+        const chunk = (data ?? []) as typeof rows;
+        rows.push(...chunk);
+        if (chunk.length < PAGE) break;
+      }
 
       setCategories((catRes.data ?? []) as CategoryRow[]);
 
-      const rows = (jobsRes.data ?? []) as Array<{ source_portal: string; display_category: string; data_completeness: string }>;
       const labelMap = new Map<string, { label_cs: string; icon: string }>();
       (dispCatsRes.data ?? []).forEach((r: any) => labelMap.set(r.id, { label_cs: r.label_cs, icon: r.icon }));
 
