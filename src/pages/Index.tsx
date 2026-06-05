@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUser } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
-import { Bot, ArrowRight, Sparkles, Globe, BriefcaseBusiness, MessageCircle, Building2, MapPin, Clock, MessagesSquare, Search, CheckCircle2 } from "lucide-react";
+import { Bot, ArrowRight, Sparkles, Globe, MessageCircle, MessagesSquare, Search, CheckCircle2, X, Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import LeslieAvatar from "@/components/LeslieAvatar";
@@ -12,10 +12,35 @@ import { supabase } from "@/integrations/supabase/client";
 const SHOW_TESTIMONIALS = false;
 
 type LeslieStats = {
+  active_sources?: number;
   active_companies?: number;
   countries_covered?: number;
   total_active_jobs?: number;
+  total_positions?: number;
+  last_ingest_run?: string | null;
 };
+
+/** Lightweight count-up: animates from 0 → value over ~1s using rAF. */
+function CountUp({ value, locale }: { value: number | null; locale: string }) {
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    if (value == null) return;
+    const start = performance.now();
+    const duration = 1000;
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay(Math.round(value * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  if (value == null) return <span>—</span>;
+  return <span>{display.toLocaleString(locale)}</span>;
+}
 
 const Index = () => {
   const navigate = useNavigate();
@@ -39,21 +64,55 @@ const Index = () => {
   }, [user, navigate]);
 
   const currentLang = i18n.resolvedLanguage === "en" ? "en" : "cs";
+  const numberLocale = currentLang === "cs" ? "cs-CZ" : "en-US";
+
+  // Keep <html lang> in sync with active language
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.lang = currentLang;
+    }
+  }, [currentLang]);
+
   const features = [
     { icon: Bot, title: t("landing.feat1Title"), desc: t("landing.feat1Desc") },
     { icon: Sparkles, title: t("landing.feat2Title"), desc: t("landing.feat2Desc") },
     { icon: Globe, title: t("landing.feat3Title"), desc: t("landing.feat3Desc") },
     { icon: MessageCircle, title: t("landing.feat4Title"), desc: t("landing.feat4Desc") },
   ];
+
+  const jobCount = stats?.total_active_jobs ?? null;
+  const positions = stats?.total_positions ?? stats?.total_active_jobs ?? null;
+  const companies = stats?.active_companies ?? null;
+  const countries = stats?.countries_covered ?? null;
+  const sources = stats?.active_sources ?? 9;
+
   const steps = [
     { num: "1", icon: MessagesSquare, title: t("landing.step1Title"), desc: t("landing.step1Desc") },
-    { num: "2", icon: Search, title: t("landing.step2Title"), desc: t("landing.step2Desc") },
+    {
+      num: "2",
+      icon: Search,
+      title: t("landing.step2Title"),
+      desc: t("landing.step2Desc", { sources, companies: companies ?? "—" }),
+    },
     { num: "3", icon: CheckCircle2, title: t("landing.step3Title"), desc: t("landing.step3Desc") },
   ];
 
-  const jobCount = stats?.total_active_jobs ?? null;
-  const companies = stats?.active_companies ?? null;
-  const countries = stats?.countries_covered ?? null;
+  // "Updated X minutes ago" caption
+  const updatedCaption = (() => {
+    if (!stats?.last_ingest_run) return null;
+    const ts = new Date(stats.last_ingest_run).getTime();
+    if (Number.isNaN(ts)) return null;
+    const minutes = Math.max(0, Math.round((Date.now() - ts) / 60000));
+    if (minutes < 1) return t("landing.updatedJustNow");
+    return t("landing.updatedAgo", { minutes });
+  })();
+
+  const compareRows = [
+    [t("landing.compareRow1Bad"), t("landing.compareRow1Good")],
+    [t("landing.compareRow2Bad"), t("landing.compareRow2Good")],
+    [t("landing.compareRow3Bad"), t("landing.compareRow3Good")],
+    [t("landing.compareRow4Bad"), t("landing.compareRow4Good")],
+  ];
 
   return (
     <div className="min-h-screen">
@@ -110,7 +169,7 @@ const Index = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7 }}
-              className="text-center md:text-left"
+              className="text-center md:text-left flex-1 min-w-0"
             >
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-foreground/10 border border-primary-foreground/10 text-primary-foreground/80 text-sm mb-6">
                 <Sparkles className="w-4 h-4 text-red-accent" />
@@ -127,35 +186,50 @@ const Index = () => {
                 {t("landing.intro")}
               </p>
 
-              {jobCount !== null && (
-                <>
-                  <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-accent-gradient/20 border border-red-accent/30 text-primary-foreground mb-4">
-                    <BriefcaseBusiness className="w-7 h-7 text-red-accent" />
-                    <span className="font-display font-bold text-gradient-accent text-3xl md:text-4xl leading-none">
-                      {jobCount.toLocaleString(currentLang === "cs" ? "cs-CZ" : "en-US")}
-                    </span>
-                    <span className="text-primary-foreground/70 text-base md:text-lg">{t("landing.jobsReady")}</span>
+              {/* Stats hierarchy */}
+              <div className="mb-8">
+                <div className="rounded-2xl bg-primary-foreground/5 border border-primary-foreground/10 p-5 md:p-6">
+                  <div className="text-center md:text-left">
+                    <div className="font-display font-bold text-gradient-accent text-5xl md:text-6xl leading-none">
+                      <CountUp value={jobCount} locale={numberLocale} />
+                    </div>
+                    <div className="mt-2 text-primary-foreground/70 text-sm md:text-base">
+                      {t("landing.activeJobsLabel")}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-5 gap-y-2 text-sm text-primary-foreground/60 mb-8">
-                    {companies !== null && (
-                      <span className="inline-flex items-center gap-1.5">
-                        <Building2 className="w-4 h-4 text-red-accent" />
-                        {t("landing.companiesHiring", { count: companies })}
-                      </span>
-                    )}
-                    {countries !== null && (
-                      <span className="inline-flex items-center gap-1.5">
-                        <MapPin className="w-4 h-4 text-red-accent" />
-                        {t("landing.inCountries", { count: countries })}
-                      </span>
-                    )}
-                    <span className="inline-flex items-center gap-1.5">
-                      <Clock className="w-4 h-4 text-red-accent" />
-                      {t("landing.hourlyUpdates")}
-                    </span>
+                  <div className="mt-5 pt-5 border-t border-primary-foreground/10 grid grid-cols-3 gap-3 text-center">
+                    <div>
+                      <div className="text-xl md:text-2xl font-display font-semibold text-primary-foreground">
+                        📊 <CountUp value={positions} locale={numberLocale} />
+                      </div>
+                      <div className="text-[11px] md:text-xs text-primary-foreground/60 mt-1">
+                        {t("landing.positionsLabel")}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xl md:text-2xl font-display font-semibold text-primary-foreground">
+                        🏢 <CountUp value={companies} locale={numberLocale} />
+                      </div>
+                      <div className="text-[11px] md:text-xs text-primary-foreground/60 mt-1">
+                        {t("landing.employersLabel")}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xl md:text-2xl font-display font-semibold text-primary-foreground">
+                        🌍 <CountUp value={countries} locale={numberLocale} />
+                      </div>
+                      <div className="text-[11px] md:text-xs text-primary-foreground/60 mt-1">
+                        {t("landing.countriesLabel")}
+                      </div>
+                    </div>
                   </div>
-                </>
-              )}
+                  {updatedCaption && (
+                    <div className="mt-4 text-[11px] text-primary-foreground/40 text-center">
+                      {updatedCaption}
+                    </div>
+                  )}
+                </div>
+              </div>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
                 <Button
@@ -201,7 +275,7 @@ const Index = () => {
                 className="glass-card-elevated rounded-xl p-7 relative"
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="font-display font-bold text-3xl text-gradient-accent leading-none">
+                  <span className="font-display font-bold text-lg leading-none w-9 h-9 rounded-full bg-accent-gradient text-accent-foreground flex items-center justify-center shrink-0">
                     {s.num}
                   </span>
                   <div className="w-10 h-10 rounded-lg bg-primary-foreground/5 border border-border flex items-center justify-center">
@@ -214,6 +288,47 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
               </motion.div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Comparison: Proč Leslie a ne Indeed */}
+      <section className="py-20 bg-card border-t border-border">
+        <div className="max-w-4xl mx-auto px-4">
+          <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-10 text-center">
+            {t("landing.compareTitle")}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            {/* Without */}
+            <div className="rounded-xl border border-border bg-background/40 p-5 md:p-6">
+              <div className="flex items-center gap-2 mb-4 text-muted-foreground font-semibold">
+                <X className="w-4 h-4" />
+                {t("landing.compareWithout")}
+              </div>
+              <ul className="space-y-3 text-sm">
+                {compareRows.map(([bad]) => (
+                  <li key={bad} className="flex items-start gap-2 text-muted-foreground">
+                    <X className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground/70" />
+                    <span>{bad}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {/* With */}
+            <div className="rounded-xl border border-red-accent/30 bg-accent-gradient/10 p-5 md:p-6">
+              <div className="flex items-center gap-2 mb-4 text-foreground font-semibold">
+                <Check className="w-4 h-4 text-red-accent" />
+                {t("landing.compareWith")}
+              </div>
+              <ul className="space-y-3 text-sm">
+                {compareRows.map(([, good]) => (
+                  <li key={good} className="flex items-start gap-2 text-foreground">
+                    <Check className="w-4 h-4 mt-0.5 shrink-0 text-red-accent" />
+                    <span>{good}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </section>
@@ -291,14 +406,20 @@ const Index = () => {
 
       {/* Footer */}
       <footer className="bg-card border-t border-border py-8">
-        <div className="max-w-5xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
+        <div className="max-w-3xl mx-auto px-4 text-center space-y-3">
+          <div className="inline-flex items-center gap-2 justify-center">
             <div className="w-7 h-7 rounded-lg bg-accent-gradient flex items-center justify-center">
               <Bot className="w-3.5 h-3.5 text-accent-foreground" />
             </div>
             <span className="font-display font-bold text-foreground">Leslie AI</span>
           </div>
-          <p className="text-sm text-muted-foreground">© 2026 Leslie AI. All rights reserved.</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {t("landing.footerBetaNote")}
+          </p>
+          <p className="text-xs text-muted-foreground/80">
+            {t("landing.footerBuiltSolo")}
+          </p>
+          <p className="text-[11px] text-muted-foreground/60">© 2026 Leslie AI</p>
         </div>
       </footer>
     </div>
