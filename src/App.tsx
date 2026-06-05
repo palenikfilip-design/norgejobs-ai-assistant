@@ -27,6 +27,7 @@ import ArchilesSources from "./pages/admin/ArchilesSources";
 import ArchilesSourcesQueue from "./pages/admin/ArchilesSourcesQueue";
 import ArchilesChat from "./pages/admin/ArchilesChat";
 import ArchilesAutonomy from "./pages/admin/ArchilesAutonomy";
+import ArchilesStatistics from "./pages/admin/ArchilesStatistics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -63,6 +64,7 @@ const App = () => (
             <Route path="/admin/archiles/sources-queue" element={<ArchilesSourcesQueue />} />
             <Route path="/admin/archiles/chat" element={<ArchilesChat />} />
             <Route path="/admin/archiles/autonomy" element={<ArchilesAutonomy />} />
+            <Route path="/admin/archiles/statistics" element={<ArchilesStatistics />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

@@ -64,6 +64,7 @@ export default function ArchilesReview() {
   const [searchParams] = useSearchParams();
   const mode = searchParams.get("mode"); // "sparse" or null
   const sparseMode = mode === "sparse";
+  const categoryParam = searchParams.get("category");
   const [jobs, setJobs] = useState<Job[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
@@ -120,6 +121,7 @@ export default function ArchilesReview() {
       } else {
         q = q.eq("needs_review", true);
       }
+      if (categoryParam) q = q.eq("display_category", categoryParam);
       if (sourceFilter) q = q.eq("source_portal", sourceFilter);
       if (country) q = q.eq("country", country);
       if (completeness.length) q = q.in("data_completeness", completeness);
@@ -141,7 +143,7 @@ export default function ArchilesReview() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, sourceFilter, country, trustRange, confRange, completeness, hasSalary, redFlags, sparseMode]);
+  }, [page, pageSize, sourceFilter, country, trustRange, confRange, completeness, hasSalary, redFlags, sparseMode, categoryParam]);
 
   useEffect(() => { load(); }, [load]);
 
