@@ -8,6 +8,7 @@ import {
   MessageCircle,
   Sliders,
   BarChart3,
+  PieChart,
   Loader2,
   ArrowLeft,
 } from "lucide-react";
@@ -26,6 +27,7 @@ const NAV = [
   { to: "/admin/archiles/sources", label: "Sources", icon: Database },
   { to: "/admin/archiles/chat", label: "Chat s Archilem", icon: MessageCircle },
   { to: "/admin/archiles/autonomy", label: "Autonomie", icon: Sliders },
+  { to: "/admin/archiles/statistics", label: "Statistiky katalogu", icon: PieChart },
   { to: "/admin/stats", label: "Statistiky", icon: BarChart3 },
 ];
 
