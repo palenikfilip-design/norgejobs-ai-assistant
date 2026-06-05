@@ -2,43 +2,34 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUser } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
-import { Bot, ArrowRight, Sparkles, Globe, BriefcaseBusiness, MessageCircle } from "lucide-react";
+import { Bot, ArrowRight, Sparkles, Globe, BriefcaseBusiness, MessageCircle, Building2, MapPin, Clock, MessagesSquare, Search, CheckCircle2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import LeslieAvatar from "@/components/LeslieAvatar";
 import { supabase } from "@/integrations/supabase/client";
 
-const features = [
-  {
-    icon: Bot,
-    title: "AI Avatar",
-    desc: "Create your professional AI profile that understands your skills and goals.",
-  },
-  {
-    icon: Sparkles,
-    title: "Smart Matching",
-    desc: "Get personalized job recommendations with match scores.",
-  },
-  {
-    icon: Globe,
-    title: "Work Abroad",
-    desc: "Find opportunities in Norway, Germany, Austria and more.",
-  },
-  {
-    icon: MessageCircle,
-    title: "AI Assistant",
-    desc: "Chat with your avatar for career advice and job search help.",
-  },
-];
+// Feature flag for testimonials section (flip to true once we have real ones)
+const SHOW_TESTIMONIALS = false;
+
+type LeslieStats = {
+  active_companies?: number;
+  countries_covered?: number;
+  total_active_jobs?: number;
+};
 
 const Index = () => {
   const navigate = useNavigate();
   const { user } = useUser();
-  const [jobCount, setJobCount] = useState<number | null>(null);
+  const { t, i18n } = useTranslation();
+  const [stats, setStats] = useState<LeslieStats | null>(null);
 
   useEffect(() => {
-    supabase.rpc("get_public_jobs_count").then(({ data, error }) => {
-      if (!error && typeof data === "number") setJobCount(data);
-    });
+    supabase.functions
+      .invoke("get-leslie-stats")
+      .then(({ data, error }) => {
+        if (!error && data) setStats(data as LeslieStats);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -47,8 +38,44 @@ const Index = () => {
     }
   }, [user, navigate]);
 
+  const currentLang = i18n.resolvedLanguage === "en" ? "en" : "cs";
+  const features = [
+    { icon: Bot, title: t("landing.feat1Title"), desc: t("landing.feat1Desc") },
+    { icon: Sparkles, title: t("landing.feat2Title"), desc: t("landing.feat2Desc") },
+    { icon: Globe, title: t("landing.feat3Title"), desc: t("landing.feat3Desc") },
+    { icon: MessageCircle, title: t("landing.feat4Title"), desc: t("landing.feat4Desc") },
+  ];
+  const steps = [
+    { num: "1", icon: MessagesSquare, title: t("landing.step1Title"), desc: t("landing.step1Desc") },
+    { num: "2", icon: Search, title: t("landing.step2Title"), desc: t("landing.step2Desc") },
+    { num: "3", icon: CheckCircle2, title: t("landing.step3Title"), desc: t("landing.step3Desc") },
+  ];
+
+  const jobCount = stats?.total_active_jobs ?? null;
+  const companies = stats?.active_companies ?? null;
+  const countries = stats?.countries_covered ?? null;
+
   return (
     <div className="min-h-screen">
+      {/* Top bar with language switcher */}
+      <div className="absolute top-0 right-0 z-20 p-4 flex items-center gap-1 text-sm">
+        <button
+          onClick={() => i18n.changeLanguage("cs")}
+          className={`px-2 py-1 rounded transition ${currentLang === "cs" ? "text-primary-foreground font-semibold" : "text-primary-foreground/50 hover:text-primary-foreground/80"}`}
+          aria-label="Čeština"
+        >
+          🇨🇿 CS
+        </button>
+        <span className="text-primary-foreground/30">|</span>
+        <button
+          onClick={() => i18n.changeLanguage("en")}
+          className={`px-2 py-1 rounded transition ${currentLang === "en" ? "text-primary-foreground font-semibold" : "text-primary-foreground/50 hover:text-primary-foreground/80"}`}
+          aria-label="English"
+        >
+          🇬🇧 EN
+        </button>
+      </div>
+
       {/* Hero */}
       <section className="relative overflow-hidden bg-navy-gradient">
         <div className="absolute inset-0 opacity-20">
@@ -87,25 +114,47 @@ const Index = () => {
             >
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-foreground/10 border border-primary-foreground/10 text-primary-foreground/80 text-sm mb-6">
                 <Sparkles className="w-4 h-4 text-red-accent" />
-                Meet Leslie — Your AI Career Assistant
+                {t("landing.badge")}
               </div>
 
               <h1 className="font-display text-4xl md:text-6xl font-bold text-primary-foreground leading-tight mb-5">
-                Hi, I'm <span className="text-gradient-accent">Leslie</span>
+                {t("landing.hiIm")} <span className="text-gradient-accent">Leslie</span>
                 <br />
-                <span className="text-3xl md:text-5xl">Your job search starts here</span>
+                <span className="text-3xl md:text-5xl">{t("landing.tagline")}</span>
               </h1>
 
               <p className="text-lg md:text-xl text-primary-foreground/60 max-w-xl mb-8">
-                I'll learn your skills, preferences and goals — then find the best job opportunities abroad, tailored just for you.
+                {t("landing.intro")}
               </p>
 
               {jobCount !== null && (
-                <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-accent-gradient/20 border border-red-accent/30 text-primary-foreground mb-8">
-                  <BriefcaseBusiness className="w-7 h-7 text-red-accent" />
-                  <span className="font-display font-bold text-gradient-accent text-3xl md:text-4xl leading-none">{jobCount.toLocaleString()}</span>
-                  <span className="text-primary-foreground/70 text-base md:text-lg">jobs ready for AI scoring</span>
-                </div>
+                <>
+                  <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-accent-gradient/20 border border-red-accent/30 text-primary-foreground mb-4">
+                    <BriefcaseBusiness className="w-7 h-7 text-red-accent" />
+                    <span className="font-display font-bold text-gradient-accent text-3xl md:text-4xl leading-none">
+                      {jobCount.toLocaleString(currentLang === "cs" ? "cs-CZ" : "en-US")}
+                    </span>
+                    <span className="text-primary-foreground/70 text-base md:text-lg">{t("landing.jobsReady")}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-5 gap-y-2 text-sm text-primary-foreground/60 mb-8">
+                    {companies !== null && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <Building2 className="w-4 h-4 text-red-accent" />
+                        {t("landing.companiesHiring", { count: companies })}
+                      </span>
+                    )}
+                    {countries !== null && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <MapPin className="w-4 h-4 text-red-accent" />
+                        {t("landing.inCountries", { count: countries })}
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-1.5">
+                      <Clock className="w-4 h-4 text-red-accent" />
+                      {t("landing.hourlyUpdates")}
+                    </span>
+                  </div>
+                </>
               )}
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
@@ -114,7 +163,7 @@ const Index = () => {
                   className="bg-accent-gradient text-accent-foreground hover:opacity-90 text-base px-8"
                   onClick={() => navigate("/signup")}
                 >
-                  Create Free Account
+                  {t("landing.ctaCreate")}
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
                 <Button
@@ -123,7 +172,7 @@ const Index = () => {
                   className="border-primary-foreground/50 bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20 text-base px-8"
                   onClick={() => navigate("/login")}
                 >
-                  I Already Have an Account
+                  {t("landing.ctaLogin")}
                 </Button>
               </div>
             </motion.div>
@@ -131,15 +180,67 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Jak to funguje — 3 steps */}
+      <section className="py-20 bg-background">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="text-center mb-14">
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-3">
+              {t("landing.howTitle")}
+            </h2>
+            <p className="text-muted-foreground text-lg">{t("landing.howSubtitle")}</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {steps.map((s, i) => (
+              <motion.div
+                key={s.num}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="glass-card-elevated rounded-xl p-7 relative"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="font-display font-bold text-3xl text-gradient-accent leading-none">
+                    {s.num}
+                  </span>
+                  <div className="w-10 h-10 rounded-lg bg-primary-foreground/5 border border-border flex items-center justify-center">
+                    <s.icon className="w-5 h-5 text-red-accent" />
+                  </div>
+                </div>
+                <h3 className="font-display font-semibold text-foreground mb-2 text-lg">
+                  {s.title}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials (hidden behind feature flag until we have real ones) */}
+      {SHOW_TESTIMONIALS && (
+        <section className="py-20 bg-card border-t border-border">
+          <div className="max-w-5xl mx-auto px-4">
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-10 text-center">
+              {t("landing.testimonialsTitle")}
+            </h2>
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* Testimonial cards rendered here once data is available */}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Features */}
       <section className="py-20 bg-background">
         <div className="max-w-5xl mx-auto px-4">
           <div className="text-center mb-14">
             <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-3">
-              How it works
+              {t("landing.featuresTitle")}
             </h2>
             <p className="text-muted-foreground text-lg">
-              From profile to perfect job match in minutes
+              {t("landing.featuresSub")}
             </p>
           </div>
 
@@ -172,17 +273,17 @@ const Index = () => {
             className="w-20 h-20 mx-auto mb-6 border-2 border-primary-foreground/20 block"
           />
           <h2 className="font-display text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
-            Ready to find your dream job abroad?
+            {t("landing.ctaReadyTitle")}
           </h2>
           <p className="text-primary-foreground/60 text-lg mb-8">
-            Let Leslie guide you — from profile to perfect match in minutes.
+            {t("landing.ctaReadySub")}
           </p>
           <Button
             size="lg"
             className="bg-accent-gradient text-accent-foreground hover:opacity-90 text-base px-10"
             onClick={() => navigate("/signup")}
           >
-            Create Your Profile
+            {t("landing.ctaReadyBtn")}
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
         </div>
