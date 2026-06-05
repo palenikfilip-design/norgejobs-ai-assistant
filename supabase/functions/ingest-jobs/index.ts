@@ -487,6 +487,76 @@ async function fetchDetailSmartRecruiters(s: JobSource, job: NormalizedJob & { s
 }
 
 /**
+ * Arbetsförmedlingen (Sweden) — jobtechdev.se detail endpoint.
+ * GET https://jobsearch.api.jobtechdev.se/ad/{id} — 5 req/s
+ */
+async function fetchDetailJobtechdev(_s: JobSource, job: NormalizedJob & { salary?: string | null }): Promise<void> {
+  if (!job.external_id) return;
+  const url = `https://jobsearch.api.jobtechdev.se/ad/${encodeURIComponent(job.external_id)}`;
+  try {
+    const d = await fetchJson(url, { headers: { Accept: "application/json" } });
+    const descText = d?.description?.text ?? d?.description?.text_formatted ?? null;
+    const employerName = d?.employer?.name ?? null;
+    const workplace = d?.employer?.workplace ?? null;
+    const employerDesc = d?.employer?.workplace_description ?? d?.description?.company_information ?? null;
+    const combined = [descText, employerDesc && `\n\n${employerDesc}`]
+      .filter(Boolean)
+      .map((t) => stripHtml(String(t)) ?? "")
+      .join("")
+      .trim();
+    if (combined) job.description = combined;
+    if (!job.company && employerName) job.company = String(employerName);
+    (job as any).raw_data = {
+      ...(job.raw_data ?? {}),
+      employer_name: employerName,
+      workplace,
+      application_details: d?.application_details ?? null,
+      occupation: d?.occupation?.label ?? null,
+    };
+  } catch (e) {
+    (job as any).raw_data = { ...(job.raw_data ?? {}), detail_fetch_error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/**
+ * Arbeitsagentur (Germany) — Bundesagentur jobdetails endpoint.
+ * GET https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v2/jobdetails/{base64(refnr)}
+ * Headers: X-API-Key: jobboerse-jobsuche  — 3 req/s
+ */
+async function fetchDetailArbeitsagentur(_s: JobSource, job: NormalizedJob & { salary?: string | null }): Promise<void> {
+  if (!job.external_id) return;
+  // v2/jobdetails expects URL-safe base64 of the refnr.
+  const refnrB64 = btoa(job.external_id).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const url = `https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v2/jobdetails/${refnrB64}`;
+  try {
+    const d = await fetchJson(url, {
+      headers: {
+        "X-API-Key": "jobboerse-jobsuche",
+        "User-Agent": "Mozilla/5.0 (compatible; LeslieBot/1.0; +https://leslie.app)",
+        Accept: "application/json",
+      },
+    });
+    const beschreibung = d?.stellenbeschreibung ?? null;
+    const arbeitgeber = d?.arbeitgeberdarstellung ?? null;
+    const combined = [beschreibung, arbeitgeber && `\n\n${arbeitgeber}`]
+      .filter(Boolean)
+      .map((t) => stripHtml(String(t)) ?? "")
+      .join("")
+      .trim();
+    if (combined) job.description = combined;
+    (job as any).raw_data = {
+      ...(job.raw_data ?? {}),
+      arbeitgeber: d?.arbeitgeber ?? null,
+      branche: d?.branche ?? null,
+      beruf: d?.beruf ?? null,
+      eintrittsdatum: d?.eintrittsdatum ?? null,
+    };
+  } catch (e) {
+    (job as any).raw_data = { ...(job.raw_data ?? {}), detail_fetch_error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/**
  * Enrich newly-discovered jobs with: detail fetches (per source_type),
  * salary regex extraction across (salary field, description, title),
  * multi-location detection.
@@ -508,6 +578,25 @@ async function enrichNewJobs(
     for (const j of newJobs) {
       await fetchDetailSmartRecruiters(s, j);
       await sleep(340); // ~3 req/s
+    }
+  } else if (s.source_type === "portal_api") {
+    const configUrl = String(s.config?.url ?? "");
+    let detailFails = 0;
+    if (/jobtechdev\.se/i.test(configUrl)) {
+      for (const j of newJobs) {
+        await fetchDetailJobtechdev(s, j);
+        if ((j.raw_data as any)?.detail_fetch_error) detailFails++;
+        await sleep(200); // 5 req/s
+      }
+    } else if (/arbeitsagentur\.de/i.test(configUrl)) {
+      for (const j of newJobs) {
+        await fetchDetailArbeitsagentur(s, j);
+        if ((j.raw_data as any)?.detail_fetch_error) detailFails++;
+        await sleep(340); // ~3 req/s
+      }
+    }
+    if (detailFails > 0) {
+      console.warn(`[ingest-jobs] ${s.name}: detail fetch failed for ${detailFails}/${newJobs.length} new jobs`);
     }
   }
 
