@@ -16,7 +16,9 @@ type LeslieStats = {
   active_companies?: number;
   countries_covered?: number;
   total_active_jobs?: number;
+  quality_active_jobs?: number;
   total_positions?: number;
+  quality_total_positions?: number;
   last_ingest_run?: string | null;
 };
 
@@ -80,8 +82,14 @@ const Index = () => {
     { icon: MessageCircle, title: t("landing.feat4Title"), desc: t("landing.feat4Desc") },
   ];
 
-  const jobCount = stats?.total_active_jobs ?? null;
-  const positions = stats?.total_positions ?? stats?.total_active_jobs ?? null;
+  // Prefer the "quality" count (enriched, complete/partial) for the headline.
+  const jobCount =
+    stats?.quality_active_jobs ?? stats?.total_active_jobs ?? null;
+  const positions =
+    stats?.quality_total_positions ??
+    stats?.total_positions ??
+    stats?.total_active_jobs ??
+    null;
   const companies = stats?.active_companies ?? null;
   const countries = stats?.countries_covered ?? null;
   const sources = stats?.active_sources ?? 9;
