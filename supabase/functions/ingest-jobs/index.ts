@@ -923,6 +923,34 @@ Deno.serve(async (req) => {
   }
 
   const all = (sources ?? []) as JobSource[];
+
+  // Also load employer-level sources (currently Workday). Skipped when caller
+  // targets a single job_sources row via source_id.
+  if (!body.source_id) {
+    const { data: emp, error: empErr } = await supabase
+      .from("employer_sources")
+      .select("id, company_name, ats_type, ats_config, country, sector, is_active, last_run_at")
+      .eq("is_active", true)
+      .eq("ats_type", "workday");
+    if (empErr) {
+      console.warn("[ingest-jobs] failed to load employer_sources:", empErr.message);
+    } else {
+      for (const e of (emp ?? []) as any[]) {
+        all.push({
+          id: e.id,
+          name: e.company_name,
+          source_type: "ats_workday",
+          tier: 1,
+          config: (e.ats_config ?? {}) as Record<string, any>,
+          country: e.country ?? null,
+          sector: e.sector ?? null,
+          last_run_at: e.last_run_at ?? null,
+          _origin_table: "employer_sources",
+        });
+      }
+    }
+  }
+
   const due = body.force || body.source_id ? all : all.filter(isDue);
 
   const results: any[] = [];
