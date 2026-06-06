@@ -170,7 +170,7 @@ export default function ArchilesSources() {
     if (!empDraft.company_name.trim()) { toast.error("Company name je povinný"); return; }
     setEmpSaving(true);
     try {
-      const payload = {
+      const payload: any = {
         company_name: empDraft.company_name.trim(),
         ats_type: empDraft.ats_type.trim() || "workday",
         ats_config: parsedConfig,
