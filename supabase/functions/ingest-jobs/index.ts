@@ -280,13 +280,42 @@ async function adapterWorkday(s: JobSource): Promise<NormalizedJob[]> {
   const site = String(s.config.site ?? "");
   if (!tenant || !wd || !site) throw new Error("workday: missing tenant/wd/site");
   const url = `https://${tenant}.wd${wd}.myworkdayjobs.com/wday/cxs/${tenant}/${site}/jobs`;
-  const data = await fetchJson(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ appliedFacets: {}, limit: 20, offset: 0, searchText: "" }),
-  });
-  const items: any[] = Array.isArray(data?.jobPostings) ? data.jobPostings : [];
-  return items.filter((it) => it?.title && it?.externalPath).map((it) => {
+
+  const LIMIT = 20;
+  const MAX_PAGES = 10;
+  const all: any[] = [];
+  let total = Infinity;
+  let logged = false;
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const offset = page * LIMIT;
+    if (offset >= total) break;
+    let data: any;
+    try {
+      data = await fetchJson(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "User-Agent": "Mozilla/5.0 (compatible; LeslieBot/1.0; +https://leslie.app)",
+        },
+        body: JSON.stringify({ appliedFacets: {}, limit: LIMIT, offset, searchText: "" }),
+      });
+    } catch (e) {
+      console.warn(`[workday:${tenant}] page ${page} (offset ${offset}) failed:`, e instanceof Error ? e.message : String(e));
+      break;
+    }
+    const items: any[] = Array.isArray(data?.jobPostings) ? data.jobPostings : [];
+    if (!logged && items[0]) {
+      console.log(`[workday:${tenant}] first posting JSON:`, JSON.stringify(items[0]));
+      logged = true;
+    }
+    total = Number(data?.total ?? items.length);
+    if (items.length === 0) break;
+    all.push(...items);
+    if (all.length >= total) break;
+  }
+  console.log(`[workday:${tenant}] fetched ${all.length}/${total === Infinity ? "?" : total} jobs from ${site}`);
+  return all.filter((it) => it?.title && it?.externalPath).map((it) => {
     // Workday detail pages are HTML and fragile — expand what list endpoint gives us.
     const bullets = Array.isArray(it.bulletFields) ? it.bulletFields : [];
     const summary = bullets.slice(1).join(" • ");
@@ -306,6 +335,7 @@ async function adapterWorkday(s: JobSource): Promise<NormalizedJob[]> {
         workday_limited_data: true,
         bullet_fields: bullets,
         job_posting_info: it.jobPostingInfo ?? null,
+        sector: s.sector ?? null,
       },
       fetched_at: nowIso(),
     };
