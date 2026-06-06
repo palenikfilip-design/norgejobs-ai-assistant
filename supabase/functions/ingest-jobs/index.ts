@@ -32,6 +32,9 @@ interface JobSource {
   country: string | null;
   sector: string | null;
   last_run_at: string | null;
+  // Set when this "source" originates from public.employer_sources rather
+  // than public.job_sources. Drives where last_run_at gets written back.
+  _origin_table?: "job_sources" | "employer_sources";
 }
 
 interface NormalizedJob {
