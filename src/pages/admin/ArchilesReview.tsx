@@ -60,6 +60,18 @@ function CompletenessBadge({ value }: { value: string }) {
 
 const DEFAULT_PAGE_SIZE = 20;
 
+const COUNTRY_OPTS: { value: string; code: string; flag: string }[] = [
+  { value: "Germany", code: "DE", flag: "🇩🇪" },
+  { value: "Sweden", code: "SE", flag: "🇸🇪" },
+  { value: "Norway", code: "NO", flag: "🇳🇴" },
+  { value: "Czechia", code: "CZ", flag: "🇨🇿" },
+  { value: "Austria", code: "AT", flag: "🇦🇹" },
+  { value: "Slovakia", code: "SK", flag: "🇸🇰" },
+  { value: "Multiple", code: "MULTI", flag: "🌐" },
+  { value: "Remote", code: "REM", flag: "🛰️" },
+  { value: "Global", code: "GLB", flag: "🌍" },
+];
+
 export default function ArchilesReview() {
   const [searchParams] = useSearchParams();
   const mode = searchParams.get("mode"); // "sparse" or null
@@ -269,7 +281,16 @@ export default function ArchilesReview() {
           </div>
           <div>
             <Label className="text-xs">Country (kód)</Label>
-            <Input value={country} onChange={(e) => { setCountry(e.target.value.toUpperCase()); setPage(0); }} placeholder="např. NO" />
+            <select
+              value={country}
+              onChange={(e) => { setCountry(e.target.value); setPage(0); }}
+              className="w-full mt-1 h-9 rounded-md border border-input bg-background px-2 text-sm"
+            >
+              <option value="">Vše</option>
+              {COUNTRY_OPTS.map((c) => (
+                <option key={c.value} value={c.value}>{c.code} {c.flag} — {c.value}</option>
+              ))}
+            </select>
           </div>
           <div>
             <Label className="text-xs">Completeness</Label>
