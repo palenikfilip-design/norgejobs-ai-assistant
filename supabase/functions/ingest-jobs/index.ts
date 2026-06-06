@@ -19,7 +19,9 @@ type SourceType =
   | "ats_smartrecruiters"
   | "ats_workday"
   | "ats_personio"
-  | "rss_feed";
+  | "rss_feed"
+  | "arbeitnow"
+  | "nav_no_feed";
 
 interface JobSource {
   id: string;
@@ -432,6 +434,8 @@ const ADAPTERS: Record<SourceType, (s: JobSource) => Promise<NormalizedJob[]>> =
   ats_workday: adapterWorkday,
   ats_personio: adapterPersonio,
   rss_feed: adapterRssFeed,
+  arbeitnow: adapterArbeitnow,
+  nav_no_feed: adapterNavNoFeed,
 };
 
 /**
