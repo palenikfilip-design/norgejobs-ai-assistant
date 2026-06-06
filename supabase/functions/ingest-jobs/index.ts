@@ -889,6 +889,11 @@ Deno.serve(async (req) => {
   }
 
   const errors = results.filter((r) => r.error);
+  const arbeitnow = results.find((r) => r.name === "Arbeitnow");
+  const nav = results.find((r) => r.name === "NAV Norway");
+  console.log(
+    `[ingest-jobs] summary — Arbeitnow: ${arbeitnow?.added ?? 0} new, NAV: ${nav?.added ?? 0} new`,
+  );
   return new Response(JSON.stringify({
     ok: errors.length === 0,
     checked: all.length,
