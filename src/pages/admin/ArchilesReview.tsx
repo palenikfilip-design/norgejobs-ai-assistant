@@ -60,6 +60,18 @@ function CompletenessBadge({ value }: { value: string }) {
 
 const DEFAULT_PAGE_SIZE = 20;
 
+const COUNTRY_OPTS: { value: string; code: string; flag: string }[] = [
+  { value: "Germany", code: "DE", flag: "🇩🇪" },
+  { value: "Sweden", code: "SE", flag: "🇸🇪" },
+  { value: "Norway", code: "NO", flag: "🇳🇴" },
+  { value: "Czechia", code: "CZ", flag: "🇨🇿" },
+  { value: "Austria", code: "AT", flag: "🇦🇹" },
+  { value: "Slovakia", code: "SK", flag: "🇸🇰" },
+  { value: "Multiple", code: "MULTI", flag: "🌐" },
+  { value: "Remote", code: "REM", flag: "🛰️" },
+  { value: "Global", code: "GLB", flag: "🌍" },
+];
+
 export default function ArchilesReview() {
   const [searchParams] = useSearchParams();
   const mode = searchParams.get("mode"); // "sparse" or null
