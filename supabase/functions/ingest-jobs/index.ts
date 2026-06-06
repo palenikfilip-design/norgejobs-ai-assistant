@@ -869,7 +869,11 @@ async function runSource(supabase: ReturnType<typeof createClient>, s: JobSource
 
     return { id: s.id, name: s.name, total: rows.length, added };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = err instanceof Error
+      ? err.message
+      : (typeof err === "object" && err !== null
+          ? (((err as any).message as string | undefined) ?? JSON.stringify(err))
+          : String(err));
     console.error(`[ingest-jobs] ${s.name} failed`, msg);
     if (s._origin_table === "employer_sources") {
       await supabase.from("employer_sources").update({ last_run_at: nowIso() }).eq("id", s.id);
