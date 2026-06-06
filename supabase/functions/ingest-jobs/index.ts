@@ -903,35 +903,39 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  let body: { source_id?: string; force?: boolean } = {};
+  let body: { source_id?: string; employer_source_id?: string; force?: boolean } = {};
   if (req.method === "POST") {
     try { body = await req.json(); } catch { /* empty ok */ }
   }
 
-  let query = supabase
-    .from("job_sources")
-    .select("id, name, source_type, tier, config, country, sector, last_run_at")
-    .eq("is_active", true);
-  if (body.source_id) query = query.eq("id", body.source_id);
+  const all: JobSource[] = [];
 
-  const { data: sources, error } = await query;
-  if (error) {
-    return new Response(JSON.stringify({ ok: false, error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+  if (!body.employer_source_id) {
+    let query = supabase
+      .from("job_sources")
+      .select("id, name, source_type, tier, config, country, sector, last_run_at")
+      .eq("is_active", true);
+    if (body.source_id) query = query.eq("id", body.source_id);
+    const { data: sources, error } = await query;
+    if (error) {
+      return new Response(JSON.stringify({ ok: false, error: error.message }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
+    for (const s of (sources ?? []) as JobSource[]) all.push(s);
   }
 
-  const all = (sources ?? []) as JobSource[];
-
-  // Also load employer-level sources (currently Workday). Skipped when caller
-  // targets a single job_sources row via source_id.
+  // Employer-level sources (currently Workday). Loaded unless caller targets a
+  // specific job_sources row via source_id.
   if (!body.source_id) {
-    const { data: emp, error: empErr } = await supabase
+    let empQuery = supabase
       .from("employer_sources")
       .select("id, company_name, ats_type, ats_config, country, sector, is_active, last_run_at")
       .eq("is_active", true)
       .eq("ats_type", "workday");
+    if (body.employer_source_id) empQuery = empQuery.eq("id", body.employer_source_id);
+    const { data: emp, error: empErr } = await empQuery;
     if (empErr) {
       console.warn("[ingest-jobs] failed to load employer_sources:", empErr.message);
     } else {
@@ -951,7 +955,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  const due = body.force || body.source_id ? all : all.filter(isDue);
+  const due = body.force || body.source_id || body.employer_source_id ? all : all.filter(isDue);
 
   const results: any[] = [];
   for (const s of due) {
