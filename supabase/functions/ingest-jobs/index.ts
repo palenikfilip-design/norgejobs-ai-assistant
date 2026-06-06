@@ -322,7 +322,9 @@ async function adapterWorkday(s: JobSource): Promise<NormalizedJob[]> {
     return {
       external_id: bullets[0] ?? it.externalPath ?? null,
       source_portal: `workday:${tenant}`,
-      source_id: s.id,
+      // employer_sources rows aren't in job_sources, so don't tag them with an
+      // FK to a row that doesn't exist.
+      source_id: s._origin_table === "employer_sources" ? null : s.id,
       title: String(it.title),
       company: s.name,
       description: summary || it.jobPostingInfo?.summary || null,
