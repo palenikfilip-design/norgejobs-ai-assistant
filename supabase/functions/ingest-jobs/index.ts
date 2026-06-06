@@ -330,12 +330,15 @@ async function adapterWorkday(s: JobSource): Promise<NormalizedJob[]> {
       country: s.country,
       url: `https://${tenant}.wd${wd}.myworkdayjobs.com${it.externalPath}`,
       job_type: null, salary_min: null, salary_max: null, currency: null,
-      posted_at: it.postedOn ?? null,
+      // Workday's list endpoint returns human-readable strings ("Posted Yesterday")
+      // for postedOn, not real timestamps — store the label in raw_data instead.
+      posted_at: null,
       raw_data: {
         workday_limited_data: true,
         bullet_fields: bullets,
         job_posting_info: it.jobPostingInfo ?? null,
         sector: s.sector ?? null,
+        posted_on_label: it.postedOn ?? null,
       },
       fetched_at: nowIso(),
     };
