@@ -844,15 +844,20 @@ async function runSource(supabase: ReturnType<typeof createClient>, s: JobSource
       }
     }
 
-    const { data: cur } = await supabase.from("job_sources").select("jobs_added_total").eq("id", s.id).maybeSingle();
-    const prev = Number((cur as any)?.jobs_added_total ?? 0);
-
-    await supabase.from("job_sources").update({
-      last_run_at: nowIso(),
-      last_run_status: "success",
-      last_error: null,
-      jobs_added_total: prev + added,
-    }).eq("id", s.id);
+    if (s._origin_table === "employer_sources") {
+      await supabase.from("employer_sources").update({
+        last_run_at: nowIso(),
+      }).eq("id", s.id);
+    } else {
+      const { data: cur } = await supabase.from("job_sources").select("jobs_added_total").eq("id", s.id).maybeSingle();
+      const prev = Number((cur as any)?.jobs_added_total ?? 0);
+      await supabase.from("job_sources").update({
+        last_run_at: nowIso(),
+        last_run_status: "success",
+        last_error: null,
+        jobs_added_total: prev + added,
+      }).eq("id", s.id);
+    }
 
     await supabase.from("ingest_logs").insert({
       source: `${s.source_type}:${s.name}`,
@@ -866,11 +871,15 @@ async function runSource(supabase: ReturnType<typeof createClient>, s: JobSource
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[ingest-jobs] ${s.name} failed`, msg);
-    await supabase.from("job_sources").update({
-      last_run_at: nowIso(),
-      last_run_status: "error",
-      last_error: msg,
-    }).eq("id", s.id);
+    if (s._origin_table === "employer_sources") {
+      await supabase.from("employer_sources").update({ last_run_at: nowIso() }).eq("id", s.id);
+    } else {
+      await supabase.from("job_sources").update({
+        last_run_at: nowIso(),
+        last_run_status: "error",
+        last_error: msg,
+      }).eq("id", s.id);
+    }
     await supabase.from("ingest_logs").insert({
       source: `${s.source_type}:${s.name}`,
       status: "error",
