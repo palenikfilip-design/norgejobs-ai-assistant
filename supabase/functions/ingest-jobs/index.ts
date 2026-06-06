@@ -426,6 +426,142 @@ async function adapterPortalApi(s: JobSource): Promise<NormalizedJob[]> {
   }).filter((j) => j.title && j.url);
 }
 
+/**
+ * Arbeitnow — public job board API, no auth.
+ * GET https://www.arbeitnow.com/api/job-board-api
+ * Paginated via links.next; cap at 5 pages.
+ */
+async function adapterArbeitnow(s: JobSource): Promise<NormalizedJob[]> {
+  const start = String(s.config?.url ?? "https://www.arbeitnow.com/api/job-board-api");
+  const MAX_PAGES = 5;
+  let next: string | null = start;
+  let page = 0;
+  const out: NormalizedJob[] = [];
+  const seenUrls = new Set<string>();
+  while (next && page < MAX_PAGES) {
+    let data: any;
+    try {
+      data = await fetchJson(next, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; LeslieBot/1.0; +https://leslie.app)",
+        },
+      });
+    } catch (e) {
+      console.warn(`[arbeitnow] page ${page} failed:`, e instanceof Error ? e.message : String(e));
+      break;
+    }
+    const items: any[] = Array.isArray(data?.data) ? data.data : [];
+    for (const it of items) {
+      const url = String(it?.url ?? "");
+      if (!url || !it?.title || seenUrls.has(url)) continue;
+      seenUrls.add(url);
+      const tags = Array.isArray(it.tags) ? it.tags : [];
+      const remote = Boolean(it.remote);
+      const location = it.location || (remote ? "Remote" : null);
+      const posted = typeof it.created_at === "number"
+        ? new Date(it.created_at * 1000).toISOString()
+        : (it.created_at ? new Date(it.created_at).toISOString() : null);
+      out.push({
+        external_id: it.slug ? String(it.slug) : url,
+        source_portal: "arbeitnow",
+        source_id: s.id,
+        title: String(it.title),
+        company: it.company_name ? String(it.company_name) : null,
+        description: stripHtml(it.description ?? null),
+        location: location ? String(location) : null,
+        country: null, // Arbeitnow does not expose a reliable country
+        url,
+        job_type: Array.isArray(it.job_types) && it.job_types[0] ? String(it.job_types[0]) : null,
+        salary_min: null, salary_max: null, currency: null,
+        salary: null,
+        posted_at: posted,
+        raw_data: { tags, remote, category: tags[0] ?? null },
+        fetched_at: nowIso(),
+      });
+    }
+    next = typeof data?.links?.next === "string" && data.links.next ? data.links.next : null;
+    page++;
+  }
+  console.log(`[arbeitnow] fetched ${out.length} items across ${page} page(s)`);
+  return out;
+}
+
+/**
+ * NAV (Norway) — pam-stilling-feed JSON Feed.
+ * Token is rotated; fetch fresh each run from /api/publicToken.
+ * Only ACTIVE items inserted. Paginated via next_url, capped at 5 pages.
+ */
+async function adapterNavNoFeed(s: JobSource): Promise<NormalizedJob[]> {
+  const tokenRes = await fetch("https://pam-stilling-feed.nav.no/api/publicToken");
+  if (!tokenRes.ok) throw new Error(`nav publicToken HTTP ${tokenRes.status}`);
+  const tokenText = (await tokenRes.text()).trim();
+  const m = tokenText.match(/eyJ[A-Za-z0-9_\-\.]+/);
+  if (!m) throw new Error("nav publicToken: no JWT found in response");
+  const token = m[0];
+
+  const MAX_PAGES = 5;
+  const start = String(s.config?.url ?? "https://pam-stilling-feed.nav.no/api/v1/feed");
+  let next: string | null = start;
+  let page = 0;
+  let logged = false;
+  const out: NormalizedJob[] = [];
+  const seenUrls = new Set<string>();
+  while (next && page < MAX_PAGES) {
+    let data: any;
+    try {
+      data = await fetchJson(next, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+          "User-Agent": "Mozilla/5.0 (compatible; LeslieBot/1.0; +https://leslie.app)",
+        },
+      });
+    } catch (e) {
+      console.warn(`[nav.no] page ${page} failed:`, e instanceof Error ? e.message : String(e));
+      break;
+    }
+    const items: any[] = Array.isArray(data?.items) ? data.items : [];
+    if (!logged && items[0]) {
+      console.log("[nav.no] first item shape:", JSON.stringify(items[0]).slice(0, 2000));
+      logged = true;
+    }
+    for (const it of items) {
+      const fe = it?._feed_entry ?? {};
+      const status = String(fe?.status ?? "").toUpperCase();
+      if (status !== "ACTIVE") continue;
+      const url = String(it?.url ?? "");
+      if (!url || seenUrls.has(url)) continue;
+      const title = it?.title || fe?.title;
+      if (!title) continue;
+      seenUrls.add(url);
+      out.push({
+        external_id: it?.id ? String(it.id) : url,
+        source_portal: "nav.no",
+        source_id: s.id,
+        title: String(title),
+        company: fe?.businessName || fe?.employer?.name || null,
+        description: null,
+        location: fe?.municipal || fe?.location || null,
+        country: "Norway",
+        url,
+        job_type: fe?.extent || null,
+        salary_min: null, salary_max: null, currency: null,
+        salary: null,
+        posted_at: it?.date_published || fe?.published || null,
+        raw_data: {
+          occupation: fe?.occupationCategories ?? fe?.occupation ?? null,
+          status,
+        },
+        fetched_at: nowIso(),
+      });
+    }
+    next = typeof data?.next_url === "string" && data.next_url ? data.next_url : null;
+    page++;
+  }
+  console.log(`[nav.no] fetched ${out.length} ACTIVE items across ${page} page(s)`);
+  return out;
+}
+
 const ADAPTERS: Record<SourceType, (s: JobSource) => Promise<NormalizedJob[]>> = {
   portal_api: adapterPortalApi,
   ats_greenhouse: adapterGreenhouse,
