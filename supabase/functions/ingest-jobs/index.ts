@@ -32,6 +32,9 @@ interface JobSource {
   country: string | null;
   sector: string | null;
   last_run_at: string | null;
+  // Set when this "source" originates from public.employer_sources rather
+  // than public.job_sources. Drives where last_run_at gets written back.
+  _origin_table?: "job_sources" | "employer_sources";
 }
 
 interface NormalizedJob {
@@ -277,20 +280,51 @@ async function adapterWorkday(s: JobSource): Promise<NormalizedJob[]> {
   const site = String(s.config.site ?? "");
   if (!tenant || !wd || !site) throw new Error("workday: missing tenant/wd/site");
   const url = `https://${tenant}.wd${wd}.myworkdayjobs.com/wday/cxs/${tenant}/${site}/jobs`;
-  const data = await fetchJson(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ appliedFacets: {}, limit: 20, offset: 0, searchText: "" }),
-  });
-  const items: any[] = Array.isArray(data?.jobPostings) ? data.jobPostings : [];
-  return items.filter((it) => it?.title && it?.externalPath).map((it) => {
+
+  const LIMIT = 20;
+  const MAX_PAGES = 10;
+  const all: any[] = [];
+  let total = Infinity;
+  let logged = false;
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const offset = page * LIMIT;
+    if (offset >= total) break;
+    let data: any;
+    try {
+      data = await fetchJson(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "User-Agent": "Mozilla/5.0 (compatible; LeslieBot/1.0; +https://leslie.app)",
+        },
+        body: JSON.stringify({ appliedFacets: {}, limit: LIMIT, offset, searchText: "" }),
+      });
+    } catch (e) {
+      console.warn(`[workday:${tenant}] page ${page} (offset ${offset}) failed:`, e instanceof Error ? e.message : String(e));
+      break;
+    }
+    const items: any[] = Array.isArray(data?.jobPostings) ? data.jobPostings : [];
+    if (!logged && items[0]) {
+      console.log(`[workday:${tenant}] first posting JSON:`, JSON.stringify(items[0]));
+      logged = true;
+    }
+    total = Number(data?.total ?? items.length);
+    if (items.length === 0) break;
+    all.push(...items);
+    if (all.length >= total) break;
+  }
+  console.log(`[workday:${tenant}] fetched ${all.length}/${total === Infinity ? "?" : total} jobs from ${site}`);
+  return all.filter((it) => it?.title && it?.externalPath).map((it) => {
     // Workday detail pages are HTML and fragile — expand what list endpoint gives us.
     const bullets = Array.isArray(it.bulletFields) ? it.bulletFields : [];
     const summary = bullets.slice(1).join(" • ");
     return {
       external_id: bullets[0] ?? it.externalPath ?? null,
       source_portal: `workday:${tenant}`,
-      source_id: s.id,
+      // employer_sources rows aren't in job_sources, so don't tag them with an
+      // FK to a row that doesn't exist.
+      source_id: s._origin_table === "employer_sources" ? null : s.id,
       title: String(it.title),
       company: s.name,
       description: summary || it.jobPostingInfo?.summary || null,
@@ -298,11 +332,15 @@ async function adapterWorkday(s: JobSource): Promise<NormalizedJob[]> {
       country: s.country,
       url: `https://${tenant}.wd${wd}.myworkdayjobs.com${it.externalPath}`,
       job_type: null, salary_min: null, salary_max: null, currency: null,
-      posted_at: it.postedOn ?? null,
+      // Workday's list endpoint returns human-readable strings ("Posted Yesterday")
+      // for postedOn, not real timestamps — store the label in raw_data instead.
+      posted_at: null,
       raw_data: {
         workday_limited_data: true,
         bullet_fields: bullets,
         job_posting_info: it.jobPostingInfo ?? null,
+        sector: s.sector ?? null,
+        posted_on_label: it.postedOn ?? null,
       },
       fetched_at: nowIso(),
     };
@@ -811,15 +849,20 @@ async function runSource(supabase: ReturnType<typeof createClient>, s: JobSource
       }
     }
 
-    const { data: cur } = await supabase.from("job_sources").select("jobs_added_total").eq("id", s.id).maybeSingle();
-    const prev = Number((cur as any)?.jobs_added_total ?? 0);
-
-    await supabase.from("job_sources").update({
-      last_run_at: nowIso(),
-      last_run_status: "success",
-      last_error: null,
-      jobs_added_total: prev + added,
-    }).eq("id", s.id);
+    if (s._origin_table === "employer_sources") {
+      await supabase.from("employer_sources").update({
+        last_run_at: nowIso(),
+      }).eq("id", s.id);
+    } else {
+      const { data: cur } = await supabase.from("job_sources").select("jobs_added_total").eq("id", s.id).maybeSingle();
+      const prev = Number((cur as any)?.jobs_added_total ?? 0);
+      await supabase.from("job_sources").update({
+        last_run_at: nowIso(),
+        last_run_status: "success",
+        last_error: null,
+        jobs_added_total: prev + added,
+      }).eq("id", s.id);
+    }
 
     await supabase.from("ingest_logs").insert({
       source: `${s.source_type}:${s.name}`,
@@ -831,13 +874,21 @@ async function runSource(supabase: ReturnType<typeof createClient>, s: JobSource
 
     return { id: s.id, name: s.name, total: rows.length, added };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = err instanceof Error
+      ? err.message
+      : (typeof err === "object" && err !== null
+          ? (((err as any).message as string | undefined) ?? JSON.stringify(err))
+          : String(err));
     console.error(`[ingest-jobs] ${s.name} failed`, msg);
-    await supabase.from("job_sources").update({
-      last_run_at: nowIso(),
-      last_run_status: "error",
-      last_error: msg,
-    }).eq("id", s.id);
+    if (s._origin_table === "employer_sources") {
+      await supabase.from("employer_sources").update({ last_run_at: nowIso() }).eq("id", s.id);
+    } else {
+      await supabase.from("job_sources").update({
+        last_run_at: nowIso(),
+        last_run_status: "error",
+        last_error: msg,
+      }).eq("id", s.id);
+    }
     await supabase.from("ingest_logs").insert({
       source: `${s.source_type}:${s.name}`,
       status: "error",
@@ -861,27 +912,59 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  let body: { source_id?: string; force?: boolean } = {};
+  let body: { source_id?: string; employer_source_id?: string; force?: boolean } = {};
   if (req.method === "POST") {
     try { body = await req.json(); } catch { /* empty ok */ }
   }
 
-  let query = supabase
-    .from("job_sources")
-    .select("id, name, source_type, tier, config, country, sector, last_run_at")
-    .eq("is_active", true);
-  if (body.source_id) query = query.eq("id", body.source_id);
+  const all: JobSource[] = [];
 
-  const { data: sources, error } = await query;
-  if (error) {
-    return new Response(JSON.stringify({ ok: false, error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+  if (!body.employer_source_id) {
+    let query = supabase
+      .from("job_sources")
+      .select("id, name, source_type, tier, config, country, sector, last_run_at")
+      .eq("is_active", true);
+    if (body.source_id) query = query.eq("id", body.source_id);
+    const { data: sources, error } = await query;
+    if (error) {
+      return new Response(JSON.stringify({ ok: false, error: error.message }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
+    for (const s of (sources ?? []) as JobSource[]) all.push(s);
   }
 
-  const all = (sources ?? []) as JobSource[];
-  const due = body.force || body.source_id ? all : all.filter(isDue);
+  // Employer-level sources (currently Workday). Loaded unless caller targets a
+  // specific job_sources row via source_id.
+  if (!body.source_id) {
+    let empQuery = supabase
+      .from("employer_sources")
+      .select("id, company_name, ats_type, ats_config, country, sector, is_active, last_run_at")
+      .eq("is_active", true)
+      .eq("ats_type", "workday");
+    if (body.employer_source_id) empQuery = empQuery.eq("id", body.employer_source_id);
+    const { data: emp, error: empErr } = await empQuery;
+    if (empErr) {
+      console.warn("[ingest-jobs] failed to load employer_sources:", empErr.message);
+    } else {
+      for (const e of (emp ?? []) as any[]) {
+        all.push({
+          id: e.id,
+          name: e.company_name,
+          source_type: "ats_workday",
+          tier: 1,
+          config: (e.ats_config ?? {}) as Record<string, any>,
+          country: e.country ?? null,
+          sector: e.sector ?? null,
+          last_run_at: e.last_run_at ?? null,
+          _origin_table: "employer_sources",
+        });
+      }
+    }
+  }
+
+  const due = body.force || body.source_id || body.employer_source_id ? all : all.filter(isDue);
 
   const results: any[] = [];
   for (const s of due) {
