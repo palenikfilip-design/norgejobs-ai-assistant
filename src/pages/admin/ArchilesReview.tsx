@@ -269,7 +269,16 @@ export default function ArchilesReview() {
           </div>
           <div>
             <Label className="text-xs">Country (kód)</Label>
-            <Input value={country} onChange={(e) => { setCountry(e.target.value.toUpperCase()); setPage(0); }} placeholder="např. NO" />
+            <select
+              value={country}
+              onChange={(e) => { setCountry(e.target.value); setPage(0); }}
+              className="w-full mt-1 h-9 rounded-md border border-input bg-background px-2 text-sm"
+            >
+              <option value="">Vše</option>
+              {COUNTRY_OPTS.map((c) => (
+                <option key={c.value} value={c.value}>{c.code} {c.flag} — {c.value}</option>
+              ))}
+            </select>
           </div>
           <div>
             <Label className="text-xs">Completeness</Label>
