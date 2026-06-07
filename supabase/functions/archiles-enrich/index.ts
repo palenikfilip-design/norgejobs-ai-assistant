@@ -282,8 +282,7 @@ Return ONLY valid JSON with these fields:
   "description_quality": "high" | "medium" | "low",
   "red_flags": ["upfront_payment", "no_contract_info", "vague_description", "too_good_to_be_true", "missing_employer_info", "none"],
   "positions_available": 1,
-  "confidence": 0-100
-  ,
+  "confidence": 0-100,
   "country_resolved": "United States" | "Norway" | "Germany" | ... | null,
   "country_confidence": "high" | "medium" | "low"
 }
