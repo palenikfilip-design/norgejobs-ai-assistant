@@ -318,7 +318,6 @@ Be conservative. If unsure, use "unknown" or null. Better to mark for human revi
   }
   const data = await res.json();
   const content = data?.choices?.[0]?.message?.content ?? "{}";
-  console.log("[archiles-enrich] AI raw content:", String(content).slice(0, 500));
   try {
     return typeof content === "string" ? JSON.parse(content) : content;
   } catch {
