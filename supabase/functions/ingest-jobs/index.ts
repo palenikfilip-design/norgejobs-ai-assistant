@@ -17,6 +17,7 @@ type SourceType =
   | "ats_greenhouse"
   | "ats_lever"
   | "ats_smartrecruiters"
+  | "ats_smartrecruiters_employer"
   | "ats_workday"
   | "ats_personio"
   | "rss_feed"
