@@ -830,7 +830,7 @@ async function enrichNewJobs(
       await fetchDetailGreenhouse(s, j);
       await sleep(200); // 5 req/s
     }
-  } else if (s.source_type === "ats_smartrecruiters") {
+  } else if (s.source_type === "ats_smartrecruiters" || s.source_type === "ats_smartrecruiters_employer") {
     for (const j of newJobs) {
       await fetchDetailSmartRecruiters(s, j);
       await sleep(340); // ~3 req/s
