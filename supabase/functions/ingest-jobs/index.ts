@@ -498,29 +498,40 @@ async function adapterWorkable(s: JobSource): Promise<NormalizedJob[]> {
   const account = String(s.config.account ?? "");
   if (!account) throw new Error("workable: missing config.account");
   const MAX_PAGES = 10;
-  let next: string | null = `https://apply.workable.com/api/v3/accounts/${encodeURIComponent(account)}/jobs`;
-  let page = 0;
+  // The v3 endpoint is a POST (returns results[] + nextPage cursor token).
+  const endpoint = `https://apply.workable.com/api/v3/accounts/${encodeURIComponent(account)}/jobs`;
   const all: any[] = [];
   let logged = false;
-  while (next && page < MAX_PAGES) {
-    let data: any;
+  let token: string | null = null;
+  let page = 0;
+  for (; page < MAX_PAGES; page++) {
+    const body = JSON.stringify(token ? { token } : {});
+    let res: Response;
     try {
-      data = await fetchJson(next);
+      res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body,
+      });
     } catch (e) {
-      console.warn(`[workable:${account}] page ${page} failed:`, e instanceof Error ? e.message : String(e));
+      console.warn(`[workable:${account}] page ${page} fetch error:`, e instanceof Error ? e.message : String(e));
       break;
     }
+    if (!res.ok) {
+      console.warn(`[workable:${account}] page ${page} HTTP ${res.status}`);
+      break;
+    }
+    const data: any = await res.json();
     const items: any[] = Array.isArray(data?.results) ? data.results
-      : Array.isArray(data?.jobs) ? data.jobs
-      : Array.isArray(data) ? data : [];
+      : Array.isArray(data?.jobs) ? data.jobs : [];
     if (!logged && items[0]) {
       console.log(`[workable:${account}] first posting JSON:`, JSON.stringify(items[0]));
       logged = true;
     }
     if (items.length === 0) break;
     all.push(...items);
-    next = typeof data?.paging?.next === "string" && data.paging.next ? data.paging.next : null;
-    page++;
+    token = typeof data?.nextPage === "string" && data.nextPage ? data.nextPage : null;
+    if (!token) { page++; break; }
   }
   console.log(`[workable:${account}] fetched ${all.length} jobs across ${page} page(s)`);
 
