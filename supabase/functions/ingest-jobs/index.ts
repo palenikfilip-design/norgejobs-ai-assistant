@@ -950,7 +950,7 @@ async function runSource(supabase: ReturnType<typeof createClient>, s: JobSource
       duration_ms: Date.now() - started,
     });
 
-    return { id: s.id, name: s.name, total: rows.length, added };
+    return { id: s.id, name: s.name, source_type: s.source_type, total: rows.length, fetched: rows.length, added };
   } catch (err) {
     const msg = err instanceof Error
       ? err.message
