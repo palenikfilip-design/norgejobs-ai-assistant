@@ -1259,6 +1259,7 @@ Deno.serve(async (req) => {
       .in("ats_type", ["workday", "smartrecruiters", "workable", "recruitee", "personio", "ashby"]);
     if (body.employer_source_id) empQuery = empQuery.eq("id", body.employer_source_id);
     const { data: emp, error: empErr } = await empQuery;
+    console.log(`[ingest-jobs] employer_sources query: error=${empErr?.message ?? "none"} count=${emp?.length ?? 0} employer_source_id=${body.employer_source_id ?? "none"}`);
     if (empErr) {
       console.warn("[ingest-jobs] failed to load employer_sources:", empErr.message);
     } else {
