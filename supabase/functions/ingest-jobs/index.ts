@@ -20,6 +20,10 @@ type SourceType =
   | "ats_smartrecruiters_employer"
   | "ats_workday"
   | "ats_personio"
+  | "ats_personio_employer"
+  | "ats_workable"
+  | "ats_recruitee"
+  | "ats_ashby"
   | "rss_feed"
   | "arbeitnow"
   | "nav_no_feed";
