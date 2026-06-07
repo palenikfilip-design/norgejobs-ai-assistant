@@ -1013,24 +1013,26 @@ Deno.serve(async (req) => {
     for (const s of (sources ?? []) as JobSource[]) all.push(s);
   }
 
-  // Employer-level sources (currently Workday). Loaded unless caller targets a
-  // specific job_sources row via source_id.
+  // Employer-level sources (Workday + SmartRecruiters). Loaded unless caller
+  // targets a specific job_sources row via source_id.
   if (!body.source_id) {
     let empQuery = supabase
       .from("employer_sources")
       .select("id, company_name, ats_type, ats_config, country, sector, is_active, last_run_at")
       .eq("is_active", true)
-      .eq("ats_type", "workday");
+      .in("ats_type", ["workday", "smartrecruiters"]);
     if (body.employer_source_id) empQuery = empQuery.eq("id", body.employer_source_id);
     const { data: emp, error: empErr } = await empQuery;
     if (empErr) {
       console.warn("[ingest-jobs] failed to load employer_sources:", empErr.message);
     } else {
       for (const e of (emp ?? []) as any[]) {
+        const source_type: SourceType =
+          e.ats_type === "smartrecruiters" ? "ats_smartrecruiters_employer" : "ats_workday";
         all.push({
           id: e.id,
           name: e.company_name,
-          source_type: "ats_workday",
+          source_type,
           tier: 1,
           config: (e.ats_config ?? {}) as Record<string, any>,
           country: e.country ?? null,
@@ -1052,6 +1054,10 @@ Deno.serve(async (req) => {
   const errors = results.filter((r) => r.error);
   const arbeitnow = results.find((r) => r.name === "Arbeitnow");
   const nav = results.find((r) => r.name === "NAV Norway");
+  const srResults = results.filter((r) => r.source_type === "ats_smartrecruiters_employer");
+  for (const r of srResults) {
+    console.log(`[ingest-jobs] SmartRecruiters ${r.name}: ${r.fetched ?? r.added ?? 0} found, ${r.added ?? 0} new`);
+  }
   console.log(
     `[ingest-jobs] summary — Arbeitnow: ${arbeitnow?.added ?? 0} new, NAV: ${nav?.added ?? 0} new`,
   );
