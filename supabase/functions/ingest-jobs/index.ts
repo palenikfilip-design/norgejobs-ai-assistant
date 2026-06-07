@@ -1256,15 +1256,26 @@ Deno.serve(async (req) => {
       .from("employer_sources")
       .select("id, company_name, ats_type, ats_config, country, sector, is_active, last_run_at")
       .eq("is_active", true)
-      .in("ats_type", ["workday", "smartrecruiters"]);
+      .in("ats_type", ["workday", "smartrecruiters", "workable", "recruitee", "personio", "ashby"]);
     if (body.employer_source_id) empQuery = empQuery.eq("id", body.employer_source_id);
     const { data: emp, error: empErr } = await empQuery;
     if (empErr) {
       console.warn("[ingest-jobs] failed to load employer_sources:", empErr.message);
     } else {
       for (const e of (emp ?? []) as any[]) {
-        const source_type: SourceType =
-          e.ats_type === "smartrecruiters" ? "ats_smartrecruiters_employer" : "ats_workday";
+        const map: Record<string, SourceType> = {
+          smartrecruiters: "ats_smartrecruiters_employer",
+          workday: "ats_workday",
+          workable: "ats_workable",
+          recruitee: "ats_recruitee",
+          personio: "ats_personio_employer",
+          ashby: "ats_ashby",
+        };
+        const source_type = map[e.ats_type as string];
+        if (!source_type) {
+          console.warn(`[ingest-jobs] employer_sources ${e.id}: unknown ats_type=${e.ats_type}`);
+          continue;
+        }
         all.push({
           id: e.id,
           name: e.company_name,
