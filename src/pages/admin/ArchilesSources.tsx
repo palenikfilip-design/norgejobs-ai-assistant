@@ -463,7 +463,27 @@ export default function ArchilesSources() {
               </div>
               <div>
                 <Label className="text-xs">ATS type</Label>
-                <Input value={empDraft.ats_type} onChange={(ev) => setEmpDraft({ ...empDraft, ats_type: ev.target.value })} placeholder="workday" />
+                <select
+                  value={empDraft.ats_type}
+                  onChange={(ev) => {
+                    const t = ev.target.value;
+                    const isSr = t === "smartrecruiters";
+                    const isWd = t === "workday";
+                    // Swap to a sensible default JSON when switching types and the
+                    // current value still matches the previous default.
+                    const currentTrim = (empDraft.ats_config ?? "").trim();
+                    const wdDefault = '{"tenant":"","wd":3,"site":""}';
+                    const srDefault = '{"company":""}';
+                    let nextConfig = empDraft.ats_config;
+                    if (isSr && (currentTrim === "" || currentTrim === wdDefault)) nextConfig = srDefault;
+                    if (isWd && (currentTrim === "" || currentTrim === srDefault)) nextConfig = wdDefault;
+                    setEmpDraft({ ...empDraft, ats_type: t, ats_config: nextConfig });
+                  }}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="workday">workday</option>
+                  <option value="smartrecruiters">smartrecruiters</option>
+                </select>
               </div>
               <div>
                 <Label className="text-xs">Country</Label>
@@ -485,6 +505,8 @@ export default function ArchilesSources() {
               />
               <p className="text-[10px] text-muted-foreground mt-1">
                 Workday: <code>{`{"tenant":"...","wd":3,"site":"..."}`}</code>
+                {" · "}
+                SmartRecruiters: <code>{`{"company":"<slug-from-careers-url>"}`}</code>
               </p>
             </div>
             <div className="flex items-center gap-3">
