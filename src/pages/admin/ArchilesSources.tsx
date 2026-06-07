@@ -71,6 +71,13 @@ export default function ArchilesSources() {
   const [empDeleteId, setEmpDeleteId] = useState<string | null>(null);
   const [empSaving, setEmpSaving] = useState(false);
 
+  // Add-employer-by-URL detector
+  const [detectUrl, setDetectUrl] = useState("");
+  const [detectCompany, setDetectCompany] = useState("");
+  const [detecting, setDetecting] = useState(false);
+  const [detectResult, setDetectResult] = useState<any>(null);
+  const [activating, setActivating] = useState(false);
+
   // Investigate
   const [invUrl, setInvUrl] = useState("");
   const [invCompany, setInvCompany] = useState("");
@@ -142,6 +149,47 @@ export default function ArchilesSources() {
   const deleteEmployer = async (id: string) => {
     const { error } = await supabase.from("employer_sources").delete().eq("id", id);
     if (error) toast.error(error.message); else { toast.success("Smazáno"); loadEmployers(); setEmpDeleteId(null); }
+  };
+
+  const runDetect = async () => {
+    if (!detectUrl.trim()) return;
+    setDetecting(true);
+    setDetectResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("detect-ats", {
+        body: { url: detectUrl.trim(), company_name: detectCompany.trim() || undefined },
+      });
+      if (error) throw error;
+      setDetectResult(data);
+      if (!data?.detected) toast.error("Couldn't detect a supported ATS at this URL");
+      else toast.success(`Detekováno: ${data.ats_type} (${data.test_job_count} jobs)`);
+      loadEmployers();
+    } catch (e: any) {
+      toast.error(`Detekce selhala: ${e.message ?? e}`);
+    } finally {
+      setDetecting(false);
+    }
+  };
+
+  const activateDetected = async () => {
+    if (!detectResult?.employer_source_id) return;
+    setActivating(true);
+    try {
+      const { error } = await supabase
+        .from("employer_sources")
+        .update({ is_active: true })
+        .eq("id", detectResult.employer_source_id);
+      if (error) throw error;
+      toast.success("Aktivováno");
+      setDetectResult(null);
+      setDetectUrl("");
+      setDetectCompany("");
+      loadEmployers();
+    } catch (e: any) {
+      toast.error(`Aktivace selhala: ${e.message ?? e}`);
+    } finally {
+      setActivating(false);
+    }
   };
 
   const openEmpEditor = (e?: EmployerSource) => {
