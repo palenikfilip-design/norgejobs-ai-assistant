@@ -467,22 +467,31 @@ export default function ArchilesSources() {
                   value={empDraft.ats_type}
                   onChange={(ev) => {
                     const t = ev.target.value;
-                    const isSr = t === "smartrecruiters";
-                    const isWd = t === "workday";
                     // Swap to a sensible default JSON when switching types and the
-                    // current value still matches the previous default.
+                    // current value still matches one of the known defaults (or is empty).
+                    const defaults: Record<string, string> = {
+                      workday: '{"tenant":"","wd":3,"site":""}',
+                      smartrecruiters: '{"company":""}',
+                      workable: '{"account":""}',
+                      recruitee: '{"company":""}',
+                      personio: '{"company":""}',
+                      ashby: '{"jobBoardName":""}',
+                    };
+                    const knownDefaults = new Set(Object.values(defaults));
                     const currentTrim = (empDraft.ats_config ?? "").trim();
-                    const wdDefault = '{"tenant":"","wd":3,"site":""}';
-                    const srDefault = '{"company":""}';
-                    let nextConfig = empDraft.ats_config;
-                    if (isSr && (currentTrim === "" || currentTrim === wdDefault)) nextConfig = srDefault;
-                    if (isWd && (currentTrim === "" || currentTrim === srDefault)) nextConfig = wdDefault;
+                    const nextConfig = (currentTrim === "" || knownDefaults.has(currentTrim))
+                      ? (defaults[t] ?? empDraft.ats_config)
+                      : empDraft.ats_config;
                     setEmpDraft({ ...empDraft, ats_type: t, ats_config: nextConfig });
                   }}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   <option value="workday">workday</option>
                   <option value="smartrecruiters">smartrecruiters</option>
+                  <option value="workable">workable</option>
+                  <option value="recruitee">recruitee</option>
+                  <option value="personio">personio</option>
+                  <option value="ashby">ashby</option>
                 </select>
               </div>
               <div>
@@ -503,11 +512,14 @@ export default function ArchilesSources() {
                 className="font-mono text-xs"
                 placeholder='{"tenant":"equinor","wd":3,"site":"EQNR"}'
               />
-              <p className="text-[10px] text-muted-foreground mt-1">
-                Workday: <code>{`{"tenant":"...","wd":3,"site":"..."}`}</code>
-                {" · "}
-                SmartRecruiters: <code>{`{"company":"<slug-from-careers-url>"}`}</code>
-              </p>
+              <div className="text-[10px] text-muted-foreground mt-1 space-y-1">
+                <p><strong>Workday</strong> <code>{`{"tenant":"equinor","wd":3,"site":"EQNR"}`}</code> — z URL <code>{`{tenant}.wd{wd}.myworkdayjobs.com/{site}`}</code></p>
+                <p><strong>SmartRecruiters</strong> <code>{`{"company":"MSC-MediterraneanShippingCompany"}`}</code> — slug z <code>jobs.smartrecruiters.com/{`{slug}`}</code></p>
+                <p><strong>Workable</strong> <code>{`{"account":"ryanair"}`}</code> — subdoména z <code>apply.workable.com/{`{account}`}</code></p>
+                <p><strong>Recruitee</strong> <code>{`{"company":"acme"}`}</code> — subdoména z <code>{`{company}`}.recruitee.com</code></p>
+                <p><strong>Personio</strong> <code>{`{"company":"acme"}`}</code> — subdoména z <code>{`{company}`}.jobs.personio.com</code></p>
+                <p><strong>Ashby</strong> <code>{`{"jobBoardName":"acme"}`}</code> — slug z <code>jobs.ashbyhq.com/{`{jobBoardName}`}</code></p>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <Switch checked={empDraft.is_active} onCheckedChange={(v) => setEmpDraft({ ...empDraft, is_active: v })} />
