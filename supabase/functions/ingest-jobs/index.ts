@@ -682,6 +682,7 @@ const ADAPTERS: Record<SourceType, (s: JobSource) => Promise<NormalizedJob[]>> =
   ats_greenhouse: adapterGreenhouse,
   ats_lever: adapterLever,
   ats_smartrecruiters: adapterSmartRecruiters,
+  ats_smartrecruiters_employer: adapterSmartRecruitersEmployer,
   ats_workday: adapterWorkday,
   ats_personio: adapterPersonio,
   rss_feed: adapterRssFeed,
