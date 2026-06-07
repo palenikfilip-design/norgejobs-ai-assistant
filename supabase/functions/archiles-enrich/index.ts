@@ -283,9 +283,19 @@ Return ONLY valid JSON with these fields:
   "red_flags": ["upfront_payment", "no_contract_info", "vague_description", "too_good_to_be_true", "missing_employer_info", "none"],
   "positions_available": 1,
   "confidence": 0-100
+  ,
+  "country_resolved": "United States" | "Norway" | "Germany" | ... | null,
+  "country_confidence": "high" | "medium" | "low"
 }
 
 Detect how many positions are offered. Look for phrases like "hiring 5 chefs", "X positions available", "více pozic", "multiple positions", "X otevřených pozic". If found, return that integer for positions_available. If not mentioned, default to 1.
+
+Resolve country_resolved from the Location string above:
+- If the Location contains an explicit country name (Norway, United Kingdom, United States, Brazil, Germany, ...) → use that country name in English.
+- If it contains a US state or well-known US city (New York, Brooklyn, Houston, Texas, San Francisco, Seattle, ...) → "United States".
+- If it contains a UK city (London, Manchester, Edinburgh, ...) → "United Kingdom".
+- If it is "Multiple Locations", "2 Locations", "Remote", empty, or otherwise ambiguous → null. DO NOT GUESS.
+Set country_confidence accordingly: "high" when a country/state/major city is unambiguous; "medium" when reasonably likely; "low" when unsure (and prefer null + low).
 
 Be conservative. If unsure, use "unknown" or null. Better to mark for human review than guess wrong.`;
 
