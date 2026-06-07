@@ -994,6 +994,7 @@ Deno.serve(async (req) => {
   if (req.method === "POST") {
     try { body = await req.json(); } catch { /* empty ok */ }
   }
+  console.log("[ingest-jobs] body=", JSON.stringify(body));
 
   const all: JobSource[] = [];
 
