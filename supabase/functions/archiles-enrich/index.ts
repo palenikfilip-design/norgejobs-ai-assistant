@@ -506,6 +506,9 @@ async function enrichJob(
       data_completeness: completeness.label,
       enriched_at: new Date().toISOString(),
     };
+    if (resolvedCountryChange) {
+      updatePayload.country = resolvedCountryChange;
+    }
     // Persist backfilled description / raw_data from late Greenhouse detail refetch.
     if (lateDetail?.description) {
       updatePayload.description = job.description;
