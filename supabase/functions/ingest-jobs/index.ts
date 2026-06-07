@@ -489,6 +489,234 @@ async function adapterRssFeed(s: JobSource): Promise<NormalizedJob[]> {
   }).filter((j) => j.title && j.url);
 }
 
+/**
+ * Workable — public board API, no auth.
+ * GET https://apply.workable.com/api/v3/accounts/{account}/jobs
+ * Cursor pagination via `paging.next` (URL) when present. Cap 10 pages.
+ */
+async function adapterWorkable(s: JobSource): Promise<NormalizedJob[]> {
+  const account = String(s.config.account ?? "");
+  if (!account) throw new Error("workable: missing config.account");
+  const MAX_PAGES = 10;
+  let next: string | null = `https://apply.workable.com/api/v3/accounts/${encodeURIComponent(account)}/jobs`;
+  let page = 0;
+  const all: any[] = [];
+  let logged = false;
+  while (next && page < MAX_PAGES) {
+    let data: any;
+    try {
+      data = await fetchJson(next);
+    } catch (e) {
+      console.warn(`[workable:${account}] page ${page} failed:`, e instanceof Error ? e.message : String(e));
+      break;
+    }
+    const items: any[] = Array.isArray(data?.results) ? data.results
+      : Array.isArray(data?.jobs) ? data.jobs
+      : Array.isArray(data) ? data : [];
+    if (!logged && items[0]) {
+      console.log(`[workable:${account}] first posting JSON:`, JSON.stringify(items[0]));
+      logged = true;
+    }
+    if (items.length === 0) break;
+    all.push(...items);
+    next = typeof data?.paging?.next === "string" && data.paging.next ? data.paging.next : null;
+    page++;
+  }
+  console.log(`[workable:${account}] fetched ${all.length} jobs across ${page} page(s)`);
+
+  return all
+    .filter((it) => it?.title && (it?.shortcode || it?.url || it?.id))
+    .map((it) => {
+      const city = it?.location?.city ?? null;
+      const country = it?.location?.country ?? it?.location?.country_code ?? null;
+      const loc = [city, country].filter(Boolean).join(", ") || (it?.location?.remote ? "Remote" : null);
+      const url = String(it?.url || (it?.shortcode ? `https://apply.workable.com/${account}/j/${it.shortcode}/` : ""));
+      return {
+        external_id: it.shortcode ? String(it.shortcode) : (it.id ? String(it.id) : null),
+        source_portal: `workable:${account}`,
+        source_id: s._origin_table === "employer_sources" ? null : s.id,
+        title: String(it.title),
+        company: s.name,
+        description: null,
+        location: loc,
+        country: country || null,
+        url,
+        job_type: it?.employment_type ?? null,
+        salary_min: null, salary_max: null, currency: null,
+        posted_at: it?.published_on ?? it?.created_at ?? null,
+        raw_data: {
+          sector: s.sector ?? null,
+          department: it?.department ?? null,
+          display_category: it?.department ?? null,
+          wk_remote: it?.location?.remote ?? null,
+          employer_source_country: s.country ?? null,
+        },
+        fetched_at: nowIso(),
+      } as NormalizedJob;
+    });
+}
+
+/**
+ * Recruitee — public offers feed, no auth.
+ * GET https://{company}.recruitee.com/api/offers/
+ */
+async function adapterRecruitee(s: JobSource): Promise<NormalizedJob[]> {
+  const company = String(s.config.company ?? "");
+  if (!company) throw new Error("recruitee: missing config.company");
+  let data: any;
+  try {
+    data = await fetchJson(`https://${encodeURIComponent(company)}.recruitee.com/api/offers/`);
+  } catch (e) {
+    console.warn(`[recruitee:${company}] fetch failed:`, e instanceof Error ? e.message : String(e));
+    return [];
+  }
+  const items: any[] = Array.isArray(data?.offers) ? data.offers : [];
+  if (items[0]) console.log(`[recruitee:${company}] first posting JSON:`, JSON.stringify(items[0]));
+  console.log(`[recruitee:${company}] fetched ${items.length} offers`);
+
+  return items
+    .filter((o) => o?.title && (o?.careers_url || o?.careers_apply_url || o?.id))
+    .map((o) => {
+      const country = o?.country_code ?? o?.country ?? null;
+      const loc = o?.location || [o?.city, country].filter(Boolean).join(", ") || null;
+      const url = String(o?.careers_url || o?.careers_apply_url || "");
+      return {
+        external_id: o?.id != null ? String(o.id) : (o?.slug ?? null),
+        source_portal: `recruitee:${company}`,
+        source_id: s._origin_table === "employer_sources" ? null : s.id,
+        title: String(o.title),
+        company: s.name,
+        description: stripHtml(o?.description ?? null),
+        location: loc ? String(loc) : null,
+        country: country || null,
+        url,
+        job_type: o?.employment_type_code ?? o?.employment_type ?? null,
+        salary_min: null, salary_max: null, currency: null,
+        posted_at: o?.published_at ?? o?.created_at ?? null,
+        raw_data: {
+          sector: s.sector ?? null,
+          department: o?.department ?? null,
+          display_category: o?.department ?? null,
+          rc_remote: o?.remote ?? null,
+          employer_source_country: s.country ?? null,
+        },
+        fetched_at: nowIso(),
+      } as NormalizedJob;
+    });
+}
+
+/**
+ * Personio (employer-level via employer_sources) — XML feed.
+ * GET https://{company}.jobs.personio.com/xml?language=en
+ * Mirrors adapterPersonio but sets country=null so Archiles normalizes from `office`.
+ */
+async function adapterPersonioEmployer(s: JobSource): Promise<NormalizedJob[]> {
+  const company = String(s.config.company ?? "");
+  if (!company) throw new Error("personio_employer: missing config.company");
+  const xml = await fetchText(`https://${company}.jobs.personio.com/xml?language=en`);
+  const positions = [...xml.matchAll(/<position[\s\S]*?<\/position>/g)].map((m) => m[0]);
+  const get = (block: string, tag: string) => {
+    const m = block.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`));
+    if (!m) return null;
+    return m[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").trim();
+  };
+  if (positions[0]) console.log(`[personio:${company}] first posting JSON:`, JSON.stringify({
+    id: get(positions[0], "id"),
+    name: get(positions[0], "name"),
+    office: get(positions[0], "office"),
+    recruitingCategory: get(positions[0], "recruitingCategory"),
+    createdAt: get(positions[0], "createdAt"),
+  }));
+  console.log(`[personio:${company}] fetched ${positions.length} positions`);
+
+  return positions.map((p) => {
+    const id = get(p, "id");
+    const url = id ? `https://${company}.jobs.personio.com/job/${id}` : "";
+    return {
+      external_id: id,
+      source_portal: `personio:${company}`,
+      source_id: s._origin_table === "employer_sources" ? null : s.id,
+      title: get(p, "name") ?? "",
+      company: s.name,
+      description: stripHtml(get(p, "jobDescriptions")),
+      location: get(p, "office"),
+      country: null, // Archiles resolves from office text
+      url,
+      job_type: get(p, "schedule"),
+      salary_min: null, salary_max: null, currency: null,
+      posted_at: get(p, "createdAt"),
+      raw_data: {
+        sector: s.sector ?? null,
+        department: get(p, "department"),
+        display_category: get(p, "recruitingCategory"),
+        recruitingCategory: get(p, "recruitingCategory"),
+        employer_source_country: s.country ?? null,
+      },
+      fetched_at: nowIso(),
+    } as NormalizedJob;
+  }).filter((j) => j.title && j.url);
+}
+
+/**
+ * Ashby — public job board API, no auth.
+ * GET https://api.ashbyhq.com/posting-api/job-board/{slug}?includeCompensation=true
+ */
+async function adapterAshby(s: JobSource): Promise<NormalizedJob[]> {
+  const slug = String(s.config.jobBoardName ?? s.config.slug ?? "");
+  if (!slug) throw new Error("ashby: missing config.jobBoardName");
+  let data: any;
+  try {
+    data = await fetchJson(
+      `https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(slug)}?includeCompensation=true`,
+    );
+  } catch (e) {
+    console.warn(`[ashby:${slug}] fetch failed:`, e instanceof Error ? e.message : String(e));
+    return [];
+  }
+  const items: any[] = Array.isArray(data?.jobs) ? data.jobs : [];
+  if (items[0]) console.log(`[ashby:${slug}] first posting JSON:`, JSON.stringify(items[0]));
+  console.log(`[ashby:${slug}] fetched ${items.length} jobs`);
+
+  return items
+    .filter((j) => j?.title && (j?.jobUrl || j?.applicationUrl || j?.id))
+    .map((j) => {
+      const loc = j?.location || (j?.isRemote ? "Remote" : null);
+      const url = String(j?.jobUrl || j?.applicationUrl || "");
+      // Compensation: pick first tier summary if present.
+      let salary: string | null = null;
+      const tiers = Array.isArray(j?.compensation?.compensationTierSummary)
+        ? j.compensation.compensationTierSummary
+        : (j?.compensation?.compensationTierSummary
+            ? [j.compensation.compensationTierSummary]
+            : []);
+      if (tiers.length > 0 && typeof tiers[0] === "string") salary = tiers[0];
+      return {
+        external_id: j?.id ? String(j.id) : null,
+        source_portal: `ashby:${slug}`,
+        source_id: s._origin_table === "employer_sources" ? null : s.id,
+        title: String(j.title),
+        company: s.name,
+        description: stripHtml(j?.descriptionHtml ?? j?.descriptionPlain ?? null),
+        location: loc ? String(loc) : null,
+        country: null, // Archiles resolves
+        url,
+        job_type: j?.employmentType ?? null,
+        salary_min: null, salary_max: null, currency: null,
+        salary,
+        posted_at: j?.publishedAt ?? null,
+        raw_data: {
+          sector: s.sector ?? null,
+          department: j?.department ?? null,
+          display_category: j?.department ?? null,
+          team: j?.team ?? null,
+          isRemote: j?.isRemote ?? null,
+          employer_source_country: s.country ?? null,
+        },
+        fetched_at: nowIso(),
+      } as NormalizedJob;
+    });
+}
+
 async function adapterPortalApi(s: JobSource): Promise<NormalizedJob[]> {
   const url = String(s.config.url ?? "");
   if (!url) throw new Error("portal_api: missing config.url");
