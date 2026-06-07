@@ -17,6 +17,7 @@ type SourceType =
   | "ats_greenhouse"
   | "ats_lever"
   | "ats_smartrecruiters"
+  | "ats_smartrecruiters_employer"
   | "ats_workday"
   | "ats_personio"
   | "rss_feed"
@@ -355,6 +356,74 @@ async function adapterWorkday(s: JobSource): Promise<NormalizedJob[]> {
   });
 }
 
+async function adapterSmartRecruitersEmployer(s: JobSource): Promise<NormalizedJob[]> {
+  const company = String(s.config.company ?? "");
+  if (!company) throw new Error("smartrecruiters_employer: missing config.company");
+
+  const LIMIT = 100;
+  const MAX_PAGES = 10;
+  const all: any[] = [];
+  let total = Infinity;
+  let logged = false;
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const offset = page * LIMIT;
+    if (offset >= total) break;
+    let data: any;
+    try {
+      data = await fetchJson(
+        `https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(company)}/postings?limit=${LIMIT}&offset=${offset}`,
+      );
+    } catch (e) {
+      console.warn(`[smartrecruiters:${company}] page ${page} (offset ${offset}) failed:`, e instanceof Error ? e.message : String(e));
+      break;
+    }
+    const items: any[] = Array.isArray(data?.content) ? data.content : [];
+    if (!logged && items[0]) {
+      console.log(`[smartrecruiters:${company}] first posting JSON:`, JSON.stringify(items[0]));
+      logged = true;
+    }
+    total = Number(data?.totalFound ?? items.length);
+    if (items.length === 0) break;
+    all.push(...items);
+    if (all.length >= total) break;
+  }
+  console.log(`[smartrecruiters:${company}] fetched ${all.length}/${total === Infinity ? "?" : total} jobs`);
+
+  return all
+    .filter((it) => it?.name && (it?.ref || it?.id))
+    .map((it) => {
+      const city = it?.location?.city ?? null;
+      const country = it?.location?.country ?? null;
+      const loc = [city, country].filter(Boolean).join(", ") || (it?.location?.remote ? "Remote" : null);
+      const url = it?.ref || `https://jobs.smartrecruiters.com/${company}/${it.id}`;
+      return {
+        external_id: it.id ? String(it.id) : null,
+        source_portal: `smartrecruiters:${company}`,
+        // employer_sources rows aren't in job_sources — skip the FK.
+        source_id: s._origin_table === "employer_sources" ? null : s.id,
+        title: String(it.name),
+        company: s.name,
+        description: null,
+        location: loc,
+        // SmartRecruiters gives country per posting — trust it, not the
+        // employer HQ. Keep HQ as a low-confidence fallback in raw_data.
+        country: country || null,
+        url: String(url),
+        job_type: null, salary_min: null, salary_max: null, currency: null,
+        posted_at: it.releasedDate ?? null,
+        raw_data: {
+          sector: s.sector ?? null,
+          sr_function: it?.function?.label ?? null,
+          sr_remote: it?.location?.remote ?? null,
+          sr_region: it?.location?.region ?? null,
+          display_category: it?.function?.label ?? null,
+          employer_source_country: s.country ?? null,
+        },
+        fetched_at: nowIso(),
+      };
+    });
+}
+
 async function adapterPersonio(s: JobSource): Promise<NormalizedJob[]> {
   const company = String(s.config.company ?? "");
   if (!company) throw new Error("personio: missing config.company");
@@ -613,6 +682,7 @@ const ADAPTERS: Record<SourceType, (s: JobSource) => Promise<NormalizedJob[]>> =
   ats_greenhouse: adapterGreenhouse,
   ats_lever: adapterLever,
   ats_smartrecruiters: adapterSmartRecruiters,
+  ats_smartrecruiters_employer: adapterSmartRecruitersEmployer,
   ats_workday: adapterWorkday,
   ats_personio: adapterPersonio,
   rss_feed: adapterRssFeed,
@@ -760,7 +830,7 @@ async function enrichNewJobs(
       await fetchDetailGreenhouse(s, j);
       await sleep(200); // 5 req/s
     }
-  } else if (s.source_type === "ats_smartrecruiters") {
+  } else if (s.source_type === "ats_smartrecruiters" || s.source_type === "ats_smartrecruiters_employer") {
     for (const j of newJobs) {
       await fetchDetailSmartRecruiters(s, j);
       await sleep(340); // ~3 req/s
@@ -880,7 +950,7 @@ async function runSource(supabase: ReturnType<typeof createClient>, s: JobSource
       duration_ms: Date.now() - started,
     });
 
-    return { id: s.id, name: s.name, total: rows.length, added };
+    return { id: s.id, name: s.name, source_type: s.source_type, total: rows.length, fetched: rows.length, added };
   } catch (err) {
     const msg = err instanceof Error
       ? err.message
@@ -943,24 +1013,26 @@ Deno.serve(async (req) => {
     for (const s of (sources ?? []) as JobSource[]) all.push(s);
   }
 
-  // Employer-level sources (currently Workday). Loaded unless caller targets a
-  // specific job_sources row via source_id.
+  // Employer-level sources (Workday + SmartRecruiters). Loaded unless caller
+  // targets a specific job_sources row via source_id.
   if (!body.source_id) {
     let empQuery = supabase
       .from("employer_sources")
       .select("id, company_name, ats_type, ats_config, country, sector, is_active, last_run_at")
       .eq("is_active", true)
-      .eq("ats_type", "workday");
+      .in("ats_type", ["workday", "smartrecruiters"]);
     if (body.employer_source_id) empQuery = empQuery.eq("id", body.employer_source_id);
     const { data: emp, error: empErr } = await empQuery;
     if (empErr) {
       console.warn("[ingest-jobs] failed to load employer_sources:", empErr.message);
     } else {
       for (const e of (emp ?? []) as any[]) {
+        const source_type: SourceType =
+          e.ats_type === "smartrecruiters" ? "ats_smartrecruiters_employer" : "ats_workday";
         all.push({
           id: e.id,
           name: e.company_name,
-          source_type: "ats_workday",
+          source_type,
           tier: 1,
           config: (e.ats_config ?? {}) as Record<string, any>,
           country: e.country ?? null,
@@ -982,6 +1054,10 @@ Deno.serve(async (req) => {
   const errors = results.filter((r) => r.error);
   const arbeitnow = results.find((r) => r.name === "Arbeitnow");
   const nav = results.find((r) => r.name === "NAV Norway");
+  const srResults = results.filter((r) => r.source_type === "ats_smartrecruiters_employer");
+  for (const r of srResults) {
+    console.log(`[ingest-jobs] SmartRecruiters ${r.name}: ${r.fetched ?? r.added ?? 0} found, ${r.added ?? 0} new`);
+  }
   console.log(
     `[ingest-jobs] summary — Arbeitnow: ${arbeitnow?.added ?? 0} new, NAV: ${nav?.added ?? 0} new`,
   );
