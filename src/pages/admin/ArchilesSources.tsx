@@ -451,6 +451,63 @@ export default function ArchilesSources() {
             </Button>
           </div>
         </CardHeader>
+        <CardContent className="border-b border-border space-y-3">
+          <div className="text-xs font-medium text-muted-foreground">Add by URL (auto-detect ATS)</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="md:col-span-2">
+              <Label className="text-xs">Careers URL</Label>
+              <Input
+                value={detectUrl}
+                onChange={(ev) => setDetectUrl(ev.target.value)}
+                placeholder="https://boards.greenhouse.io/airbnb or https://acme.com/careers"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Company name (volitelné)</Label>
+              <Input
+                value={detectCompany}
+                onChange={(ev) => setDetectCompany(ev.target.value)}
+                placeholder="Airbnb"
+              />
+            </div>
+          </div>
+          <Button size="sm" onClick={runDetect} disabled={detecting || !detectUrl.trim()}>
+            {detecting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
+            Detect ATS
+          </Button>
+          {detectResult && (
+            <div className="border border-border rounded-md p-3 text-sm">
+              {detectResult.detected ? (
+                <div className="space-y-2">
+                  <div className="font-medium text-emerald-300">
+                    Detekováno: {detectResult.ats_type} ({detectResult.detection_source})
+                  </div>
+                  <div className="text-xs text-muted-foreground">{detectResult.company_name}</div>
+                  <pre className="bg-muted/40 rounded p-2 text-xs overflow-x-auto">
+                    {JSON.stringify(detectResult.ats_config, null, 2)}
+                  </pre>
+                  <div className="text-xs">
+                    Live test: <strong>{detectResult.test_job_count}</strong> jobs
+                    {detectResult.test_error && <span className="text-rose-400"> · {detectResult.test_error}</span>}
+                  </div>
+                  {Array.isArray(detectResult.sample_titles) && detectResult.sample_titles.length > 0 && (
+                    <ul className="list-disc pl-4 text-xs text-muted-foreground">
+                      {detectResult.sample_titles.map((t: string, i: number) => <li key={i}>{t}</li>)}
+                    </ul>
+                  )}
+                  <Button size="sm" onClick={activateDetected} disabled={activating || !detectResult.employer_source_id}>
+                    {activating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                    Activate
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-amber-300 text-xs">
+                  Couldn't detect a supported ATS at this URL.
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
         <CardContent className="p-0 overflow-x-auto">
           {empLoading && <div className="p-6 flex justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>}
           {!empLoading && (
