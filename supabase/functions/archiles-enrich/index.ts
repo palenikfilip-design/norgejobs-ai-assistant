@@ -392,6 +392,7 @@ async function enrichJob(
     // job.location via the AI's country_resolved field. Falls back to the
     // employer HQ country (stashed in raw_data.employer_source_country) only
     // as a low-confidence last resort.
+    let resolvedCountryChange: string | null = null;
     {
       const resolved = typeof ai.country_resolved === "string" ? ai.country_resolved.trim() : "";
       const conf = String(ai.country_confidence ?? "").toLowerCase();
@@ -422,8 +423,7 @@ async function enrichJob(
           region = match.region;
           countryCode = match.country_code;
         }
-        // Persist the country change on the row.
-        (updatePayloadCountry as any) = newCountry;
+        resolvedCountryChange = newCountry;
       }
     }
 
