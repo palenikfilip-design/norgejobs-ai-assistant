@@ -386,6 +386,47 @@ async function enrichJob(
     const ai = await callArchilesAi(job, lovableApiKey);
     const aiConfidence = Math.max(0, Math.min(100, Number(ai.confidence ?? 0)));
 
+    // STEP C.1 — Country resolution from free-text location.
+    // Multi-national employers (Workday tenants like Equinor) post jobs in many
+    // countries; ingest leaves job.country=null and we resolve it here from
+    // job.location via the AI's country_resolved field. Falls back to the
+    // employer HQ country (stashed in raw_data.employer_source_country) only
+    // as a low-confidence last resort.
+    {
+      const resolved = typeof ai.country_resolved === "string" ? ai.country_resolved.trim() : "";
+      const conf = String(ai.country_confidence ?? "").toLowerCase();
+      const before = job.country ?? null;
+      let newCountry: string | null = job.country ?? null;
+      let countrySource = "ingest";
+
+      if (resolved && resolved.toLowerCase() !== "null" && (conf === "high" || conf === "medium")) {
+        newCountry = resolved;
+        countrySource = `ai-${conf}`;
+      } else if (!newCountry) {
+        // No AI answer and no ingest country — try last-resort fallback.
+        const fallback = job.raw_data?.employer_source_country;
+        if (typeof fallback === "string" && fallback.trim()) {
+          newCountry = fallback.trim();
+          countrySource = "employer-hq-fallback";
+          notes.push(`Country fallback to employer HQ (${fallback}) — low confidence.`);
+        }
+      }
+
+      if (newCountry && newCountry !== before) {
+        job.country = newCountry;
+        notes.push(`Country resolved: ${before ?? "null"} → ${newCountry} (${countrySource})`);
+        // Re-resolve region / country_code from the country_context index.
+        const key = String(newCountry).trim().toLowerCase();
+        const match = countryIndex.get(key);
+        if (match) {
+          region = match.region;
+          countryCode = match.country_code;
+        }
+        // Persist the country change on the row.
+        (updatePayloadCountry as any) = newCountry;
+      }
+    }
+
     const langs: string[] = (Array.isArray(ai.language_requirements) ? ai.language_requirements : [])
       .map((l: string) => normalizeLangCode(l))
       .filter((l: string | null): l is string => l !== null)
