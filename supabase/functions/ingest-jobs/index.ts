@@ -329,7 +329,12 @@ async function adapterWorkday(s: JobSource): Promise<NormalizedJob[]> {
       company: s.name,
       description: summary || it.jobPostingInfo?.summary || null,
       location: it.locationsText ?? null,
-      country: s.country,
+      // Multi-national Workday tenants list jobs from many countries. Do NOT
+      // copy the employer HQ country onto every posting — that mis-tags e.g.
+      // an Equinor job in Brooklyn as Norway. Leave country=null at ingest
+      // and let archiles-enrich resolve it from `location` (with the employer
+      // HQ as a low-confidence last-resort fallback stored in raw_data).
+      country: null,
       url: `https://${tenant}.wd${wd}.myworkdayjobs.com${it.externalPath}`,
       job_type: null, salary_min: null, salary_max: null, currency: null,
       // Workday's list endpoint returns human-readable strings ("Posted Yesterday")
@@ -341,6 +346,9 @@ async function adapterWorkday(s: JobSource): Promise<NormalizedJob[]> {
         job_posting_info: it.jobPostingInfo ?? null,
         sector: s.sector ?? null,
         posted_on_label: it.postedOn ?? null,
+        // Last-resort fallback used by archiles-enrich when AI can't resolve
+        // the country from the location string.
+        employer_source_country: s.country ?? null,
       },
       fetched_at: nowIso(),
     };

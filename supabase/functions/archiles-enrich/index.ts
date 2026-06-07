@@ -272,7 +272,7 @@ Job:
 - Description: ${description}
 - Source: ${job.source_portal ?? ""}
 
-Return ONLY valid JSON with these fields:
+Return ONLY valid JSON with ALL of these fields (do not omit any field, especially country_resolved and country_confidence):
 {
   "language_requirements": ["en", "no", "de", ...],
   "expat_openness": "high" | "medium" | "low" | "unknown",
@@ -282,10 +282,19 @@ Return ONLY valid JSON with these fields:
   "description_quality": "high" | "medium" | "low",
   "red_flags": ["upfront_payment", "no_contract_info", "vague_description", "too_good_to_be_true", "missing_employer_info", "none"],
   "positions_available": 1,
-  "confidence": 0-100
+  "confidence": 0-100,
+  "country_resolved": "<English country name resolved from Location, or null>",
+  "country_confidence": "high" | "medium" | "low"
 }
 
 Detect how many positions are offered. Look for phrases like "hiring 5 chefs", "X positions available", "více pozic", "multiple positions", "X otevřených pozic". If found, return that integer for positions_available. If not mentioned, default to 1.
+
+Resolve country_resolved from the Location string above:
+- If the Location contains an explicit country name (Norway, United Kingdom, United States, Brazil, Germany, ...) → use that country name in English.
+- If it contains a US state or well-known US city (New York, Brooklyn, Houston, Texas, San Francisco, Seattle, ...) → "United States".
+- If it contains a UK city (London, Manchester, Edinburgh, ...) → "United Kingdom".
+- If it is "Multiple Locations", "2 Locations", "Remote", empty, or otherwise ambiguous → null. DO NOT GUESS.
+Set country_confidence accordingly: "high" when a country/state/major city is unambiguous; "medium" when reasonably likely; "low" when unsure (and prefer null + low).
 
 Be conservative. If unsure, use "unknown" or null. Better to mark for human review than guess wrong.`;
 
@@ -376,6 +385,47 @@ async function enrichJob(
     const ai = await callArchilesAi(job, lovableApiKey);
     const aiConfidence = Math.max(0, Math.min(100, Number(ai.confidence ?? 0)));
 
+    // STEP C.1 — Country resolution from free-text location.
+    // Multi-national employers (Workday tenants like Equinor) post jobs in many
+    // countries; ingest leaves job.country=null and we resolve it here from
+    // job.location via the AI's country_resolved field. Falls back to the
+    // employer HQ country (stashed in raw_data.employer_source_country) only
+    // as a low-confidence last resort.
+    let resolvedCountryChange: string | null = null;
+    {
+      const resolved = typeof ai.country_resolved === "string" ? ai.country_resolved.trim() : "";
+      const conf = String(ai.country_confidence ?? "").toLowerCase();
+      const before = job.country ?? null;
+      let newCountry: string | null = job.country ?? null;
+      let countrySource = "ingest";
+
+      if (resolved && resolved.toLowerCase() !== "null" && (conf === "high" || conf === "medium")) {
+        newCountry = resolved;
+        countrySource = `ai-${conf}`;
+      } else if (!newCountry) {
+        // No AI answer and no ingest country — try last-resort fallback.
+        const fallback = job.raw_data?.employer_source_country;
+        if (typeof fallback === "string" && fallback.trim()) {
+          newCountry = fallback.trim();
+          countrySource = "employer-hq-fallback";
+          notes.push(`Country fallback to employer HQ (${fallback}) — low confidence.`);
+        }
+      }
+
+      if (newCountry && newCountry !== before) {
+        job.country = newCountry;
+        notes.push(`Country resolved: ${before ?? "null"} → ${newCountry} (${countrySource})`);
+        // Re-resolve region / country_code from the country_context index.
+        const key = String(newCountry).trim().toLowerCase();
+        const match = countryIndex.get(key);
+        if (match) {
+          region = match.region;
+          countryCode = match.country_code;
+        }
+        resolvedCountryChange = newCountry;
+      }
+    }
+
     const langs: string[] = (Array.isArray(ai.language_requirements) ? ai.language_requirements : [])
       .map((l: string) => normalizeLangCode(l))
       .filter((l: string | null): l is string => l !== null)
@@ -455,6 +505,9 @@ async function enrichJob(
       data_completeness: completeness.label,
       enriched_at: new Date().toISOString(),
     };
+    if (resolvedCountryChange) {
+      updatePayload.country = resolvedCountryChange;
+    }
     // Persist backfilled description / raw_data from late Greenhouse detail refetch.
     if (lateDetail?.description) {
       updatePayload.description = job.description;
