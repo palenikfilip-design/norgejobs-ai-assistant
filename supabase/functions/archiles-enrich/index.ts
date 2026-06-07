@@ -272,7 +272,7 @@ Job:
 - Description: ${description}
 - Source: ${job.source_portal ?? ""}
 
-Return ONLY valid JSON with these fields:
+Return ONLY valid JSON with ALL of these fields (do not omit any field, especially country_resolved and country_confidence):
 {
   "language_requirements": ["en", "no", "de", ...],
   "expat_openness": "high" | "medium" | "low" | "unknown",
@@ -283,7 +283,7 @@ Return ONLY valid JSON with these fields:
   "red_flags": ["upfront_payment", "no_contract_info", "vague_description", "too_good_to_be_true", "missing_employer_info", "none"],
   "positions_available": 1,
   "confidence": 0-100,
-  "country_resolved": "United States" | "Norway" | "Germany" | ... | null,
+  "country_resolved": "<English country name resolved from Location, or null>",
   "country_confidence": "high" | "medium" | "low"
 }
 
