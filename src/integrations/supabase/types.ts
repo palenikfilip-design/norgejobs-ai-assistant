@@ -789,7 +789,9 @@ export type Database = {
           skill_level: string
           source_id: string | null
           source_portal: string
+          summary_cs: string | null
           title: string
+          title_cs: string | null
           trust_score: number
           trust_signals: Json
           updated_at: string
@@ -832,7 +834,9 @@ export type Database = {
           skill_level?: string
           source_id?: string | null
           source_portal: string
+          summary_cs?: string | null
           title: string
+          title_cs?: string | null
           trust_score?: number
           trust_signals?: Json
           updated_at?: string
@@ -875,7 +879,9 @@ export type Database = {
           skill_level?: string
           source_id?: string | null
           source_portal?: string
+          summary_cs?: string | null
           title?: string
+          title_cs?: string | null
           trust_score?: number
           trust_signals?: Json
           updated_at?: string
