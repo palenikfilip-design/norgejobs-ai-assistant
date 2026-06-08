@@ -82,9 +82,9 @@ const Index = () => {
     { icon: MessageCircle, title: t("landing.feat4Title"), desc: t("landing.feat4Desc") },
   ];
 
-  // Prefer the "quality" count (enriched, complete/partial) for the headline.
-  const jobCount =
-    stats?.quality_active_jobs ?? stats?.total_active_jobs ?? null;
+  // Show the real catalog size; enrichment progress is shown as a subtitle.
+  const jobCount = stats?.total_active_jobs ?? stats?.quality_active_jobs ?? null;
+  const qualityCount = stats?.quality_active_jobs ?? null;
   const companies = stats?.active_companies ?? null;
   const countries = stats?.countries_covered ?? null;
   const sources = stats?.active_sources ?? 9;
@@ -192,6 +192,11 @@ const Index = () => {
                     <div className="mt-2 text-primary-foreground/70 text-sm md:text-base">
                       {t("landing.activeJobsLabel")}
                     </div>
+                    {qualityCount != null && jobCount != null && qualityCount < jobCount && (
+                      <div className="mt-1 text-primary-foreground/50 text-xs md:text-sm">
+                        {t("landing.qualitySubtitle", { count: qualityCount })}
+                      </div>
+                    )}
                   </div>
                   <div className="mt-5 pt-5 border-t border-primary-foreground/10 grid grid-cols-2 gap-3 text-center">
                     <div>

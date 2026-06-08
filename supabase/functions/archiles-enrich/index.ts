@@ -655,7 +655,7 @@ Deno.serve(async (req) => {
     try { body = await req.json(); } catch { /* empty */ }
   }
   const testMode = !!body.test_mode;
-  const batchSize = Math.min(Math.max(body.batch_size ?? 50, 1), 50);
+  const batchSize = Math.min(Math.max(body.batch_size ?? 50, 1), 150);
 
   // Load jobs
   let jobs: any[] = [];

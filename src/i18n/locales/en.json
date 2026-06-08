@@ -58,6 +58,7 @@
     "tagline": "Your job search starts here",
     "intro": "I'll learn you, your experience and your goals — then find the best job opportunities abroad, tailored to you.",
     "activeJobsLabel": "active job openings",
+    "qualitySubtitle": "{{count}} fully processed",
     "positionsLabel": "open positions",
     "employersLabel": "employers",
     "countriesLabel": "countries",

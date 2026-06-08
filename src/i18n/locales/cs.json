@@ -58,6 +58,7 @@
     "tagline": "Tady začíná tvoje hledání práce",
     "intro": "Poznám tě, tvoje zkušenosti a cíle — pak ti najdu nejlepší pracovní nabídky v zahraničí, šité na míru.",
     "activeJobsLabel": "aktivních pracovních nabídek",
+    "qualitySubtitle": "z toho {{count}} plně zpracovaných",
     "positionsLabel": "volných pozic",
     "employersLabel": "zaměstnavatelů",
     "countriesLabel": "zemí",
