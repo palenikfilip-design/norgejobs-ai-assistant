@@ -634,6 +634,36 @@ export type Database = {
         }
         Relationships: []
       }
+      leslie_chat_history: {
+        Row: {
+          created_at: string
+          id: string
+          message_content: string
+          message_role: string
+          metadata: Json
+          preset_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_content: string
+          message_role: string
+          metadata?: Json
+          preset_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_content?: string
+          message_role?: string
+          metadata?: Json
+          preset_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           age: number | null
