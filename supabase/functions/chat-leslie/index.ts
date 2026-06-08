@@ -156,8 +156,9 @@ async function executeSearch(attempt: SearchAttempt): Promise<any[]> {
   }
   if (attempt.salaryMin) {
     const floor = Math.floor(attempt.salaryMin * 0.8);
-    // Use COALESCE so estimated salaries count too.
-    q = q.or(`and(salary_normalized_eur.gte.${floor}),and(salary_normalized_eur.is.null,salary_estimated_eur.gte.${floor}),and(salary_normalized_eur.is.null,salary_estimated_eur.is.null)`);
+    // Accept either confirmed or estimated salary above the floor; also accept
+    // rows with no salary info at all so we don't unfairly drop them.
+    q = q.or(`salary_normalized_eur.gte.${floor},salary_estimated_eur.gte.${floor},and(salary_normalized_eur.is.null,salary_estimated_eur.is.null)`);
   }
   q = q.order("trust_score", { ascending: false })
     .order("salary_normalized_eur", { ascending: false, nullsFirst: false })
