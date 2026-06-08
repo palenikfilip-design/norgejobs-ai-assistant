@@ -571,6 +571,26 @@ async function enrichJob(
     if (aiConfidence > 70 && (ai.is_seasonal === true || ai.is_seasonal === false)) {
       updatePayload.is_seasonal = ai.is_seasonal;
     }
+    // STEP F.1 — Estimated salary fallback when source data has no salary.
+    // Used by matching/filtering via COALESCE(salary_normalized_eur, salary_estimated_eur).
+    // ALWAYS flagged transparently — never presented as a confirmed salary in UI.
+    if (salaryEur == null) {
+      const effCountry = (updatePayload.country as string | undefined) ?? job.country ?? null;
+      const effCat = (updatePayload.display_category as string | undefined) ?? job.display_category ?? null;
+      const est = estimateSalaryEur(effCountry, effCat, countryIndex);
+      if (est != null) {
+        updatePayload.salary_estimated_eur = est;
+        updatePayload.salary_is_estimated = true;
+        notes.push(`Salary estimated ~${est} EUR/mo from ${effCountry} avg × ${effCat ?? "other"} modifier (source had none).`);
+      } else {
+        updatePayload.salary_estimated_eur = null;
+        updatePayload.salary_is_estimated = false;
+      }
+    } else {
+      updatePayload.salary_estimated_eur = null;
+      updatePayload.salary_is_estimated = false;
+    }
+
     // positions_available — default 1, accept positive integers only
     const pos = Number(ai.positions_available);
     if (Number.isFinite(pos) && pos >= 1 && pos <= 500) {
