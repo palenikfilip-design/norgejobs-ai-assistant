@@ -421,6 +421,17 @@ const Dashboard = () => {
             <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10" onClick={() => navigate("/chat")} aria-label={t("header.chat")}>
               <MessageCircle className="w-5 h-5" />
             </Button>
+            {supabaseUser?.email === "palenik.filip@gmail.com" && (
+              <Button
+                variant="default"
+                size="sm"
+                className="md:hidden h-9 px-2 text-xs"
+                onClick={() => navigate("/admin/archiles")}
+                aria-label="Archiles"
+              >
+                Archiles
+              </Button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10" aria-label={t("header.logout")}>
