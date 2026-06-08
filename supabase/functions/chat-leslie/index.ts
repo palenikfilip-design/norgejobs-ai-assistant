@@ -16,6 +16,51 @@ const DISPLAY_CATEGORIES = [
   "aupair","maritime","logistics","office","manufacturing","sales","education","other",
 ];
 
+// Region aliases — when user names a region, expand to member countries.
+// Keys are lowercased; accept Czech and English forms.
+const REGION_TO_COUNTRIES: Record<string, string[]> = {
+  "skandinávie": ["Norway", "Sweden", "Denmark"],
+  "skandinavie": ["Norway", "Sweden", "Denmark"],
+  "scandinavia": ["Norway", "Sweden", "Denmark"],
+  "severní evropa": ["Norway", "Sweden", "Denmark", "Finland", "Iceland"],
+  "nordics": ["Norway", "Sweden", "Denmark", "Finland", "Iceland"],
+  "dach": ["Germany", "Austria", "Switzerland"],
+  "německy mluvící": ["Germany", "Austria", "Switzerland"],
+  "benelux": ["Netherlands", "Belgium"],
+  "uk-ie": ["United Kingdom", "Ireland"],
+  "britské ostrovy": ["United Kingdom", "Ireland"],
+};
+
+// Manual-work category families — used to constrain "related category" fallback
+// so a manual-work seeker NEVER gets shown white-collar tech/office/sales jobs.
+const MANUAL_CATEGORIES = new Set([
+  "hospitality","construction","agriculture","manufacturing","logistics",
+  "maritime","ski_resort","aupair","healthcare",
+]);
+const WHITE_COLLAR_CATEGORIES = new Set(["tech","office","sales","education"]);
+
+function relatedCategories(cat: string): string[] {
+  const c = cat.toLowerCase();
+  if (MANUAL_CATEGORIES.has(c)) {
+    // Stay within manual-work universe.
+    return Array.from(MANUAL_CATEGORIES).concat(["other"]);
+  }
+  if (WHITE_COLLAR_CATEGORIES.has(c)) {
+    return Array.from(WHITE_COLLAR_CATEGORIES).concat(["other"]);
+  }
+  return [c, "other"];
+}
+
+function expandCountriesWithRegions(countries: string[]): string[] {
+  const out = new Set<string>();
+  for (const c of countries) {
+    const key = String(c).trim().toLowerCase();
+    const region = REGION_TO_COUNTRIES[key];
+    if (region) region.forEach((x) => out.add(x));
+    else out.add(c);
+  }
+  return Array.from(out);
+}
 const SYSTEM_PROMPT = `Jsi Leslie, přátelská asistentka pro Čechy a Slováky, kteří hledají práci v zahraničí. Mluvíš česky a tykáš.
 
 ABSOLUTNÍ PRAVIDLA (neporušuj nikdy):
@@ -23,16 +68,20 @@ ABSOLUTNÍ PRAVIDLA (neporušuj nikdy):
 - NIKDY nedávej víc než 2 obecné rady. Po max. 1–2 zprávách MUSÍŠ vytvořit preset a hledat v našem katalogu.
 - Hledáš VÝHRADNĚ v našem katalogu pomocí nástroje search_catalog. Nikdy nevymýšlej nabídky z hlavy.
 - Odpovídej KRÁTCE a akčně. Jednáš, nepřednášíš.
+- KRITICKÉ: Když uživatel řekl REGION (např. "Skandinávie") nebo TYP PRÁCE (např. "manuální"), NIKDY mu neukazuj nabídky, které ten region OPOUŠTĚJÍ A SOUČASNĚ porušují typ. Nabídka, která nesedí ani lokací ani typem, je horší než žádná.
+- Pokud search_catalog vrátí prázdno i po relax fallback, řekni upřímně: "Zatím pro tebe v {region} nemám nic v {kategorie}. Přidávám nabídky denně — chceš upozornit?" — NIKDY místo toho nevracej náhodné US/MX/finance nabídky.
+- Estimovaný plat (salary_is_estimated=true) NIKDY neprezentuj jako jistý. V odpovědi piš "odhad ~X €/měs".
 
 TVŮJ FLOW:
 1. Uživatel řekne, co chce.
 2. Vytáhni: země/region, typ práce, očekávaný plat, sezónnost.
 3. Polož max. 1 doplňující otázku, pak ZAVOLEJ create_preset (i s neúplnými údaji) a hned poté search_catalog.
-4. Když search_catalog vrátí 0 výsledků, buď upřímná ("Zatím pro tebe nemám nabídky v X v oboru Y") a zavolej search_catalog znovu se SOUSEDNÍMI parametry (jiná země nebo jiná kategorie). Nikdy uživatele nepouštěj na externí web.
+4. search_catalog má vestavěný kaskádový fallback (uvolní plat → region → příbuzné kategorie ve STEJNÉM univerzu manuální/white-collar). Pole "fallback_level" v odpovědi ti řekne, jak moc byl dotaz uvolněn. Pokud je "none_in_region", řekni to upřímně.
 5. Po zobrazení nabídek pobídni: "Klikni 👍/👎 ať vím, co tě baví."
 
 Dostupné kategorie (display_category): ${DISPLAY_CATEGORIES.join(", ")}.
-Dostupné země v katalogu: Norway, Germany, Sweden, Switzerland, United Kingdom, Ireland, Spain, Italy, France, Poland, United States, Canada, Australia, Brazil, Mexico, Japan, China, India, Singapore, Thailand, South Korea, Remote, Multiple, Global.`;
+Dostupné země v katalogu: Norway, Germany, Sweden, Switzerland, United Kingdom, Ireland, Spain, Italy, France, Poland, United States, Canada, Australia, Brazil, Mexico, Japan, China, India, Singapore, Thailand, South Korea, Remote, Multiple, Global.
+Regionové aliasy přijímané search_catalogem v poli countries: "Skandinávie", "Nordics", "DACH", "Benelux", "UK-IE".`;
 
 function getSupabase(authHeader: string | null) {
   const url = Deno.env.get("SUPABASE_URL")!;
@@ -83,25 +132,135 @@ const TOOLS = [
   },
 ];
 
-async function runSearch(args: Record<string, unknown>) {
+const SELECT_COLS = "id,title,company,location,country,salary_normalized_eur,salary_estimated_eur,salary_is_estimated,salary,currency,url,display_category,trust_score";
+
+type SearchAttempt = {
+  countries: string[] | null;
+  categories: string[] | null;
+  salaryMin: number | null;
+  label: string;
+};
+
+async function executeSearch(attempt: SearchAttempt): Promise<any[]> {
   const svc = getServiceSupabase();
-  const countries = Array.isArray(args.countries) ? (args.countries as string[]).filter(Boolean) : [];
-  const category = typeof args.category === "string" ? args.category : null;
-  const salaryMin = typeof args.salary_min_eur === "number" ? args.salary_min_eur : null;
   let q = svc.from("public_jobs")
-    .select("id,title,company,location,country,salary_normalized_eur,salary,currency,url,display_category,trust_score")
+    .select(SELECT_COLS)
     .not("enriched_at", "is", null)
     .in("data_completeness", ["complete","partial"]);
-  if (countries.length > 0) {
-    const expanded = [...countries, "Multiple", "Remote", "Global"];
+  if (attempt.countries && attempt.countries.length > 0) {
+    const expanded = [...attempt.countries, "Multiple", "Remote", "Global"];
     q = q.in("country", expanded);
   }
-  if (category) q = q.eq("display_category", category);
-  if (salaryMin) q = q.or(`salary_normalized_eur.is.null,salary_normalized_eur.gte.${Math.floor(salaryMin * 0.8)}`);
-  q = q.order("trust_score", { ascending: false }).order("salary_normalized_eur", { ascending: false, nullsFirst: false }).limit(5);
+  if (attempt.categories && attempt.categories.length > 0) {
+    q = q.in("display_category", attempt.categories);
+  }
+  if (attempt.salaryMin) {
+    const floor = Math.floor(attempt.salaryMin * 0.8);
+    // Accept either confirmed or estimated salary above the floor; also accept
+    // rows with no salary info at all so we don't unfairly drop them.
+    q = q.or(`salary_normalized_eur.gte.${floor},salary_estimated_eur.gte.${floor},and(salary_normalized_eur.is.null,salary_estimated_eur.is.null)`);
+  }
+  q = q.order("trust_score", { ascending: false })
+    .order("salary_normalized_eur", { ascending: false, nullsFirst: false })
+    .order("salary_estimated_eur", { ascending: false, nullsFirst: false })
+    .limit(5);
   const { data, error } = await q;
-  if (error) { console.error("search_catalog error", error); return { jobs: [], error: error.message }; }
-  return { jobs: data ?? [] };
+  if (error) { console.error(`search[${attempt.label}] error`, error); return []; }
+  return data ?? [];
+}
+
+async function runSearch(args: Record<string, unknown>) {
+  const rawCountries = Array.isArray(args.countries) ? (args.countries as string[]).filter(Boolean) : [];
+  const countries = expandCountriesWithRegions(rawCountries);
+  const category = typeof args.category === "string" ? args.category.toLowerCase() : null;
+  const salaryMin = typeof args.salary_min_eur === "number" ? args.salary_min_eur : null;
+
+  const isManualSeeker = category != null && MANUAL_CATEGORIES.has(category);
+  const isWhiteCollarSeeker = category != null && WHITE_COLLAR_CATEGORIES.has(category);
+
+  // Build ordered fallback cascade. Stop as soon as we have >= 3 results.
+  const attempts: SearchAttempt[] = [];
+
+  // 1. Exact: country + category + salary
+  attempts.push({
+    countries: countries.length ? countries : null,
+    categories: category ? [category] : null,
+    salaryMin,
+    label: "exact",
+  });
+
+  // 2. Relax salary only (keep country + category)
+  if (salaryMin) {
+    attempts.push({
+      countries: countries.length ? countries : null,
+      categories: category ? [category] : null,
+      salaryMin: null,
+      label: "relax_salary",
+    });
+  }
+
+  // 3. Region expansion already happened above; if user gave only 1 country,
+  //    try its region neighbours.
+  // (We rely on regional aliases in step 1 if user used them; nothing extra here.)
+
+  // 4. Relax to related categories within SAME work-type universe, keep region.
+  if (category && countries.length > 0) {
+    attempts.push({
+      countries,
+      categories: relatedCategories(category),
+      salaryMin: null,
+      label: "related_category_same_region",
+    });
+  }
+
+  // 5. Last resort: same region, ANY category — but ONLY if user is not a
+  //    manual seeker (so we never hand manual seekers white-collar). For manual
+  //    seekers we still restrict to MANUAL_CATEGORIES.
+  if (countries.length > 0) {
+    attempts.push({
+      countries,
+      categories: isManualSeeker
+        ? Array.from(MANUAL_CATEGORIES).concat(["other"])
+        : isWhiteCollarSeeker
+          ? Array.from(WHITE_COLLAR_CATEGORIES).concat(["other"])
+          : null,
+      salaryMin: null,
+      label: "same_region_any_category",
+    });
+  }
+
+  // INTENTIONALLY no global-anywhere fallback — better to return empty than
+  // ship San Francisco finance jobs to a Scandinavian manual-work seeker.
+
+  let chosen: { attempt: SearchAttempt; jobs: any[] } | null = null;
+  const tried: Array<{ label: string; count: number }> = [];
+  for (const a of attempts) {
+    const jobs = await executeSearch(a);
+    tried.push({ label: a.label, count: jobs.length });
+    if (jobs.length >= 3 || (chosen == null && jobs.length > 0)) {
+      chosen = { attempt: a, jobs };
+      if (jobs.length >= 3) break;
+    }
+  }
+
+  if (!chosen || chosen.jobs.length === 0) {
+    return {
+      jobs: [],
+      fallback_level: "none_in_region",
+      requested: { countries, category, salary_min_eur: salaryMin },
+      tried,
+      message: countries.length && category
+        ? `Zatím pro tebe v ${rawCountries.join("/") || countries.join("/")} nemám nic v ${category}.`
+        : "Zatím pro tebe v katalogu nemám vhodnou nabídku.",
+    };
+  }
+
+  return {
+    jobs: chosen.jobs,
+    fallback_level: chosen.attempt.label,
+    requested: { countries, category, salary_min_eur: salaryMin },
+    tried,
+  };
 }
 
 async function runCreatePreset(userId: string, args: Record<string, unknown>) {

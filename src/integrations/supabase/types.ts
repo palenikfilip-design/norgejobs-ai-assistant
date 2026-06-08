@@ -781,6 +781,8 @@ export type Database = {
           reviewed_at: string | null
           reviewed_by: string | null
           salary: string | null
+          salary_estimated_eur: number | null
+          salary_is_estimated: boolean
           salary_max: number | null
           salary_min: number | null
           salary_normalized_eur: number | null
@@ -822,6 +824,8 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           salary?: string | null
+          salary_estimated_eur?: number | null
+          salary_is_estimated?: boolean
           salary_max?: number | null
           salary_min?: number | null
           salary_normalized_eur?: number | null
@@ -863,6 +867,8 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           salary?: string | null
+          salary_estimated_eur?: number | null
+          salary_is_estimated?: boolean
           salary_max?: number | null
           salary_min?: number | null
           salary_normalized_eur?: number | null

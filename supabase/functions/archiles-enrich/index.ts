@@ -261,6 +261,39 @@ function categorizeFromTitle(title: string | null | undefined): string | null {
   return null;
 }
 
+// Rough category multipliers vs. national average — used only to estimate
+// when source data has no salary. Always flagged salary_is_estimated=true.
+const CATEGORY_SALARY_MODIFIER: Record<string, number> = {
+  tech: 1.3,
+  healthcare: 1.1,
+  construction: 1.0,
+  manufacturing: 0.95,
+  office: 1.0,
+  sales: 1.0,
+  education: 0.9,
+  logistics: 0.9,
+  maritime: 1.0,
+  ski_resort: 0.8,
+  hospitality: 0.75,
+  aupair: 0.6,
+  agriculture: 0.7,
+  other: 0.9,
+};
+
+function estimateSalaryEur(
+  countryName: string | null,
+  displayCategory: string | null,
+  countryIndex: Map<string, any>,
+): number | null {
+  if (!countryName) return null;
+  const ctx = countryIndex.get(String(countryName).toLowerCase());
+  const avg = Number(ctx?.avg_salary_eur);
+  if (!ctx || !Number.isFinite(avg) || avg <= 0) return null;
+  const cat = (displayCategory || "other").toLowerCase();
+  const mod = CATEGORY_SALARY_MODIFIER[cat] ?? 0.9;
+  return Math.round(avg * mod);
+}
+
 async function callArchilesAi(job: any, lovableApiKey: string): Promise<any> {
   const description = (job.description || "").slice(0, 2000);
   const prompt = `You are Archiles, a job librarian. Analyze this job posting and extract structured metadata.
@@ -538,6 +571,26 @@ async function enrichJob(
     if (aiConfidence > 70 && (ai.is_seasonal === true || ai.is_seasonal === false)) {
       updatePayload.is_seasonal = ai.is_seasonal;
     }
+    // STEP F.1 — Estimated salary fallback when source data has no salary.
+    // Used by matching/filtering via COALESCE(salary_normalized_eur, salary_estimated_eur).
+    // ALWAYS flagged transparently — never presented as a confirmed salary in UI.
+    if (salaryEur == null) {
+      const effCountry = (updatePayload.country as string | undefined) ?? job.country ?? null;
+      const effCat = (updatePayload.display_category as string | undefined) ?? job.display_category ?? null;
+      const est = estimateSalaryEur(effCountry, effCat, countryIndex);
+      if (est != null) {
+        updatePayload.salary_estimated_eur = est;
+        updatePayload.salary_is_estimated = true;
+        notes.push(`Salary estimated ~${est} EUR/mo from ${effCountry} avg × ${effCat ?? "other"} modifier (source had none).`);
+      } else {
+        updatePayload.salary_estimated_eur = null;
+        updatePayload.salary_is_estimated = false;
+      }
+    } else {
+      updatePayload.salary_estimated_eur = null;
+      updatePayload.salary_is_estimated = false;
+    }
+
     // positions_available — default 1, accept positive integers only
     const pos = Number(ai.positions_available);
     if (Number.isFinite(pos) && pos >= 1 && pos <= 500) {

@@ -18,6 +18,8 @@ interface JobCard {
   location: string | null;
   country: string | null;
   salary_normalized_eur: number | null;
+  salary_estimated_eur?: number | null;
+  salary_is_estimated?: boolean | null;
   salary: string | null;
   currency: string | null;
   url: string;
@@ -217,11 +219,26 @@ const Chat = () => {
                             <p className="text-xs text-muted-foreground truncate">
                               {job.company ? `${job.company} · ` : ""}{job.location || job.country || ""}
                             </p>
-                            {(job.salary_normalized_eur || job.salary) && (
-                              <p className="text-xs text-accent mt-0.5">
-                                {job.salary_normalized_eur ? `~${job.salary_normalized_eur.toLocaleString()} €/měs` : job.salary}
-                              </p>
-                            )}
+                            {(() => {
+                              if (job.salary_normalized_eur) {
+                                return (
+                                  <p className="text-xs text-accent mt-0.5">
+                                    ~{job.salary_normalized_eur.toLocaleString()} €/měs
+                                  </p>
+                                );
+                              }
+                              if (job.salary_is_estimated && job.salary_estimated_eur) {
+                                return (
+                                  <p className="text-xs text-muted-foreground italic mt-0.5">
+                                    odhad ~{job.salary_estimated_eur.toLocaleString()} €/měs (plat neuveden)
+                                  </p>
+                                );
+                              }
+                              if (job.salary) {
+                                return <p className="text-xs text-accent mt-0.5">{job.salary}</p>;
+                              }
+                              return null;
+                            })()}
                           </div>
                           <a href={job.url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
                             <ExternalLink className="w-4 h-4" />
