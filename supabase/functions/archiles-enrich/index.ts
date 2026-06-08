@@ -317,8 +317,12 @@ Return ONLY valid JSON with ALL of these fields (do not omit any field, especial
   "positions_available": 1,
   "confidence": 0-100,
   "country_resolved": "<English country name resolved from Location, or null>",
-  "country_confidence": "high" | "medium" | "low"
+  "country_confidence": "high" | "medium" | "low",
+  "title_cs": "<short natural Czech translation/adaptation of the job title, max 80 chars>",
+  "summary_cs": "<1-2 sentence Czech summary of what the job involves, max 240 chars>"
 }
+
+title_cs / summary_cs MUST be in Czech regardless of source language. If the title is already Czech, copy it verbatim into title_cs. If you cannot produce a faithful Czech version (e.g. empty/unreadable input), set them to null.
 
 Detect how many positions are offered. Look for phrases like "hiring 5 chefs", "X positions available", "více pozic", "multiple positions", "X otevřených pozic". If found, return that integer for positions_available. If not mentioned, default to 1.
 
@@ -467,6 +471,12 @@ async function enrichJob(
     const expatOpenness = ["high","medium","low","unknown"].includes(ai.expat_openness) ? ai.expat_openness : "unknown";
     const skillLevel = ["entry","mid","senior","any","unknown"].includes(ai.skill_level) ? ai.skill_level : "unknown";
 
+    // Czech labels — short translated title + summary. Keep null if AI didn't provide.
+    const titleCs = typeof ai.title_cs === "string" && ai.title_cs.trim()
+      ? ai.title_cs.trim().slice(0, 120) : null;
+    const summaryCs = typeof ai.summary_cs === "string" && ai.summary_cs.trim()
+      ? ai.summary_cs.trim().slice(0, 400) : null;
+
     // STEP D — Trust score with multi-country company presence.
     // For multinationals that mark country="Multiple" (e.g. Stripe) we also count
     // distinct entries from additional_locations so the multinational bonus applies.
@@ -538,6 +548,8 @@ async function enrichJob(
       data_completeness: completeness.label,
       enriched_at: new Date().toISOString(),
     };
+    if (titleCs) updatePayload.title_cs = titleCs;
+    if (summaryCs) updatePayload.summary_cs = summaryCs;
     if (resolvedCountryChange) {
       updatePayload.country = resolvedCountryChange;
     }

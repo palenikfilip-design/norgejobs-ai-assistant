@@ -14,6 +14,8 @@ import LeslieAvatar from "@/components/LeslieAvatar";
 interface JobCard {
   id: string;
   title: string;
+  title_cs?: string | null;
+  summary_cs?: string | null;
   company: string | null;
   location: string | null;
   country: string | null;
@@ -215,7 +217,10 @@ const Chat = () => {
                       <div key={job.id} className="glass-card rounded-xl p-3 text-sm">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-foreground truncate">{job.title}</p>
+                            <p className="font-semibold text-foreground truncate">{job.title_cs || job.title}</p>
+                            {job.title_cs && job.title_cs !== job.title && (
+                              <p className="text-[11px] text-muted-foreground/70 italic truncate">orig: {job.title}</p>
+                            )}
                             <p className="text-xs text-muted-foreground truncate">
                               {job.company ? `${job.company} · ` : ""}{job.location || job.country || ""}
                             </p>
@@ -239,6 +244,9 @@ const Chat = () => {
                               }
                               return null;
                             })()}
+                            {job.summary_cs && (
+                              <p className="text-xs text-foreground/80 mt-1 line-clamp-2">{job.summary_cs}</p>
+                            )}
                           </div>
                           <a href={job.url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
                             <ExternalLink className="w-4 h-4" />
