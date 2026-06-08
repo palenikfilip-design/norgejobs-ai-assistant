@@ -80,6 +80,7 @@ TVŮJ FLOW:
 5. Po zobrazení nabídek pobídni: "Klikni 👍/👎 ať vím, co tě baví."
 
 Dostupné kategorie (display_category): ${DISPLAY_CATEGORIES.join(", ")}.
+Když uživatel zmíní VÍCE typů práce (např. "gastro a stavby"), pošli search_catalog parametr "categories" jako pole VŠECH zmíněných kategorií — výsledek bude pak namíchaný napůl. Nepoužívej jen jednu, pokud řekl víc.
 Dostupné země v katalogu: Norway, Germany, Sweden, Switzerland, United Kingdom, Ireland, Spain, Italy, France, Poland, United States, Canada, Australia, Brazil, Mexico, Japan, China, India, Singapore, Thailand, South Korea, Remote, Multiple, Global.
 Regionové aliasy přijímané search_catalogem v poli countries: "Skandinávie", "Nordics", "DACH", "Benelux", "UK-IE".`;
 
@@ -123,7 +124,8 @@ const TOOLS = [
         type: "object",
         properties: {
           countries: { type: "array", items: { type: "string" } },
-          category: { type: "string" },
+          category: { type: "string", description: "Single category. Prefer 'categories' (array) when user mentioned more than one." },
+          categories: { type: "array", items: { type: "string" }, description: "Multiple categories (e.g. ['hospitality','construction']). When provided, results will be a balanced mix across them." },
           salary_min_eur: { type: "number" },
           seasonal: { type: "boolean" },
         },
@@ -132,7 +134,7 @@ const TOOLS = [
   },
 ];
 
-const SELECT_COLS = "id,title,company,location,country,salary_normalized_eur,salary_estimated_eur,salary_is_estimated,salary,currency,url,display_category,trust_score";
+const SELECT_COLS = "id,title,title_cs,summary_cs,company,location,country,salary_normalized_eur,salary_estimated_eur,salary_is_estimated,salary,currency,url,display_category,trust_score";
 
 type SearchAttempt = {
   countries: string[] | null;
@@ -163,16 +165,112 @@ async function executeSearch(attempt: SearchAttempt): Promise<any[]> {
   q = q.order("trust_score", { ascending: false })
     .order("salary_normalized_eur", { ascending: false, nullsFirst: false })
     .order("salary_estimated_eur", { ascending: false, nullsFirst: false })
-    .limit(5);
+    .limit(30);
   const { data, error } = await q;
   if (error) { console.error(`search[${attempt.label}] error`, error); return []; }
   return data ?? [];
 }
 
+// Diversify a candidate pool down to N jobs:
+//  - max 2 per company
+//  - balanced across the requested categories (round-robin)
+//  - prefer spreading across countries when possible (round-robin within category)
+// Preserves trust_score order as the tie-breaker (input is already sorted).
+function diversify(
+  candidates: any[],
+  requestedCategories: string[] | null,
+  limit = 5,
+): any[] {
+  if (candidates.length <= limit) return candidates;
+  const perCompany = new Map<string, number>();
+
+  // Bucket by category (using requested set if given, else by actual display_category)
+  const cats: string[] = requestedCategories && requestedCategories.length
+    ? requestedCategories
+    : Array.from(new Set(candidates.map((c) => c.display_category || "other")));
+  const buckets: Record<string, any[]> = {};
+  for (const c of cats) buckets[c] = [];
+  const fallbackBucket: any[] = [];
+  for (const job of candidates) {
+    const cat = String(job.display_category || "other");
+    if (buckets[cat]) buckets[cat].push(job);
+    else fallbackBucket.push(job);
+  }
+
+  // Within each bucket, reorder so different countries come first (round-robin by country)
+  for (const k of Object.keys(buckets)) {
+    buckets[k] = roundRobinByCountry(buckets[k]);
+  }
+
+  const picked: any[] = [];
+  const order = [...cats];
+  let idx = 0;
+  let safety = candidates.length * 2;
+  while (picked.length < limit && safety-- > 0) {
+    let progressed = false;
+    for (let i = 0; i < order.length && picked.length < limit; i++) {
+      const cat = order[(idx + i) % order.length];
+      const bucket = buckets[cat];
+      while (bucket && bucket.length > 0) {
+        const job = bucket.shift();
+        const co = String(job.company || "").toLowerCase();
+        const used = perCompany.get(co) ?? 0;
+        if (co && used >= 2) continue; // skip — already 2 from this company
+        perCompany.set(co, used + 1);
+        picked.push(job);
+        progressed = true;
+        break;
+      }
+    }
+    idx++;
+    if (!progressed) break;
+  }
+  // If still under limit, fall back to other categories pool
+  for (const job of fallbackBucket) {
+    if (picked.length >= limit) break;
+    const co = String(job.company || "").toLowerCase();
+    const used = perCompany.get(co) ?? 0;
+    if (co && used >= 2) continue;
+    perCompany.set(co, used + 1);
+    picked.push(job);
+  }
+  return picked;
+}
+
+function roundRobinByCountry(jobs: any[]): any[] {
+  const byCountry = new Map<string, any[]>();
+  for (const j of jobs) {
+    const k = String(j.country || "?");
+    if (!byCountry.has(k)) byCountry.set(k, []);
+    byCountry.get(k)!.push(j);
+  }
+  const keys = Array.from(byCountry.keys());
+  const out: any[] = [];
+  let added = true;
+  while (added) {
+    added = false;
+    for (const k of keys) {
+      const arr = byCountry.get(k)!;
+      if (arr.length > 0) {
+        out.push(arr.shift());
+        added = true;
+      }
+    }
+  }
+  return out;
+}
+
 async function runSearch(args: Record<string, unknown>) {
   const rawCountries = Array.isArray(args.countries) ? (args.countries as string[]).filter(Boolean) : [];
   const countries = expandCountriesWithRegions(rawCountries);
-  const category = typeof args.category === "string" ? args.category.toLowerCase() : null;
+  // Accept either a single `category` or a `categories` array.
+  const rawCats: string[] = [];
+  if (Array.isArray(args.categories)) {
+    for (const c of args.categories) if (typeof c === "string" && c.trim()) rawCats.push(c.toLowerCase());
+  }
+  if (typeof args.category === "string" && args.category.trim()) rawCats.push(args.category.toLowerCase());
+  const requestedCats = Array.from(new Set(rawCats));
+  const category = requestedCats[0] ?? null;
   const salaryMin = typeof args.salary_min_eur === "number" ? args.salary_min_eur : null;
 
   const isManualSeeker = category != null && MANUAL_CATEGORIES.has(category);
@@ -181,19 +279,19 @@ async function runSearch(args: Record<string, unknown>) {
   // Build ordered fallback cascade. Stop as soon as we have >= 3 results.
   const attempts: SearchAttempt[] = [];
 
-  // 1. Exact: country + category + salary
+  // 1. Exact: country + categories + salary
   attempts.push({
     countries: countries.length ? countries : null,
-    categories: category ? [category] : null,
+    categories: requestedCats.length ? requestedCats : null,
     salaryMin,
     label: "exact",
   });
 
-  // 2. Relax salary only (keep country + category)
+  // 2. Relax salary only (keep country + categories)
   if (salaryMin) {
     attempts.push({
       countries: countries.length ? countries : null,
-      categories: category ? [category] : null,
+      categories: requestedCats.length ? requestedCats : null,
       salaryMin: null,
       label: "relax_salary",
     });
@@ -205,9 +303,11 @@ async function runSearch(args: Record<string, unknown>) {
 
   // 4. Relax to related categories within SAME work-type universe, keep region.
   if (category && countries.length > 0) {
+    const related = new Set<string>();
+    for (const c of requestedCats) for (const r of relatedCategories(c)) related.add(r);
     attempts.push({
       countries,
-      categories: relatedCategories(category),
+      categories: Array.from(related),
       salaryMin: null,
       label: "related_category_same_region",
     });
@@ -255,10 +355,12 @@ async function runSearch(args: Record<string, unknown>) {
     };
   }
 
+  const finalJobs = diversify(chosen.jobs, requestedCats.length ? requestedCats : null, 5);
+
   return {
-    jobs: chosen.jobs,
+    jobs: finalJobs,
     fallback_level: chosen.attempt.label,
-    requested: { countries, category, salary_min_eur: salaryMin },
+    requested: { countries, categories: requestedCats, salary_min_eur: salaryMin },
     tried,
   };
 }
