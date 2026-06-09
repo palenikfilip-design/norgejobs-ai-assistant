@@ -437,6 +437,9 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const incoming: ChatMessage[] = Array.isArray(body?.messages) ? body.messages : [];
     const userName: string | undefined = typeof body?.userName === "string" ? body.userName : undefined;
+    const ratings = Array.isArray(body?.ratings) ? body.ratings as Array<{
+      action: "like" | "dislike"; title?: string; company?: string | null; country?: string | null; category?: string | null;
+    }> : [];
     if (incoming.length === 0) return new Response(JSON.stringify({ error: "messages_required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const svc = getServiceSupabase();
@@ -452,6 +455,22 @@ Deno.serve(async (req) => {
       .map((m) => ({ role: m.role, content: m.content }));
 
     const convo: ChatMessage[] = [{ role: "system", content: systemContent }, ...cleaned];
+
+    if (ratings.length > 0) {
+      const liked = ratings.filter((r) => r.action === "like");
+      const disliked = ratings.filter((r) => r.action === "dislike");
+      const fmt = (rs: typeof ratings) => rs.map((r) =>
+        `- ${r.title ?? "?"} | ${r.company ?? "?"} | ${r.country ?? "?"} | ${r.category ?? "?"}`
+      ).join("\n");
+      const ratingsBlock = [
+        "[HODNOCENÍ UŽIVATELE z posledních nabídek]",
+        liked.length ? `LÍBÍ SE (👍):\n${fmt(liked)}` : "LÍBÍ SE (👍): žádné",
+        disliked.length ? `NELÍBÍ SE (👎):\n${fmt(disliked)}` : "NELÍBÍ SE (👎): žádné",
+        "",
+        "Reaguj podle pravidla pro HODNOCENÍ: jemně shrň vzorec a navrhni další krok. Nevolej znovu search_catalog, pokud uživatel explicitně nepoprosí.",
+      ].join("\n");
+      convo.push({ role: "user", content: ratingsBlock });
+    }
 
     const collectedJobs: unknown[] = [];
     let presetId: string | null = null;
