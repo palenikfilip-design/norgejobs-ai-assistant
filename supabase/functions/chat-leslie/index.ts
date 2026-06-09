@@ -71,13 +71,19 @@ ABSOLUTNÍ PRAVIDLA (neporušuj nikdy):
 - KRITICKÉ: Když uživatel řekl REGION (např. "Skandinávie") nebo TYP PRÁCE (např. "manuální"), NIKDY mu neukazuj nabídky, které ten region OPOUŠTĚJÍ A SOUČASNĚ porušují typ. Nabídka, která nesedí ani lokací ani typem, je horší než žádná.
 - Pokud search_catalog vrátí prázdno i po relax fallback, řekni upřímně: "Zatím pro tebe v {region} nemám nic v {kategorie}. Přidávám nabídky denně — chceš upozornit?" — NIKDY místo toho nevracej náhodné US/MX/finance nabídky.
 - Estimovaný plat (salary_is_estimated=true) NIKDY neprezentuj jako jistý. V odpovědi piš "odhad ~X €/měs".
+- RESPEKTUJ ZEMI uživatele. Když uživatel řekl konkrétní zemi (např. "Norsko"), preset MUSÍ obsahovat tu zemi. Když search_catalog vrátí převážně z JINÉ země než kterou chtěl, ŘEKNI to upřímně: "Norsko bohužel zatím nemám moc obsazené, tady jsou podobné ze Švédska — chceš upozornit, až přibydou norské?" — nikdy tiše nezamlčuj, že jde o náhradu.
+- KOMENTUJ PLAT vůči cíli uživatele. Když znáš jeho salary_min (z presetu/zprávy), u zobrazených nabídek krátce zmiň: "Tyhle pozice mají odhadem kolem {X} €, což odpovídá tvému cíli {Y} €" nebo "Některé jsou pod tvým cílem {Y} €, ale ukázala jsem je, protože jinak sedí." Estimáty označ "odhad".
+- KDYŽ DOSTANEŠ blok [HODNOCENÍ UŽIVATELE …], nesnaž se znovu vyhledávat. Místo toho:
+   1) jemně, Sokratovsky shrň vzorec ("vidím, že tě spíš baví práce venku než v kuchyni — sedí to?"),
+   2) navrhni konkrétní DALŠÍ KROK: "zúžit hledání na X?", "víc podobných?", nebo "zkusit jinou zemi?".
+   Reaguj krátce (2–3 věty), neopakuj celý seznam.
 
 TVŮJ FLOW:
 1. Uživatel řekne, co chce.
 2. Vytáhni: země/region, typ práce, očekávaný plat, sezónnost.
-3. Polož max. 1 doplňující otázku, pak ZAVOLEJ create_preset (i s neúplnými údaji) a hned poté search_catalog.
+3. Polož max. 1 doplňující otázku, pak ZAVOLEJ create_preset (i s neúplnými údaji) a hned poté search_catalog. Při dalším upřesnění (např. "spíš lesnictví než kuchyně") volej create_preset znovu — backend AKTUALIZUJE existující aktivní preset, ne vytvoří nový.
 4. search_catalog má vestavěný kaskádový fallback (uvolní plat → region → příbuzné kategorie ve STEJNÉM univerzu manuální/white-collar). Pole "fallback_level" v odpovědi ti řekne, jak moc byl dotaz uvolněn. Pokud je "none_in_region", řekni to upřímně.
-5. Po zobrazení nabídek pobídni: "Klikni 👍/👎 ať vím, co tě baví."
+5. Po zobrazení nabídek pobídni: "Klikni 👍/👎 a pak dej 'Hotovo, co dál?' ať vím, co tě baví."
 
 Dostupné kategorie (display_category): ${DISPLAY_CATEGORIES.join(", ")}.
 Když uživatel zmíní VÍCE typů práce (např. "gastro a stavby"), pošli search_catalog parametr "categories" jako pole VŠECH zmíněných kategorií — výsledek bude pak namíchaný napůl. Nepoužívej jen jednu, pokud řekl víc.
@@ -373,7 +379,36 @@ async function runCreatePreset(userId: string, args: Record<string, unknown>) {
   const seasonal = typeof args.seasonal === "string" ? args.seasonal : "any";
   const description = typeof args.category === "string" ? `Leslie preset – kategorie ${args.category}` : "Leslie preset";
 
-  // Deactivate other presets of same name → just create new active row
+  // Find most recent active Leslie preset for this user (last 7 days) to UPDATE
+  // rather than spawn confusingly-renamed duplicates.
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: existing } = await svc
+    .from("user_presets")
+    .select("id,name,learning_data,updated_at")
+    .eq("user_id", userId)
+    .eq("active", true)
+    .gte("updated_at", sevenDaysAgo)
+    .order("updated_at", { ascending: false })
+    .limit(5);
+
+  const leslieRow = (existing ?? []).find((r) => {
+    const ld = (r.learning_data ?? {}) as { source?: string };
+    return ld.source === "leslie";
+  });
+
+  if (leslieRow) {
+    const { data, error } = await svc.from("user_presets").update({
+      name,
+      preferred_countries: countries,
+      salary_min: salaryMinEur,
+      seasonal_preference: seasonal,
+      description,
+      learning_data: { source: "leslie", category: args.category ?? null },
+    }).eq("id", leslieRow.id).select("id,name").single();
+    if (error) { console.error("update_preset error", error); return { error: error.message }; }
+    return { preset_id: data.id, preset_name: data.name, updated: true };
+  }
+
   const { data, error } = await svc.from("user_presets").insert({
     user_id: userId,
     name,
@@ -385,7 +420,7 @@ async function runCreatePreset(userId: string, args: Record<string, unknown>) {
     learning_data: { source: "leslie", category: args.category ?? null },
   }).select("id,name").single();
   if (error) { console.error("create_preset error", error); return { error: error.message }; }
-  return { preset_id: data.id, preset_name: data.name };
+  return { preset_id: data.id, preset_name: data.name, updated: false };
 }
 
 Deno.serve(async (req) => {
@@ -402,6 +437,9 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const incoming: ChatMessage[] = Array.isArray(body?.messages) ? body.messages : [];
     const userName: string | undefined = typeof body?.userName === "string" ? body.userName : undefined;
+    const ratings = Array.isArray(body?.ratings) ? body.ratings as Array<{
+      action: "like" | "dislike"; title?: string; company?: string | null; country?: string | null; category?: string | null;
+    }> : [];
     if (incoming.length === 0) return new Response(JSON.stringify({ error: "messages_required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const svc = getServiceSupabase();
@@ -417,6 +455,22 @@ Deno.serve(async (req) => {
       .map((m) => ({ role: m.role, content: m.content }));
 
     const convo: ChatMessage[] = [{ role: "system", content: systemContent }, ...cleaned];
+
+    if (ratings.length > 0) {
+      const liked = ratings.filter((r) => r.action === "like");
+      const disliked = ratings.filter((r) => r.action === "dislike");
+      const fmt = (rs: typeof ratings) => rs.map((r) =>
+        `- ${r.title ?? "?"} | ${r.company ?? "?"} | ${r.country ?? "?"} | ${r.category ?? "?"}`
+      ).join("\n");
+      const ratingsBlock = [
+        "[HODNOCENÍ UŽIVATELE z posledních nabídek]",
+        liked.length ? `LÍBÍ SE (👍):\n${fmt(liked)}` : "LÍBÍ SE (👍): žádné",
+        disliked.length ? `NELÍBÍ SE (👎):\n${fmt(disliked)}` : "NELÍBÍ SE (👎): žádné",
+        "",
+        "Reaguj podle pravidla pro HODNOCENÍ: jemně shrň vzorec a navrhni další krok. Nevolej znovu search_catalog, pokud uživatel explicitně nepoprosí.",
+      ].join("\n");
+      convo.push({ role: "user", content: ratingsBlock });
+    }
 
     const collectedJobs: unknown[] = [];
     let presetId: string | null = null;
