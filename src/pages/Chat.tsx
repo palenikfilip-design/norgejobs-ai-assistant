@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useUser } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Loader2, Send, User, ThumbsUp, ThumbsDown, ExternalLink, Plus } from "lucide-react";
+import { ArrowLeft, Loader2, Send, User, ThumbsUp, ThumbsDown, ExternalLink, Plus, Sparkles } from "lucide-react";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,6 +51,8 @@ const Chat = () => {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [reactions, setReactions] = useState<Record<string, "like" | "dislike">>({});
+  const [ratingDetails, setRatingDetails] = useState<Record<string, { action: "like" | "dislike"; title: string; company: string | null; country: string | null; category: string | null }>>({});
+  const [pendingRatingsSent, setPendingRatingsSent] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -98,6 +100,17 @@ const Chat = () => {
   const reactToJob = async (job: JobCard, presetId: string | null | undefined, action: "like" | "dislike") => {
     if (!supabaseUser) return;
     setReactions((r) => ({ ...r, [job.id]: action }));
+    setRatingDetails((r) => ({
+      ...r,
+      [job.id]: {
+        action,
+        title: job.title_cs || job.title,
+        company: job.company,
+        country: job.country,
+        category: job.display_category,
+      },
+    }));
+    setPendingRatingsSent(false);
     await supabase.from("user_job_interactions").insert({
       user_id: supabaseUser.id,
       job_id: job.id,
@@ -106,21 +119,25 @@ const Chat = () => {
     });
   };
 
-  const sendMessage = async (raw?: string) => {
+  const sendMessage = async (raw?: string, opts?: { includeRatings?: boolean; visibleText?: string }) => {
     const text = (raw ?? input).trim();
-    if (!text || sending) return;
+    if ((!text && !opts?.includeRatings) || sending) return;
 
-    const userMsg: Message = { id: `u_${Date.now()}`, role: "user", content: text };
+    const visibleText = opts?.visibleText ?? text;
+    const userMsg: Message = { id: `u_${Date.now()}`, role: "user", content: visibleText };
     const next = [...messages, userMsg];
     setMessages(next);
     setInput("");
     setSending(true);
+
+    const ratingsPayload = opts?.includeRatings ? Object.values(ratingDetails) : [];
 
     try {
       const { data, error } = await supabase.functions.invoke("chat-leslie", {
         body: {
           messages: next.filter((m) => m.id !== "welcome").map((m) => ({ role: m.role, content: m.content })),
           userName: firstName,
+          ratings: ratingsPayload,
         },
       });
       if (error) {
@@ -142,6 +159,10 @@ const Chat = () => {
         preset_id: d?.preset_id,
         preset_name: d?.preset_name,
       }]);
+      if (opts?.includeRatings) {
+        setPendingRatingsSent(true);
+        setRatingDetails({});
+      }
     } catch (e) {
       console.error("chat-leslie call failed:", e);
       toast({ title: "Chyba", description: "Něco se pokazilo.", variant: "destructive" });
@@ -149,6 +170,9 @@ const Chat = () => {
       setSending(false);
     }
   };
+
+  const ratingsCount = Object.keys(ratingDetails).length;
+  const showDoneButton = ratingsCount >= 2 && !sending && !pendingRatingsSent;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -278,6 +302,21 @@ const Chat = () => {
             <div className="flex items-center gap-2 text-sm text-muted-foreground pl-11">
               <Loader2 className="w-4 h-4 animate-spin" />
               {t("chat.thinking")}
+            </div>
+          )}
+          {showDoneButton && (
+            <div className="flex justify-center pt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-full"
+                onClick={() => sendMessage("", {
+                  includeRatings: true,
+                  visibleText: `Ohodnotil jsem ${ratingsCount} nabídek — co dál?`,
+                })}
+              >
+                <Sparkles className="w-4 h-4 mr-1" /> Hotovo, co dál?
+              </Button>
             </div>
           )}
           <div ref={bottomRef} />
