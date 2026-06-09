@@ -94,6 +94,8 @@ const Chat = () => {
   const newConversation = async () => {
     setMessages([{ id: "welcome", role: "assistant", content: WELCOME }]);
     setReactions({});
+    setRatingDetails({});
+    setPendingRatingsSent(false);
     setInput("");
   };
 
