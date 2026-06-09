@@ -379,7 +379,36 @@ async function runCreatePreset(userId: string, args: Record<string, unknown>) {
   const seasonal = typeof args.seasonal === "string" ? args.seasonal : "any";
   const description = typeof args.category === "string" ? `Leslie preset – kategorie ${args.category}` : "Leslie preset";
 
-  // Deactivate other presets of same name → just create new active row
+  // Find most recent active Leslie preset for this user (last 7 days) to UPDATE
+  // rather than spawn confusingly-renamed duplicates.
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: existing } = await svc
+    .from("user_presets")
+    .select("id,name,learning_data,updated_at")
+    .eq("user_id", userId)
+    .eq("active", true)
+    .gte("updated_at", sevenDaysAgo)
+    .order("updated_at", { ascending: false })
+    .limit(5);
+
+  const leslieRow = (existing ?? []).find((r) => {
+    const ld = (r.learning_data ?? {}) as { source?: string };
+    return ld.source === "leslie";
+  });
+
+  if (leslieRow) {
+    const { data, error } = await svc.from("user_presets").update({
+      name,
+      preferred_countries: countries,
+      salary_min: salaryMinEur,
+      seasonal_preference: seasonal,
+      description,
+      learning_data: { source: "leslie", category: args.category ?? null },
+    }).eq("id", leslieRow.id).select("id,name").single();
+    if (error) { console.error("update_preset error", error); return { error: error.message }; }
+    return { preset_id: data.id, preset_name: data.name, updated: true };
+  }
+
   const { data, error } = await svc.from("user_presets").insert({
     user_id: userId,
     name,
@@ -391,7 +420,7 @@ async function runCreatePreset(userId: string, args: Record<string, unknown>) {
     learning_data: { source: "leslie", category: args.category ?? null },
   }).select("id,name").single();
   if (error) { console.error("create_preset error", error); return { error: error.message }; }
-  return { preset_id: data.id, preset_name: data.name };
+  return { preset_id: data.id, preset_name: data.name, updated: false };
 }
 
 Deno.serve(async (req) => {
