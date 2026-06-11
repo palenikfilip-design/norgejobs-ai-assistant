@@ -958,6 +958,7 @@ export type Database = {
           jobs_viewed_today: number
           last_reset_date: string
           premium_since: string | null
+          profile_nudge_dismissed_at: string | null
           updated_at: string
           user_id: string
         }
@@ -973,6 +974,7 @@ export type Database = {
           jobs_viewed_today?: number
           last_reset_date?: string
           premium_since?: string | null
+          profile_nudge_dismissed_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -988,6 +990,7 @@ export type Database = {
           jobs_viewed_today?: number
           last_reset_date?: string
           premium_since?: string | null
+          profile_nudge_dismissed_at?: string | null
           updated_at?: string
           user_id?: string
         }
