@@ -184,10 +184,7 @@ const Chat = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => {
-              if (window.history.length > 1) navigate(-1);
-              else navigate("/dashboard");
-            }}
+            onClick={() => navigate("/dashboard")}
             aria-label="Back"
           >
             <ArrowLeft className="w-5 h-5" />
