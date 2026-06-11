@@ -10,6 +10,7 @@ import BlurredJobCard from "@/components/BlurredJobCard";
 import PresetSwitcher from "@/components/PresetSwitcher";
 import CoverLetterDialog from "@/components/CoverLetterDialog";
 import ProfileCompletion from "@/components/ProfileCompletion";
+import WeakResultsNudge from "@/components/WeakResultsNudge";
 import JobFiltersPanel from "@/components/JobFiltersPanel";
 import QuickFilterBar, { defaultQuickFilters, type QuickFilters } from "@/components/QuickFilterBar";
 import { Button } from "@/components/ui/button";
@@ -588,9 +589,19 @@ const Dashboard = () => {
           </div>
         </motion.div>
 
-        {/* Profile Completion */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-8">
-          <ProfileCompletion onEditProfile={() => navigate("/profile/edit")} />
+        {/* Profile completeness nudge — only shows when results are weak AND profile <80% */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-6">
+          <WeakResultsNudge
+            profile={profile}
+            activePreset={activePresets[0] ?? null}
+            countryOfOrigin={(profile as unknown as { countryOfOrigin?: string }).countryOfOrigin}
+            currentResidence={(profile as unknown as { currentResidence?: string }).currentResidence}
+            jobs={filteredJobs}
+            loading={liveLoading}
+            userId={supabaseUser?.id ?? null}
+            onEditProfile={() => navigate("/profile/edit")}
+            onEditPreset={(presetId, anchor) => navigate(`/preset/edit/${presetId}${anchor ?? ""}`)}
+          />
         </motion.div>
 
         {/* Pattern insights — Behavior Learning */}
