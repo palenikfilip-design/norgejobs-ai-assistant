@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { hasBudgetRemaining, logAiCall, BUDGET_BLOCKED_MESSAGE_CS } from "../_shared/aiBudget.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -62,6 +63,13 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    const budget = await hasBudgetRemaining(admin);
+    if (!budget.ok) {
+      return new Response(JSON.stringify({ error: "budget_blocked", message: BUDGET_BLOCKED_MESSAGE_CS }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const langMap: Record<string, string> = {
       cs: "Czech", sk: "Slovak", en: "English", de: "German", pl: "Polish",
     };
@@ -100,6 +108,11 @@ serve(async (req) => {
       throw new Error(`AI gateway error: ${response.status}`);
     }
     const data = await response.json();
+    await logAiCall(admin, {
+      function_name: "polish-cv-text",
+      model: "google/gemini-3.1-flash-lite-preview",
+      usage: data?.usage ?? null,
+    });
     const polished = (data.choices?.[0]?.message?.content || "").trim().replace(/^["'`]+|["'`]+$/g, "");
 
     if (!isPremium) {
