@@ -1324,7 +1324,7 @@ Deno.serve(async (req) => {
       .from("employer_sources")
       .select("id, company_name, ats_type, ats_config, country, sector, is_active, last_run_at")
       .eq("is_active", true)
-      .in("ats_type", ["workday", "smartrecruiters", "workable", "recruitee", "personio", "ashby"]);
+      .in("ats_type", ["workday", "smartrecruiters", "workable", "recruitee", "personio", "ashby", "teamtailor"]);
     if (body.employer_source_id) empQuery = empQuery.eq("id", body.employer_source_id);
     const { data: emp, error: empErr } = await empQuery;
     if (empErr) {
@@ -1338,6 +1338,7 @@ Deno.serve(async (req) => {
           recruitee: "ats_recruitee",
           personio: "ats_personio_employer",
           ashby: "ats_ashby",
+          teamtailor: "ats_teamtailor",
         };
         const source_type = map[e.ats_type as string];
         if (!source_type) {
