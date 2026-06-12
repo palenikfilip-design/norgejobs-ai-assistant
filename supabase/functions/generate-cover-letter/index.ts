@@ -101,7 +101,7 @@ Length: 200-250 words. Do not fabricate experience.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-3.1-flash-lite-preview",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -133,8 +133,26 @@ Length: 200-250 words. Do not fabricate experience.`;
       }).eq("user_id", userId);
     }
 
+    // Persist the generated letter so users can revisit/edit it.
+    let letterId: string | null = null;
+    try {
+      const { data: inserted } = await admin.from("user_cover_letters").insert({
+        user_id: userId,
+        job_id: jobId ?? null,
+        job_title: jobTitle,
+        company: company ?? null,
+        location: location ?? null,
+        language,
+        content,
+      }).select("id").maybeSingle();
+      letterId = inserted?.id ?? null;
+    } catch (saveErr) {
+      console.error("Cover letter save error:", saveErr);
+    }
+
     return new Response(JSON.stringify({
       coverLetter: content,
+      letterId,
       used: isPremium ? null : used + 1,
       limit: isPremium ? null : FREE_MONTHLY_LIMIT,
       isPremium,
