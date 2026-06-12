@@ -24,6 +24,7 @@ type SourceType =
   | "ats_workable"
   | "ats_recruitee"
   | "ats_ashby"
+  | "ats_teamtailor"
   | "rss_feed"
   | "arbeitnow"
   | "nav_no_feed";
@@ -785,6 +786,61 @@ async function adapterPortalApi(s: JobSource): Promise<NormalizedJob[]> {
 }
 
 /**
+ * Teamtailor — public JSON Feed at https://{company}.teamtailor.com/jobs.json
+ * (de-facto ATS for many Nordic SMBs). No auth.
+ */
+async function adapterTeamtailor(s: JobSource): Promise<NormalizedJob[]> {
+  const company = String(s.config.company ?? "");
+  if (!company) throw new Error("teamtailor: missing config.company");
+  let data: any;
+  try {
+    data = await fetchJson(`https://${encodeURIComponent(company)}.teamtailor.com/jobs.json`);
+  } catch (e) {
+    console.warn(`[teamtailor:${company}] fetch failed:`, e instanceof Error ? e.message : String(e));
+    return [];
+  }
+  const items: any[] = Array.isArray(data?.items) ? data.items : [];
+  if (items[0]) console.log(`[teamtailor:${company}] first item:`, JSON.stringify(items[0]).slice(0, 1500));
+  console.log(`[teamtailor:${company}] fetched ${items.length} items`);
+
+  return items
+    .filter((it) => it?.title && it?.url)
+    .map((it) => {
+      const jp = (it._jobposting ?? it.jobPosting ?? {}) as any;
+      const jlRaw = jp?.jobLocation ?? {};
+      const jl: any = Array.isArray(jlRaw) ? (jlRaw[0] ?? {}) : jlRaw;
+      const addr = jl?.address ?? {};
+      const city = addr?.addressLocality ?? null;
+      const region = addr?.addressRegion ?? null;
+      const countryRaw = addr?.addressCountry ?? null;
+      const country = typeof countryRaw === "object" && countryRaw ? (countryRaw.name ?? null) : countryRaw;
+      const loc = [city, region, country].filter(Boolean).join(", ") || null;
+      return {
+        external_id: it.id ? String(it.id) : String(it.url),
+        source_portal: `teamtailor:${company}`,
+        source_id: s._origin_table === "employer_sources" ? null : s.id,
+        title: String(it.title),
+        company: s.name,
+        description: stripHtml(it.content_html ?? it.summary ?? null),
+        location: loc,
+        country: (country as string | null) || s.country || null,
+        url: String(it.url),
+        job_type: jp?.employmentType ?? null,
+        salary_min: null, salary_max: null, currency: null,
+        salary: null,
+        posted_at: it.date_published ?? null,
+        raw_data: {
+          sector: s.sector ?? null,
+          department: jp?.department ?? null,
+          display_category: jp?.industry ?? jp?.department ?? null,
+          employer_source_country: s.country ?? null,
+        },
+        fetched_at: nowIso(),
+      } as NormalizedJob;
+    });
+}
+
+/**
  * Arbeitnow — public job board API, no auth.
  * GET https://www.arbeitnow.com/api/job-board-api
  * Paginated via links.next; cap at 5 pages.
@@ -932,6 +988,7 @@ const ADAPTERS: Record<SourceType, (s: JobSource) => Promise<NormalizedJob[]>> =
   ats_workable: adapterWorkable,
   ats_recruitee: adapterRecruitee,
   ats_ashby: adapterAshby,
+  ats_teamtailor: adapterTeamtailor,
   rss_feed: adapterRssFeed,
   arbeitnow: adapterArbeitnow,
   nav_no_feed: adapterNavNoFeed,
@@ -1267,7 +1324,7 @@ Deno.serve(async (req) => {
       .from("employer_sources")
       .select("id, company_name, ats_type, ats_config, country, sector, is_active, last_run_at")
       .eq("is_active", true)
-      .in("ats_type", ["workday", "smartrecruiters", "workable", "recruitee", "personio", "ashby"]);
+      .in("ats_type", ["workday", "smartrecruiters", "workable", "recruitee", "personio", "ashby", "teamtailor"]);
     if (body.employer_source_id) empQuery = empQuery.eq("id", body.employer_source_id);
     const { data: emp, error: empErr } = await empQuery;
     if (empErr) {
@@ -1281,6 +1338,7 @@ Deno.serve(async (req) => {
           recruitee: "ats_recruitee",
           personio: "ats_personio_employer",
           ashby: "ats_ashby",
+          teamtailor: "ats_teamtailor",
         };
         const source_type = map[e.ats_type as string];
         if (!source_type) {

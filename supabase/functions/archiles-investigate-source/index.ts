@@ -49,6 +49,10 @@ function detect(url: string): Detected | null {
       const slug = pathParts[0] ?? host.split(".")[0];
       return { ats_type: "workable", config: { slug, list_endpoint: `https://apply.workable.com/api/v3/accounts/${slug}/jobs` } };
     }
+    if (host.includes("teamtailor.com")) {
+      const slug = host.split(".")[0];
+      return { ats_type: "teamtailor", config: { company: slug, list_endpoint: `https://${slug}.teamtailor.com/jobs.json` } };
+    }
   } catch {}
   return null;
 }
@@ -107,15 +111,34 @@ Deno.serve(async (req) => {
     }
 
     if (!url && company) {
-      // Without a URL we cannot reliably auto-detect. Suggest common ATS guesses.
       const slug = company.toLowerCase().replace(/[^a-z0-9]/g, "");
+      // Try Teamtailor first — very common for Nordic SMBs.
+      const ttEndpoint = `https://${slug}.teamtailor.com/jobs.json`;
+      try {
+        const r = await fetch(ttEndpoint, { headers: { "User-Agent": "Archiles/1.0 (Lovable)" } });
+        if (r.ok) {
+          const json = await r.json().catch(() => null);
+          const items = Array.isArray(json?.items) ? json.items : [];
+          if (items.length > 0) {
+            const sample = items[0];
+            return new Response(JSON.stringify({
+              detected: { ats_type: "teamtailor", config: { company: slug, list_endpoint: ttEndpoint } },
+              sample_job: { title: sample?.title ?? "—", location: sample?._jobposting?.jobLocation?.address?.addressLocality ?? "—" },
+              items_count: items.length,
+              suggested_name: company,
+            }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }
+        }
+      } catch { /* fall through */ }
+      // No URL → cannot reliably auto-detect other ATSes; offer guesses.
       return new Response(JSON.stringify({
         detected: null,
-        reason: "Bez URL nelze spolehlivě auto-detekovat ATS. Zkus zadat URL kariérní stránky.",
+        reason: "Bez URL nelze spolehlivě auto-detekovat ATS (Teamtailor zkoušen — neodpověděl). Zkus zadat URL kariérní stránky.",
         possible_reasons: [
           `Zkus: https://boards.greenhouse.io/${slug}`,
           `Zkus: https://jobs.lever.co/${slug}`,
           `Zkus: https://${slug}.workable.com`,
+          `Zkus: https://${slug}.teamtailor.com/jobs.json`,
         ],
         suggested_name: company,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
