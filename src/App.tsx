@@ -18,6 +18,7 @@ import Premium from "./pages/Premium";
 import SavedJobs from "./pages/SavedJobs";
 import CV from "./pages/CV";
 import CVEditor from "./pages/CVEditor";
+import CoverLetters from "./pages/CoverLetters";
 import DailyInsights from "./pages/DailyInsights";
 import Admin from "./pages/Admin";
 import AdminStats from "./pages/AdminStats";
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="/saved" element={<SavedJobs />} />
             <Route path="/cv" element={<CV />} />
             <Route path="/cv/:id" element={<CVEditor />} />
+            <Route path="/cover-letters" element={<CoverLetters />} />
             <Route path="/insights" element={<DailyInsights />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/stats" element={<AdminStats />} />

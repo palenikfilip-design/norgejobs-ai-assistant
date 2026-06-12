@@ -6,11 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const FREE_MONTHLY_LIMIT = 3;
+const FREE_MONTHLY_LIMIT = 10;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -18,12 +17,9 @@ serve(async (req) => {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    // Identify user from JWT
     const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -36,36 +32,30 @@ serve(async (req) => {
     const userId = userData.user.id;
 
     const body = await req.json();
-    const { jobTitle, company, location, language = "cs", jobId } = body;
+    const { text, kind = "summary", language = "cs" } = body as {
+      text?: string; kind?: "summary" | "work" | "headline"; language?: string;
+    };
+    if (!text || typeof text !== "string" || text.trim().length < 3) {
+      return new Response(JSON.stringify({ error: "Text is too short" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    // Service-role client for usage tracking + profile fetch
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    // Fetch user profile (avatar_json) and access record
-    const [{ data: profile }, { data: access }] = await Promise.all([
-      admin.from("profiles").select("avatar_json,full_name,languages,skills,work_experience,profession,country").eq("user_id", userId).maybeSingle(),
-      admin.from("user_access").select("*").eq("user_id", userId).maybeSingle(),
-    ]);
-
+    const { data: access } = await admin.from("user_access").select("*").eq("user_id", userId).maybeSingle();
     const isPremium = !!access?.is_premium;
 
-    // Reset monthly counter if new month
+    // Reuse cover_letter monthly window as a cheap per-user polish counter.
     const today = new Date();
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
     let used = access?.cover_letters_used_this_month ?? 0;
     if (!access?.cover_letter_month_reset || access.cover_letter_month_reset < monthStart) {
       used = 0;
-      await admin.from("user_access").update({
-        cover_letters_used_this_month: 0,
-        cover_letter_month_reset: monthStart,
-      }).eq("user_id", userId);
     }
-
-    if (!isPremium && used >= FREE_MONTHLY_LIMIT) {
+    if (!isPremium && used >= FREE_MONTHLY_LIMIT + 3) {
       return new Response(JSON.stringify({
         error: "limit_reached",
-        message: "Free users get 3 cover letters per month. Upgrade to Pro for unlimited.",
-        used, limit: FREE_MONTHLY_LIMIT,
+        message: "Free monthly AI limit reached.",
       }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -77,34 +67,21 @@ serve(async (req) => {
     };
     const langName = langMap[language] || "Czech";
 
-    const avatarSummary = JSON.stringify({
-      name: profile?.full_name,
-      profession: profile?.profession,
-      experience: profile?.work_experience,
-      skills: profile?.skills,
-      languages: profile?.languages,
-      country: profile?.country,
-      avatar: profile?.avatar_json ?? {},
-    });
-
-    const systemPrompt = `You are a professional cover letter writer. Write a personalized cover letter in ${langName}. Tone: professional but warm. Length: strictly 200-250 words. Do not fabricate any experience, qualifications, or skills not mentioned about the applicant. Address the hiring manager directly.`;
-
-    const userPrompt = `Write a personalized cover letter in ${langName} for this job application.
-Job: ${jobTitle} at ${company || "the employer"} in ${location || "the listed location"}.
-About the applicant: ${avatarSummary}
-Length: 200-250 words. Do not fabricate experience.`;
+    const kindGuidance: Record<string, string> = {
+      summary: "Rewrite this CV summary so it's concise (max 3 sentences), professional, and highlights strengths. Do NOT fabricate experience or skills.",
+      work: "Rewrite this job description as 2-4 short action-oriented bullet-style sentences. Focus on responsibilities and impact. Do NOT invent achievements or numbers.",
+      headline: "Rewrite this CV headline as a single short professional title (max 10 words). Do NOT invent seniority.",
+    };
+    const guidance = kindGuidance[kind] || kindGuidance.summary;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-3.1-flash-lite-preview",
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
+          { role: "system", content: `You polish CV text in ${langName}. ${guidance} Output ONLY the improved text, no commentary, no quotes, no markdown.` },
+          { role: "user", content: text },
         ],
       }),
     });
@@ -116,51 +93,27 @@ Length: 200-250 words. Do not fabricate experience.`;
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Credits exhausted. Please add funds." }), {
+        return new Response(JSON.stringify({ error: "Credits exhausted." }), {
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       throw new Error(`AI gateway error: ${response.status}`);
     }
-
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "Unable to generate cover letter.";
+    const polished = (data.choices?.[0]?.message?.content || "").trim().replace(/^["'`]+|["'`]+$/g, "");
 
-    // Increment usage (free users only)
     if (!isPremium) {
       await admin.from("user_access").update({
         cover_letters_used_this_month: used + 1,
+        cover_letter_month_reset: monthStart,
       }).eq("user_id", userId);
     }
 
-    // Persist the generated letter so users can revisit/edit it.
-    let letterId: string | null = null;
-    try {
-      const { data: inserted } = await admin.from("user_cover_letters").insert({
-        user_id: userId,
-        job_id: jobId ?? null,
-        job_title: jobTitle,
-        company: company ?? null,
-        location: location ?? null,
-        language,
-        content,
-      }).select("id").maybeSingle();
-      letterId = inserted?.id ?? null;
-    } catch (saveErr) {
-      console.error("Cover letter save error:", saveErr);
-    }
-
-    return new Response(JSON.stringify({
-      coverLetter: content,
-      letterId,
-      used: isPremium ? null : used + 1,
-      limit: isPremium ? null : FREE_MONTHLY_LIMIT,
-      isPremium,
-    }), {
+    return new Response(JSON.stringify({ polished, isPremium }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("Cover letter error:", e);
+    console.error("Polish error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
