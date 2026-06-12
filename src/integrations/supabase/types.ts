@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_call_log: {
+        Row: {
+          created_at: string
+          estimated_cost_usd: number | null
+          function_name: string
+          id: string
+          input_tokens: number | null
+          model: string
+          output_tokens: number | null
+        }
+        Insert: {
+          created_at?: string
+          estimated_cost_usd?: number | null
+          function_name: string
+          id?: string
+          input_tokens?: number | null
+          model: string
+          output_tokens?: number | null
+        }
+        Update: {
+          created_at?: string
+          estimated_cost_usd?: number | null
+          function_name?: string
+          id?: string
+          input_tokens?: number | null
+          model?: string
+          output_tokens?: number | null
+        }
+        Relationships: []
+      }
+      ai_daily_budget: {
+        Row: {
+          call_count: number
+          daily_limit_usd: number
+          date: string
+          total_cost_usd: number
+          updated_at: string
+        }
+        Insert: {
+          call_count?: number
+          daily_limit_usd?: number
+          date?: string
+          total_cost_usd?: number
+          updated_at?: string
+        }
+        Update: {
+          call_count?: number
+          daily_limit_usd?: number
+          date?: string
+          total_cost_usd?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       archiles_autonomy: {
         Row: {
           auto_delete_dead: boolean
@@ -765,6 +819,7 @@ export type Database = {
           description: string | null
           display_category: string
           enriched_at: string | null
+          enrichment_version: number
           expat_openness: string
           external_id: string | null
           fetched_at: string
@@ -810,6 +865,7 @@ export type Database = {
           description?: string | null
           display_category?: string
           enriched_at?: string | null
+          enrichment_version?: number
           expat_openness?: string
           external_id?: string | null
           fetched_at?: string
@@ -855,6 +911,7 @@ export type Database = {
           description?: string | null
           display_category?: string
           enriched_at?: string | null
+          enrichment_version?: number
           expat_openness?: string
           external_id?: string | null
           fetched_at?: string
@@ -1326,6 +1383,8 @@ export type Database = {
       }
     }
     Functions: {
+      ai_budget_increment: { Args: { _cost: number }; Returns: undefined }
+      ai_budget_remaining_today: { Args: never; Returns: number }
       compute_cultural_context: {
         Args: { origin: string; residence: string; since: string }
         Returns: Json
