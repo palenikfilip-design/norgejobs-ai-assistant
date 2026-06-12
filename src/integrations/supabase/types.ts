@@ -996,6 +996,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_cover_letters: {
+        Row: {
+          company: string | null
+          content: string
+          created_at: string
+          id: string
+          job_id: string | null
+          job_title: string
+          language: string
+          location: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          job_title: string
+          language?: string
+          location?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          job_title?: string
+          language?: string
+          location?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_cvs: {
         Row: {
           certifications: Json
