@@ -243,3 +243,103 @@
     animation: none !important;
   }
 }
+
+/* ============================================================
+   CV BUILDER — Templates + print
+   ============================================================ */
+
+.cv-preview-frame {
+  background: #f3f4f6;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.cv-doc {
+  background: #ffffff;
+  color: #111827;
+  width: 100%;
+  max-width: 210mm;
+  min-height: 297mm;
+  padding: 18mm 16mm;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+  font-size: 11pt;
+  line-height: 1.45;
+  /* Diacritics-safe stack: Inter has full Latin Extended-A (á č ř ž ě ů…) */
+  font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+}
+
+.cv-doc * { box-sizing: border-box; }
+.cv-header { margin-bottom: 1rem; }
+.cv-name { font-size: 24pt; font-weight: 700; margin: 0; line-height: 1.1; }
+.cv-headline { font-size: 12pt; margin: 0.25rem 0 0.5rem; color: #4b5563; }
+.cv-contact { font-size: 10pt; color: #4b5563; display: flex; flex-wrap: wrap; gap: 0.75rem; }
+
+.cv-section { margin-top: 1.1rem; }
+.cv-section-title {
+  font-size: 11pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.5rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+.cv-entry { margin-bottom: 0.65rem; }
+.cv-entry-head { font-size: 11pt; }
+.cv-period { color: #6b7280; font-weight: 400; }
+.cv-paragraph { margin: 0.25rem 0 0; white-space: pre-wrap; }
+
+.cv-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.cv-tag {
+  font-size: 9.5pt;
+  background: #f3f4f6;
+  color: #111827;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+}
+
+/* --- Modern: red accent on name + section underlines --- */
+.cv-modern .cv-name { color: #111827; border-bottom: 3px solid #EF4444; display: inline-block; padding-bottom: 0.25rem; }
+.cv-modern .cv-section-title { color: #EF4444; border-bottom-color: #EF4444; }
+.cv-modern .cv-tag { background: #fef2f2; color: #b91c1c; }
+
+/* --- Classic: serif, conservative --- */
+.cv-classic { font-family: 'Georgia', 'Times New Roman', serif; }
+.cv-classic .cv-name { text-align: center; font-weight: 700; }
+.cv-classic .cv-headline { text-align: center; font-style: italic; }
+.cv-classic .cv-contact { justify-content: center; }
+.cv-classic .cv-section-title { border-bottom: 2px solid #111827; text-transform: none; letter-spacing: 0; font-style: italic; }
+.cv-classic .cv-tag { background: transparent; border: 1px solid #d1d5db; border-radius: 0.25rem; }
+
+/* --- Creative: side color block --- */
+.cv-creative { padding: 0; display: grid; grid-template-columns: 70mm 1fr; min-height: 297mm; }
+.cv-creative .cv-header { grid-column: 1; grid-row: 1 / -1; background: #1F2937; color: #fff; padding: 16mm 10mm; margin: 0; }
+.cv-creative .cv-name { color: #fff; font-size: 22pt; }
+.cv-creative .cv-headline { color: #EF4444; font-weight: 600; }
+.cv-creative .cv-contact { color: #d1d5db; flex-direction: column; gap: 0.35rem; }
+.cv-creative > .cv-section { grid-column: 2; margin: 0; padding: 16mm 14mm 0; }
+.cv-creative > .cv-section:first-of-type { padding-top: 16mm; }
+.cv-creative > .cv-section:last-of-type { padding-bottom: 16mm; }
+.cv-creative .cv-section-title { color: #1F2937; border-bottom: 3px solid #EF4444; display: inline-block; padding-right: 1rem; }
+.cv-creative .cv-tag { background: #1F2937; color: #fff; }
+
+/* ------ Print rules: clean PDF via browser ------ */
+@media print {
+  @page { size: A4; margin: 0; }
+  html, body { background: #ffffff !important; }
+  body * { visibility: hidden !important; }
+  .cv-doc, .cv-doc * { visibility: visible !important; }
+  .cv-preview-frame { background: transparent !important; padding: 0 !important; }
+  .cv-doc {
+    position: absolute;
+    left: 0; top: 0;
+    width: 210mm;
+    min-height: 297mm;
+    box-shadow: none !important;
+    margin: 0;
+  }
+  .print\:hidden { display: none !important; }
+}
