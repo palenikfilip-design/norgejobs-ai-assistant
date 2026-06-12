@@ -16,6 +16,8 @@ import Presets from "./pages/Presets";
 import JobSources from "./pages/JobSources";
 import Premium from "./pages/Premium";
 import SavedJobs from "./pages/SavedJobs";
+import CV from "./pages/CV";
+import CVEditor from "./pages/CVEditor";
 import DailyInsights from "./pages/DailyInsights";
 import Admin from "./pages/Admin";
 import AdminStats from "./pages/AdminStats";
@@ -53,6 +55,8 @@ const App = () => (
             <Route path="/sources" element={<JobSources />} />
             <Route path="/premium" element={<Premium />} />
             <Route path="/saved" element={<SavedJobs />} />
+            <Route path="/cv" element={<CV />} />
+            <Route path="/cv/:id" element={<CVEditor />} />
             <Route path="/insights" element={<DailyInsights />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/stats" element={<AdminStats />} />
