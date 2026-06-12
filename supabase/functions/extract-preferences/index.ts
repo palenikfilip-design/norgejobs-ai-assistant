@@ -67,7 +67,7 @@ function mergeAvatar(existing: Record<string, unknown>, incoming: Extracted): Re
   return merged;
 }
 
-async function extractPreferences(messages: ChatMessage[], apiKey: string): Promise<Extracted> {
+async function extractPreferences(messages: ChatMessage[], apiKey: string, supabase: any): Promise<Extracted> {
   const convo = messages
     .slice(-6)
     .map((m) => `${m.role === "user" ? "User" : "Leslie"}: ${m.content}`)
@@ -94,6 +94,14 @@ async function extractPreferences(messages: ChatMessage[], apiKey: string): Prom
   }
 
   const data = await resp.json();
+  try {
+    const { logAiCall } = await import("../_shared/aiBudget.ts");
+    await logAiCall(supabase, {
+      function_name: "extract-preferences",
+      model: "google/gemini-2.5-flash",
+      usage: data?.usage ?? null,
+    });
+  } catch { /* best-effort */ }
   const text: string = data?.choices?.[0]?.message?.content ?? "";
   const match = text.match(/\{[\s\S]*\}/);
   if (!match) return {};
