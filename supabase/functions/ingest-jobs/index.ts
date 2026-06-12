@@ -24,6 +24,7 @@ type SourceType =
   | "ats_workable"
   | "ats_recruitee"
   | "ats_ashby"
+  | "ats_teamtailor"
   | "rss_feed"
   | "arbeitnow"
   | "nav_no_feed";
