@@ -714,8 +714,15 @@ Deno.serve(async (req) => {
 
   const results: any[] = [];
   let succeeded = 0, failed = 0, requiresReview = 0;
+  let budgetHalted = false;
 
   for (const job of jobs) {
+    const b = await hasBudgetRemaining(supabase);
+    if (!b.ok) {
+      budgetHalted = true;
+      console.log(`[archiles-enrich] daily budget reached, pausing (${b.spent}/${b.limit})`);
+      break;
+    }
     const r = await enrichJob(supabase, job, countryIndex, autonomyRow, lovableApiKey, testMode);
     if (r.ok) {
       succeeded++;
@@ -742,6 +749,7 @@ Deno.serve(async (req) => {
     failed,
     requires_review: requiresReview,
     test_mode: testMode,
+    budget_halted: budgetHalted,
     results,
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
 });
