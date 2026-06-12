@@ -60,10 +60,17 @@ const Body = ({ data }: { data: CvData }) => (
       <Section title="Dovednosti"><Tags items={data.skills} /></Section>
     )}
     {data.languages.length > 0 && (
-      <Section title="Jazyky"><Tags items={data.languages} /></Section>
+      <Section title="Jazyky">
+        <Tags items={data.languages.map((l) => (l.level ? `${l.name} · ${l.level}` : l.name)).filter(Boolean)} />
+      </Section>
     )}
     {data.certifications.length > 0 && (
-      <Section title="Certifikace"><Tags items={data.certifications} /></Section>
+      <Section title="Certifikace">
+        <Tags items={data.certifications.map((c) => {
+          const extras = [c.issuer, c.year].filter(Boolean).join(", ");
+          return extras ? `${c.name} (${extras})` : c.name;
+        }).filter(Boolean)} />
+      </Section>
     )}
   </>
 );
