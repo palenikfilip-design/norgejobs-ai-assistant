@@ -786,6 +786,61 @@ async function adapterPortalApi(s: JobSource): Promise<NormalizedJob[]> {
 }
 
 /**
+ * Teamtailor — public JSON Feed at https://{company}.teamtailor.com/jobs.json
+ * (de-facto ATS for many Nordic SMBs). No auth.
+ */
+async function adapterTeamtailor(s: JobSource): Promise<NormalizedJob[]> {
+  const company = String(s.config.company ?? "");
+  if (!company) throw new Error("teamtailor: missing config.company");
+  let data: any;
+  try {
+    data = await fetchJson(`https://${encodeURIComponent(company)}.teamtailor.com/jobs.json`);
+  } catch (e) {
+    console.warn(`[teamtailor:${company}] fetch failed:`, e instanceof Error ? e.message : String(e));
+    return [];
+  }
+  const items: any[] = Array.isArray(data?.items) ? data.items : [];
+  if (items[0]) console.log(`[teamtailor:${company}] first item:`, JSON.stringify(items[0]).slice(0, 1500));
+  console.log(`[teamtailor:${company}] fetched ${items.length} items`);
+
+  return items
+    .filter((it) => it?.title && it?.url)
+    .map((it) => {
+      const jp = (it._jobposting ?? it.jobPosting ?? {}) as any;
+      const jlRaw = jp?.jobLocation ?? {};
+      const jl: any = Array.isArray(jlRaw) ? (jlRaw[0] ?? {}) : jlRaw;
+      const addr = jl?.address ?? {};
+      const city = addr?.addressLocality ?? null;
+      const region = addr?.addressRegion ?? null;
+      const countryRaw = addr?.addressCountry ?? null;
+      const country = typeof countryRaw === "object" && countryRaw ? (countryRaw.name ?? null) : countryRaw;
+      const loc = [city, region, country].filter(Boolean).join(", ") || null;
+      return {
+        external_id: it.id ? String(it.id) : String(it.url),
+        source_portal: `teamtailor:${company}`,
+        source_id: s._origin_table === "employer_sources" ? null : s.id,
+        title: String(it.title),
+        company: s.name,
+        description: stripHtml(it.content_html ?? it.summary ?? null),
+        location: loc,
+        country: (country as string | null) || s.country || null,
+        url: String(it.url),
+        job_type: jp?.employmentType ?? null,
+        salary_min: null, salary_max: null, currency: null,
+        salary: null,
+        posted_at: it.date_published ?? null,
+        raw_data: {
+          sector: s.sector ?? null,
+          department: jp?.department ?? null,
+          display_category: jp?.industry ?? jp?.department ?? null,
+          employer_source_country: s.country ?? null,
+        },
+        fetched_at: nowIso(),
+      } as NormalizedJob;
+    });
+}
+
+/**
  * Arbeitnow — public job board API, no auth.
  * GET https://www.arbeitnow.com/api/job-board-api
  * Paginated via links.next; cap at 5 pages.
