@@ -2,6 +2,7 @@
 // Read-only data access to the Leslie catalog + admin-only persistence.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { hasBudgetRemaining, logAiCall, BUDGET_BLOCKED_MESSAGE_CS } from "../_shared/aiBudget.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -215,6 +216,13 @@ Deno.serve(async (req) => {
     let finalReply = "";
     let toolCallsLog: any[] = [];
     for (let i = 0; i < 4; i++) {
+      const budget = await hasBudgetRemaining(admin);
+      if (!budget.ok) {
+        return new Response(
+          JSON.stringify({ reply: BUDGET_BLOCKED_MESSAGE_CS, tool_calls: [], budget_blocked: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
       const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -229,6 +237,11 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: "AI gateway error", details: txt.slice(0, 500) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       const ai = await aiResp.json();
+      await logAiCall(admin, {
+        function_name: "chat-archiles",
+        model: "google/gemini-2.5-flash",
+        usage: ai?.usage ?? null,
+      });
       const choice = ai.choices?.[0]?.message;
       if (!choice) break;
       const calls = choice.tool_calls;

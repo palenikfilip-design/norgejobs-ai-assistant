@@ -67,7 +67,7 @@ function mergeAvatar(existing: Record<string, unknown>, incoming: Extracted): Re
   return merged;
 }
 
-async function extractPreferences(messages: ChatMessage[], apiKey: string): Promise<Extracted> {
+async function extractPreferences(messages: ChatMessage[], apiKey: string, supabase: any): Promise<Extracted> {
   const convo = messages
     .slice(-6)
     .map((m) => `${m.role === "user" ? "User" : "Leslie"}: ${m.content}`)
@@ -94,6 +94,14 @@ async function extractPreferences(messages: ChatMessage[], apiKey: string): Prom
   }
 
   const data = await resp.json();
+  try {
+    const { logAiCall } = await import("../_shared/aiBudget.ts");
+    await logAiCall(supabase, {
+      function_name: "extract-preferences",
+      model: "google/gemini-2.5-flash",
+      usage: data?.usage ?? null,
+    });
+  } catch { /* best-effort */ }
   const text: string = data?.choices?.[0]?.message?.content ?? "";
   const match = text.match(/\{[\s\S]*\}/);
   if (!match) return {};
@@ -149,7 +157,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    const extracted = await extractPreferences(messages, apiKey);
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { persistSession: false },
+    });
+    const { hasBudgetRemaining } = await import("../_shared/aiBudget.ts");
+    const budget = await hasBudgetRemaining(admin);
+    if (!budget.ok) {
+      return new Response(JSON.stringify({ extracted: {}, budget_blocked: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const extracted = await extractPreferences(messages, apiKey, admin);
 
     // Determine routing classification for admin observability log
     const hasIdentity = Array.isArray(extracted.languages_spoken) && extracted.languages_spoken.length > 0;
@@ -171,11 +189,6 @@ Deno.serve(async (req) => {
     const confidence = extractedKeys.length >= 2 ? "high" : "low";
     const lastUserMsg = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
 
-    // Read current avatar_json with service role (bypass RLS for cross-user safety isn't needed,
-    // but service role guarantees we can read+write the row owned by userId)
-    const admin = createClient(supabaseUrl, serviceKey, {
-      auth: { persistSession: false },
-    });
     const { data: prof, error: readErr } = await admin
       .from("profiles")
       .select("avatar_json")

@@ -1,6 +1,14 @@
 // Archiles enrichment pipeline — Phase 2
 // Processes public_jobs rows: deterministic region+salary, AI extraction, trust score, review decision.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { hasBudgetRemaining, logAiCall } from "../_shared/aiBudget.ts";
+
+// Bump this when the enrichment logic meaningfully changes, then reprocess
+// WHERE enrichment_version < ENRICHMENT_VERSION in small batches.
+// NEVER reset enriched_at = NULL across the whole catalog — that triggers
+// runaway AI spend. For "field X missing" backfills, query WHERE that field
+// IS NULL only; for logic changes, bump this version.
+const ENRICHMENT_VERSION = 3;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -343,7 +351,7 @@ Be conservative. If unsure, use "unknown" or null. Better to mark for human revi
       "X-Lovable-AIG-SDK": "raw",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-2.5-flash-lite",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
     }),
@@ -355,6 +363,7 @@ Be conservative. If unsure, use "unknown" or null. Better to mark for human revi
   }
   const data = await res.json();
   const content = data?.choices?.[0]?.message?.content ?? "{}";
+  (callArchilesAi as any)._lastUsage = data?.usage ?? null;
   try {
     return typeof content === "string" ? JSON.parse(content) : content;
   } catch {
@@ -419,7 +428,16 @@ async function enrichJob(
     if (salaryNote) notes.push(salaryNote);
 
     // STEP C — AI enrichment
+    const budget = await hasBudgetRemaining(supabase);
+    if (!budget.ok) {
+      return { ok: false, needs_review: true, error: `daily_budget_reached:${budget.spent.toFixed(3)}/${budget.limit}`, ms: Date.now() - started };
+    }
     const ai = await callArchilesAi(job, lovableApiKey);
+    await logAiCall(supabase, {
+      function_name: "archiles-enrich",
+      model: "google/gemini-2.5-flash-lite",
+      usage: (callArchilesAi as any)._lastUsage,
+    });
     const aiConfidence = Math.max(0, Math.min(100, Number(ai.confidence ?? 0)));
 
     // STEP C.1 — Country resolution from free-text location.
@@ -547,6 +565,7 @@ async function enrichJob(
       needs_review,
       data_completeness: completeness.label,
       enriched_at: new Date().toISOString(),
+      enrichment_version: ENRICHMENT_VERSION,
     };
     if (titleCs) updatePayload.title_cs = titleCs;
     if (summaryCs) updatePayload.summary_cs = summaryCs;
@@ -695,8 +714,15 @@ Deno.serve(async (req) => {
 
   const results: any[] = [];
   let succeeded = 0, failed = 0, requiresReview = 0;
+  let budgetHalted = false;
 
   for (const job of jobs) {
+    const b = await hasBudgetRemaining(supabase);
+    if (!b.ok) {
+      budgetHalted = true;
+      console.log(`[archiles-enrich] daily budget reached, pausing (${b.spent}/${b.limit})`);
+      break;
+    }
     const r = await enrichJob(supabase, job, countryIndex, autonomyRow, lovableApiKey, testMode);
     if (r.ok) {
       succeeded++;
@@ -723,6 +749,7 @@ Deno.serve(async (req) => {
     failed,
     requires_review: requiresReview,
     test_mode: testMode,
+    budget_halted: budgetHalted,
     results,
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
 });
