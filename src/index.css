@@ -316,7 +316,7 @@
 
 /* --- Creative: side color block --- */
 .cv-creative { padding: 0; display: grid; grid-template-columns: 70mm 1fr; min-height: 297mm; }
-.cv-creative .cv-header { grid-column: 1; background: #1F2937; color: #fff; padding: 16mm 10mm; margin: 0; }
+.cv-creative .cv-header { grid-column: 1; grid-row: 1 / -1; background: #1F2937; color: #fff; padding: 16mm 10mm; margin: 0; }
 .cv-creative .cv-name { color: #fff; font-size: 22pt; }
 .cv-creative .cv-headline { color: #EF4444; font-weight: 600; }
 .cv-creative .cv-contact { color: #d1d5db; flex-direction: column; gap: 0.35rem; }
