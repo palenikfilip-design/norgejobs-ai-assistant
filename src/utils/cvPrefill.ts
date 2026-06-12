@@ -3,7 +3,16 @@ import type { CvData, CvWorkEntry } from "@/types/cv";
 const asStringArray = (v: unknown): string[] => {
   if (Array.isArray(v)) {
     return v
-      .map((x) => (typeof x === "string" ? x : typeof x === "object" && x && "name" in (x as any) ? String((x as any).name) : ""))
+      .map((x) => {
+        if (typeof x === "string") return x;
+        if (x && typeof x === "object") {
+          const o = x as Record<string, unknown>;
+          const name = (o.language ?? o.name ?? o.skill ?? o.title ?? "") as string;
+          const level = (o.level ?? o.proficiency ?? "") as string;
+          return level ? `${name} (${level})` : String(name);
+        }
+        return "";
+      })
       .filter((s) => s.trim().length > 0);
   }
   if (typeof v === "string" && v.trim()) return v.split(/[,;\n]/).map((s) => s.trim()).filter(Boolean);
