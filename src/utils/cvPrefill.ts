@@ -1,4 +1,4 @@
-import type { CvData, CvWorkEntry } from "@/types/cv";
+import type { CvData, CvWorkEntry, CvLanguageEntry, CvCertificationEntry } from "@/types/cv";
 
 const asStringArray = (v: unknown): string[] => {
   if (Array.isArray(v)) {
@@ -16,6 +16,55 @@ const asStringArray = (v: unknown): string[] => {
       .filter((s) => s.trim().length > 0);
   }
   if (typeof v === "string" && v.trim()) return v.split(/[,;\n]/).map((s) => s.trim()).filter(Boolean);
+  return [];
+};
+
+export const parseLanguages = (v: unknown): CvLanguageEntry[] => {
+  if (Array.isArray(v)) {
+    return v
+      .map((x): CvLanguageEntry | null => {
+        if (typeof x === "string") {
+          const m = x.match(/^(.+?)\s*[\(\-–—]\s*([^)]+?)\)?$/);
+          if (m) return { name: m[1].trim(), level: m[2].trim() };
+          return { name: x.trim(), level: "" };
+        }
+        if (x && typeof x === "object") {
+          const o = x as Record<string, unknown>;
+          const name = String(o.language ?? o.name ?? "").trim();
+          const level = String(o.level ?? o.proficiency ?? "").trim();
+          if (!name) return null;
+          return { name, level };
+        }
+        return null;
+      })
+      .filter((e): e is CvLanguageEntry => !!e && e.name.length > 0);
+  }
+  if (typeof v === "string" && v.trim()) {
+    return v.split(/[,;\n]/).map((s) => s.trim()).filter(Boolean).map((s) => ({ name: s, level: "" }));
+  }
+  return [];
+};
+
+export const parseCertifications = (v: unknown): CvCertificationEntry[] => {
+  if (Array.isArray(v)) {
+    return v
+      .map((x): CvCertificationEntry | null => {
+        if (typeof x === "string") return x.trim() ? { name: x.trim() } : null;
+        if (x && typeof x === "object") {
+          const o = x as Record<string, unknown>;
+          const name = String(o.name ?? o.title ?? o.certification ?? "").trim();
+          if (!name) return null;
+          const year = o.year != null ? String(o.year) : undefined;
+          const issuer = o.issuer != null ? String(o.issuer) : undefined;
+          return { name, year, issuer };
+        }
+        return null;
+      })
+      .filter((e): e is CvCertificationEntry => !!e);
+  }
+  if (typeof v === "string" && v.trim()) {
+    return v.split(/[,;\n]/).map((s) => s.trim()).filter(Boolean).map((s) => ({ name: s }));
+  }
   return [];
 };
 
@@ -63,10 +112,10 @@ export function prefillCvFromProfile(args: {
     phone: "",
     location: p.current_residence || p.country || "",
     summary: "",
-    languages: asStringArray(p.languages),
+    languages: parseLanguages(p.languages),
     skills: asStringArray(p.skills),
     work_experience: parseWorkExperience(p.work_experience),
     education: [],
-    certifications: asStringArray(p.certifications),
+    certifications: parseCertifications(p.certifications),
   };
 }
