@@ -13,6 +13,7 @@ import type { CvData, CvRecord, CvTemplate, CvWorkEntry, CvEducationEntry, CvLan
 import { parseLanguages, parseCertifications, prefillCvFromProfile } from "@/utils/cvPrefill";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download } from "lucide-react";
+import { PHONE_CODES, splitPhone, joinPhone } from "@/constants/phoneCodes";
 
 const LANGUAGE_LEVELS = [
   "Začátečník (A1)",
@@ -241,7 +242,32 @@ const CVEditor = () => {
               <div><Label>Jméno</Label><Input value={data.full_name} onChange={(e) => update("full_name", e.target.value)} /></div>
               <div><Label>Pozice / titulek</Label><Input value={data.headline} onChange={(e) => update("headline", e.target.value)} /></div>
               <div><Label>Email</Label><Input value={data.email} onChange={(e) => update("email", e.target.value)} /></div>
-              <div><Label>Telefon</Label><Input value={data.phone} onChange={(e) => update("phone", e.target.value)} /></div>
+              <div>
+                <Label>Telefon</Label>
+                {(() => {
+                  const { prefix, rest } = splitPhone(data.phone);
+                  return (
+                    <div className="flex gap-2">
+                      <Select value={prefix} onValueChange={(v) => update("phone", joinPhone(v, rest))}>
+                        <SelectTrigger className="w-[120px]"><SelectValue placeholder="Předvolba" /></SelectTrigger>
+                        <SelectContent>
+                          {PHONE_CODES.map((p) => (
+                            <SelectItem key={`${p.country}-${p.code}`} value={p.code}>
+                              {p.flag} {p.code}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        className="flex-1"
+                        value={rest}
+                        placeholder="123 456 789"
+                        onChange={(e) => update("phone", joinPhone(prefix, e.target.value))}
+                      />
+                    </div>
+                  );
+                })()}
+              </div>
               <div className="col-span-2"><Label>Lokalita</Label><Input value={data.location} onChange={(e) => update("location", e.target.value)} /></div>
             </div>
           </section>
