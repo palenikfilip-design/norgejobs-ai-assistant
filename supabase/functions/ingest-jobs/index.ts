@@ -933,6 +933,7 @@ const ADAPTERS: Record<SourceType, (s: JobSource) => Promise<NormalizedJob[]>> =
   ats_workable: adapterWorkable,
   ats_recruitee: adapterRecruitee,
   ats_ashby: adapterAshby,
+  ats_teamtailor: adapterTeamtailor,
   rss_feed: adapterRssFeed,
   arbeitnow: adapterArbeitnow,
   nav_no_feed: adapterNavNoFeed,
