@@ -2,6 +2,7 @@
 // pre-filters by preset hard criteria, then AI-scores against avatar + preset.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { hasBudgetRemaining, logAiCall, BUDGET_BLOCKED_MESSAGE_CS } from "../_shared/aiBudget.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -119,6 +120,7 @@ async function scoreJobWithAI(
   avatar: unknown,
   preset: unknown,
   apiKey: string,
+  supabase: any,
 ): Promise<{
   score: number;
   dimensions: Record<string, number>;
@@ -157,7 +159,7 @@ Return ONLY valid JSON:
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-flash-lite",
         messages: [{ role: "user", content: prompt }],
       }),
     });
@@ -169,6 +171,11 @@ Return ONLY valid JSON:
       return { score: 50, dimensions: {}, reasons: [], warnings: [], company_signal: "unknown" };
     }
     const data = await resp.json();
+    await logAiCall(supabase, {
+      function_name: "match-jobs",
+      model: "google/gemini-2.5-flash-lite",
+      usage: data?.usage ?? null,
+    });
     const text: string = data?.choices?.[0]?.message?.content ?? "";
     const m = text.match(/\{[\s\S]*\}/);
     if (!m) return { score: 50, dimensions: {}, reasons: [], warnings: [], company_signal: "unknown" };
@@ -257,8 +264,16 @@ Deno.serve(async (req) => {
       );
     }
 
+    const budget = await hasBudgetRemaining(supabase);
+    if (!budget.ok) {
+      return new Response(
+        JSON.stringify({ matches: [], budget_blocked: true, message: BUDGET_BLOCKED_MESSAGE_CS }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+      );
+    }
+
     const results = await Promise.all(
-      toScore.map((j) => scoreJobWithAI(j, avatar, preset ?? null, apiKey)),
+      toScore.map((j) => scoreJobWithAI(j, avatar, preset ?? null, apiKey, supabase)),
     );
 
     const matches = toScore
