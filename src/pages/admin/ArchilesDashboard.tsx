@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import AiCostsCard from "@/components/admin/AiCostsCard";
 
 interface Metrics {
   jobsTotal: number;
@@ -360,6 +361,8 @@ export default function ArchilesDashboard() {
           ))}
         </CardContent>
       </Card>
+
+      <AiCostsCard />
 
       {/* Quick actions */}
       <Card className="mt-6">
