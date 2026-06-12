@@ -12,6 +12,17 @@ export interface CvEducationEntry {
   description?: string;
 }
 
+export interface CvLanguageEntry {
+  name: string;
+  level: string;
+}
+
+export interface CvCertificationEntry {
+  name: string;
+  year?: string;
+  issuer?: string;
+}
+
 export type CvTemplate = "modern" | "classic" | "creative";
 
 export interface CvData {
@@ -24,8 +35,8 @@ export interface CvData {
   work_experience: CvWorkEntry[];
   education: CvEducationEntry[];
   skills: string[];
-  languages: string[];
-  certifications: string[];
+  languages: CvLanguageEntry[];
+  certifications: CvCertificationEntry[];
 }
 
 export interface CvRecord extends CvData {

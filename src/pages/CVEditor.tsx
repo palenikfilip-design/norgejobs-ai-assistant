@@ -9,7 +9,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Plus, Printer, Loader2, Trash2, Eye, Pencil, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import CvPreview from "@/components/cv/CvPreview";
-import type { CvData, CvRecord, CvTemplate, CvWorkEntry, CvEducationEntry } from "@/types/cv";
+import type { CvData, CvRecord, CvTemplate, CvWorkEntry, CvEducationEntry, CvLanguageEntry, CvCertificationEntry } from "@/types/cv";
+import { parseLanguages, parseCertifications, prefillCvFromProfile } from "@/utils/cvPrefill";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Download } from "lucide-react";
+
+const LANGUAGE_LEVELS = [
+  "Začátečník (A1)",
+  "Základní (A2)",
+  "Středně pokročilá (B1)",
+  "Pokročilá (B2)",
+  "Velmi pokročilá (C1)",
+  "Rodilý mluvčí (C2)",
+];
 
 const TEMPLATES: { id: CvTemplate; label: string; desc: string }[] = [
   { id: "modern", label: "Moderní", desc: "Čisté, s červeným akcentem" },
@@ -57,8 +69,8 @@ const CVEditor = () => {
         work_experience: Array.isArray(r.work_experience) ? r.work_experience : [],
         education: Array.isArray(r.education) ? r.education : [],
         skills: Array.isArray(r.skills) ? r.skills : [],
-        languages: Array.isArray(r.languages) ? r.languages : [],
-        certifications: Array.isArray(r.certifications) ? r.certifications : [],
+        languages: parseLanguages(r.languages),
+        certifications: parseCertifications(r.certifications),
       });
       setLoading(false);
       hasLoaded.current = true;
@@ -128,17 +140,56 @@ const CVEditor = () => {
     update("education", data.education.map((e, idx) => (idx === i ? { ...e, ...patch } : e)));
   const removeEdu = (i: number) => update("education", data.education.filter((_, idx) => idx !== i));
 
-  const listInput = (label: string, value: string[], onChange: (v: string[]) => void, placeholder: string) => (
-    <div className="space-y-1">
-      <Label>{label}</Label>
-      <Input
-        value={value.join(", ")}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
-      />
-      <p className="text-xs text-muted-foreground">Odděluj čárkou</p>
-    </div>
-  );
+  // Languages
+  const addLang = () => update("languages", [...data.languages, { name: "", level: "" }]);
+  const updateLang = (i: number, patch: Partial<CvLanguageEntry>) =>
+    update("languages", data.languages.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
+  const removeLang = (i: number) => update("languages", data.languages.filter((_, idx) => idx !== i));
+
+  // Skills
+  const [skillDraft, setSkillDraft] = useState("");
+  const addSkill = () => {
+    const v = skillDraft.trim();
+    if (!v) return;
+    if (!data.skills.includes(v)) update("skills", [...data.skills, v]);
+    setSkillDraft("");
+  };
+  const removeSkill = (i: number) => update("skills", data.skills.filter((_, idx) => idx !== i));
+
+  // Certifications
+  const addCert = () => update("certifications", [...data.certifications, { name: "", year: "", issuer: "" }]);
+  const updateCert = (i: number, patch: Partial<CvCertificationEntry>) =>
+    update("certifications", data.certifications.map((c, idx) => (idx === i ? { ...c, ...patch } : c)));
+  const removeCert = (i: number) => update("certifications", data.certifications.filter((_, idx) => idx !== i));
+
+  const loadFromProfile = async () => {
+    if (!supabaseUser?.id) return;
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("full_name, profession, current_residence, country, languages, skills, work_experience, certifications")
+      .eq("user_id", supabaseUser.id)
+      .maybeSingle();
+    if (!prof) {
+      toast({ title: "Profil nebyl nalezen", variant: "destructive" });
+      return;
+    }
+    const prefill = prefillCvFromProfile({ email: supabaseUser.email ?? "", profile: prof as any });
+    setData((d) => ({
+      // keep already-filled fields, only fill empty ones + merge lists
+      full_name: d.full_name || prefill.full_name,
+      headline: d.headline || prefill.headline,
+      email: d.email || prefill.email,
+      phone: d.phone,
+      location: d.location || prefill.location,
+      summary: d.summary,
+      work_experience: d.work_experience.length ? d.work_experience : prefill.work_experience,
+      education: d.education,
+      skills: Array.from(new Set([...d.skills, ...prefill.skills])),
+      languages: d.languages.length ? d.languages : prefill.languages,
+      certifications: d.certifications.length ? d.certifications : prefill.certifications,
+    }));
+    toast({ title: "Načteno z profilu" });
+  };
 
   const preview = useMemo(() => <CvPreview data={data} template={template} />, [data, template]);
 
@@ -163,6 +214,9 @@ const CVEditor = () => {
           </div>
           <Button onClick={() => window.print()} size="sm" variant="default">
             <Printer className="w-4 h-4 mr-1" /> Stáhnout PDF
+          </Button>
+          <Button onClick={loadFromProfile} size="sm" variant="outline" title="Doplnit chybějící údaje z tvého profilu">
+            <Download className="w-4 h-4 mr-1" /> Načíst z profilu
           </Button>
           <span className="text-xs text-muted-foreground w-20 text-right">
             {saving ? "Ukládám…" : "Uloženo"}
@@ -253,9 +307,82 @@ const CVEditor = () => {
             ))}
           </section>
 
-          {listInput("Dovednosti", data.skills, (v) => update("skills", v), "JavaScript, Excel, …")}
-          {listInput("Jazyky", data.languages, (v) => update("languages", v), "Čeština C2, Angličtina B2")}
-          {listInput("Certifikace", data.certifications, (v) => update("certifications", v), "Řidičský průkaz B, …")}
+          {/* Languages */}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold">Jazyky</h2>
+              <Button size="sm" variant="outline" onClick={addLang}><Plus className="w-4 h-4 mr-1" /> Přidat</Button>
+            </div>
+            {data.languages.length === 0 && (
+              <p className="text-xs text-muted-foreground">Zatím žádné jazyky. Klikni "Přidat".</p>
+            )}
+            {data.languages.map((l, i) => (
+              <div key={i} className="flex items-end gap-2 border rounded-md p-2">
+                <div className="flex-1">
+                  <Label className="text-xs">Jazyk</Label>
+                  <Input value={l.name} placeholder="Angličtina" onChange={(e) => updateLang(i, { name: e.target.value })} />
+                </div>
+                <div className="flex-1">
+                  <Label className="text-xs">Úroveň</Label>
+                  <Select value={l.level || ""} onValueChange={(v) => updateLang(i, { level: v })}>
+                    <SelectTrigger><SelectValue placeholder="Vyber úroveň" /></SelectTrigger>
+                    <SelectContent>
+                      {LANGUAGE_LEVELS.map((lv) => <SelectItem key={lv} value={lv}>{lv}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button size="icon" variant="ghost" onClick={() => removeLang(i)} className="text-destructive">
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </section>
+
+          {/* Skills */}
+          <section className="space-y-2">
+            <h2 className="font-semibold">Dovednosti</h2>
+            <div className="flex gap-2">
+              <Input
+                value={skillDraft}
+                placeholder="např. JavaScript"
+                onChange={(e) => setSkillDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addSkill(); } }}
+              />
+              <Button onClick={addSkill} variant="outline"><Plus className="w-4 h-4 mr-1" /> Přidat</Button>
+            </div>
+            {data.skills.length === 0 && (
+              <p className="text-xs text-muted-foreground">Zatím žádné dovednosti.</p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {data.skills.map((s, i) => (
+                <span key={i} className="inline-flex items-center gap-1 bg-muted rounded-full px-3 py-1 text-sm">
+                  {s}
+                  <button onClick={() => removeSkill(i)} className="text-muted-foreground hover:text-destructive" aria-label={`Odebrat ${s}`}>×</button>
+                </span>
+              ))}
+            </div>
+          </section>
+
+          {/* Certifications */}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold">Certifikace</h2>
+              <Button size="sm" variant="outline" onClick={addCert}><Plus className="w-4 h-4 mr-1" /> Přidat</Button>
+            </div>
+            {data.certifications.length === 0 && (
+              <p className="text-xs text-muted-foreground">Zatím žádné certifikace.</p>
+            )}
+            {data.certifications.map((c, i) => (
+              <div key={i} className="border rounded-md p-3 space-y-2">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="col-span-3"><Label className="text-xs">Název</Label><Input value={c.name} onChange={(e) => updateCert(i, { name: e.target.value })} placeholder="Řidičský průkaz B" /></div>
+                  <div className="col-span-2"><Label className="text-xs">Vydavatel (volitelné)</Label><Input value={c.issuer ?? ""} onChange={(e) => updateCert(i, { issuer: e.target.value })} /></div>
+                  <div><Label className="text-xs">Rok (volitelné)</Label><Input value={c.year ?? ""} onChange={(e) => updateCert(i, { year: e.target.value })} placeholder="2024" /></div>
+                </div>
+                <Button size="sm" variant="ghost" onClick={() => removeCert(i)} className="text-destructive"><Trash2 className="w-3 h-3 mr-1" /> Odebrat</Button>
+              </div>
+            ))}
+          </section>
         </div>
 
         {/* Preview */}
