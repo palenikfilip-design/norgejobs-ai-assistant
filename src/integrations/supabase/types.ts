@@ -996,6 +996,66 @@ export type Database = {
         }
         Relationships: []
       }
+      user_cvs: {
+        Row: {
+          certifications: Json
+          created_at: string
+          education: Json
+          email: string | null
+          full_name: string | null
+          headline: string | null
+          id: string
+          languages: Json
+          location: string | null
+          phone: string | null
+          skills: Json
+          summary: string | null
+          template: string
+          title: string
+          updated_at: string
+          user_id: string
+          work_experience: Json
+        }
+        Insert: {
+          certifications?: Json
+          created_at?: string
+          education?: Json
+          email?: string | null
+          full_name?: string | null
+          headline?: string | null
+          id?: string
+          languages?: Json
+          location?: string | null
+          phone?: string | null
+          skills?: Json
+          summary?: string | null
+          template?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+          work_experience?: Json
+        }
+        Update: {
+          certifications?: Json
+          created_at?: string
+          education?: Json
+          email?: string | null
+          full_name?: string | null
+          headline?: string | null
+          id?: string
+          languages?: Json
+          location?: string | null
+          phone?: string | null
+          skills?: Json
+          summary?: string | null
+          template?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          work_experience?: Json
+        }
+        Relationships: []
+      }
       user_job_interactions: {
         Row: {
           action_type: string
