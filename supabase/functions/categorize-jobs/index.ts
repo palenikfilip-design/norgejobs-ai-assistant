@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { hasBudgetRemaining, logAiCall } from "../_shared/aiBudget.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,7 +31,7 @@ interface JobRow {
   location: string | null;
 }
 
-async function classifyBatch(jobs: JobRow[]): Promise<string[]> {
+async function classifyBatch(jobs: JobRow[], supabase: any): Promise<string[]> {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("LOVABLE_API_KEY not set");
 
@@ -66,6 +67,11 @@ async function classifyBatch(jobs: JobRow[]): Promise<string[]> {
   }
 
   const data = await res.json();
+  await logAiCall(supabase, {
+    function_name: "categorize-jobs",
+    model: "google/gemini-2.5-flash",
+    usage: data?.usage ?? null,
+  });
   const content = data?.choices?.[0]?.message?.content ?? "{}";
   let parsed: { categories?: unknown };
   try {
@@ -110,8 +116,13 @@ Deno.serve(async (req) => {
 
     for (let i = 0; i < rows.length; i += BATCH_SIZE) {
       const chunk = rows.slice(i, i + BATCH_SIZE);
+      const b = await hasBudgetRemaining(supabase);
+      if (!b.ok) {
+        console.log(`[categorize-jobs] daily budget reached, pausing (${b.spent}/${b.limit})`);
+        break;
+      }
       try {
-        const cats = await classifyBatch(chunk);
+        const cats = await classifyBatch(chunk, supabase);
         // Update one row at a time (small batches, fine for now)
         const updates = chunk.map((j, idx) =>
           supabase
