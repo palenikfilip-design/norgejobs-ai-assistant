@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, Printer, Loader2, Trash2, Eye, Pencil } from "lucide-react";
+import { ArrowLeft, Plus, Printer, Loader2, Trash2, Eye, Pencil, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import CvPreview from "@/components/cv/CvPreview";
 import type { CvData, CvRecord, CvTemplate, CvWorkEntry, CvEducationEntry } from "@/types/cv";
@@ -25,6 +25,7 @@ const CVEditor = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState<"edit" | "preview">("edit");
+  const [polishing, setPolishing] = useState<string | null>(null);
   const [title, setTitle] = useState("Můj životopis");
   const [template, setTemplate] = useState<CvTemplate>("modern");
   const [data, setData] = useState<CvData>({
@@ -86,6 +87,36 @@ const CVEditor = () => {
   }, [data, template, title, id]);
 
   const update = <K extends keyof CvData>(k: K, v: CvData[K]) => setData((d) => ({ ...d, [k]: v }));
+
+  const polish = async (kind: "summary" | "headline" | "work", text: string, key: string): Promise<string | null> => {
+    if (!text.trim()) {
+      toast({ title: "Nejdřív něco napiš", description: "AI vylepšení potřebuje výchozí text." });
+      return null;
+    }
+    setPolishing(key);
+    try {
+      const { data: res, error } = await supabase.functions.invoke("polish-cv-text", {
+        body: { text, kind, language: "cs" },
+      });
+      if (error) {
+        const ctx: any = (error as any).context;
+        if (ctx?.status === 403) toast({ title: "Měsíční limit AI dosažen", variant: "destructive" });
+        else toast({ title: "AI vylepšení selhalo", variant: "destructive" });
+        return null;
+      }
+      if (res?.error) {
+        toast({ title: res.error === "limit_reached" ? "Měsíční limit AI dosažen" : "AI vylepšení selhalo", variant: "destructive" });
+        return null;
+      }
+      toast({ title: "Vylepšeno ✨" });
+      return res?.polished ?? null;
+    } catch (e: any) {
+      toast({ title: "AI vylepšení selhalo", description: e?.message, variant: "destructive" });
+      return null;
+    } finally {
+      setPolishing(null);
+    }
+  };
 
   const addWork = () => update("work_experience", [...data.work_experience, { position: "", company: "", period: "", description: "" }]);
   const updateWork = (i: number, patch: Partial<CvWorkEntry>) =>
@@ -162,7 +193,16 @@ const CVEditor = () => {
           </section>
 
           <section className="space-y-2">
-            <h2 className="font-semibold">Shrnutí</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold">Shrnutí</h2>
+              <Button size="sm" variant="ghost" disabled={polishing === "summary"} onClick={async () => {
+                const out = await polish("summary", data.summary, "summary");
+                if (out) update("summary", out);
+              }}>
+                {polishing === "summary" ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                Vylepšit
+              </Button>
+            </div>
             <Textarea rows={4} value={data.summary} onChange={(e) => update("summary", e.target.value)} placeholder="Krátký odstavec o tobě…" />
           </section>
 
@@ -178,7 +218,19 @@ const CVEditor = () => {
                   <div><Label className="text-xs">Firma</Label><Input value={w.company} onChange={(e) => updateWork(i, { company: e.target.value })} /></div>
                   <div className="col-span-2"><Label className="text-xs">Období (od – do)</Label><Input value={w.period} onChange={(e) => updateWork(i, { period: e.target.value })} placeholder="2022 – nyní" /></div>
                 </div>
-                <div><Label className="text-xs">Popis</Label><Textarea rows={3} value={w.description} onChange={(e) => updateWork(i, { description: e.target.value })} /></div>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Popis</Label>
+                    <Button size="sm" variant="ghost" disabled={polishing === `work-${i}`} onClick={async () => {
+                      const out = await polish("work", w.description, `work-${i}`);
+                      if (out) updateWork(i, { description: out });
+                    }}>
+                      {polishing === `work-${i}` ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                      Vylepšit
+                    </Button>
+                  </div>
+                  <Textarea rows={3} value={w.description} onChange={(e) => updateWork(i, { description: e.target.value })} />
+                </div>
                 <Button size="sm" variant="ghost" onClick={() => removeWork(i)} className="text-destructive"><Trash2 className="w-3 h-3 mr-1" /> Odebrat</Button>
               </div>
             ))}
