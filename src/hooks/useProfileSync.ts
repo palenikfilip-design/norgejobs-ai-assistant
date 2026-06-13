@@ -85,7 +85,8 @@ export async function loadPresetsFromDB(userId: string): Promise<SearchPreset[]>
   const { data, error } = await supabase
     .from("user_presets")
     .select("*")
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .is("archived_at", null);
 
   if (error || !data) return [];
 
@@ -147,6 +148,10 @@ export async function savePresetToDB(userId: string, preset: SearchPreset) {
 
 /** Delete a preset */
 export async function deletePresetFromDB(presetId: string) {
-  const { error } = await supabase.from("user_presets").delete().eq("id", presetId);
-  if (error) console.error("Error deleting preset:", error);
+  // Soft-delete — move to archive. Restorable via /presets archive tab.
+  const { error } = await supabase
+    .from("user_presets")
+    .update({ archived_at: new Date().toISOString(), active: false })
+    .eq("id", presetId);
+  if (error) console.error("Error archiving preset:", error);
 }
