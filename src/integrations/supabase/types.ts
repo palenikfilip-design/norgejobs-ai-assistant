@@ -1191,6 +1191,8 @@ export type Database = {
           isolation_preference: number | null
           job_type_confidence: number | null
           last_computed_at: string | null
+          muted: Json
+          overrides: Json
           patterns: Json | null
           preferred_environment: string | null
           preferred_job_type: string | null
@@ -1202,6 +1204,7 @@ export type Database = {
           stress_confidence: number | null
           stress_tolerance: number | null
           updated_at: string
+          user_corrections: Json
           user_id: string
         }
         Insert: {
@@ -1212,6 +1215,8 @@ export type Database = {
           isolation_preference?: number | null
           job_type_confidence?: number | null
           last_computed_at?: string | null
+          muted?: Json
+          overrides?: Json
           patterns?: Json | null
           preferred_environment?: string | null
           preferred_job_type?: string | null
@@ -1223,6 +1228,7 @@ export type Database = {
           stress_confidence?: number | null
           stress_tolerance?: number | null
           updated_at?: string
+          user_corrections?: Json
           user_id: string
         }
         Update: {
@@ -1233,6 +1239,8 @@ export type Database = {
           isolation_preference?: number | null
           job_type_confidence?: number | null
           last_computed_at?: string | null
+          muted?: Json
+          overrides?: Json
           patterns?: Json | null
           preferred_environment?: string | null
           preferred_job_type?: string | null
@@ -1244,6 +1252,7 @@ export type Database = {
           stress_confidence?: number | null
           stress_tolerance?: number | null
           updated_at?: string
+          user_corrections?: Json
           user_id?: string
         }
         Relationships: []
@@ -1251,6 +1260,7 @@ export type Database = {
       user_presets: {
         Row: {
           active: boolean
+          archived_at: string | null
           created_at: string
           description: string | null
           desired_bonuses: Json
@@ -1272,6 +1282,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          archived_at?: string | null
           created_at?: string
           description?: string | null
           desired_bonuses?: Json
@@ -1293,6 +1304,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          archived_at?: string | null
           created_at?: string
           description?: string | null
           desired_bonuses?: Json

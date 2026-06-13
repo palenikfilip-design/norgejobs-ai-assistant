@@ -19,6 +19,8 @@ interface PresetRow {
   seasonal_preference: string | null;
   last_used_at: string | null;
   language_requirements: string[] | null;
+  archived_at: string | null;
+  learning_data: unknown;
 }
 
 /**
@@ -33,6 +35,7 @@ export default function Presets() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [tab, setTab] = useState<"active" | "archive">("active");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -86,11 +89,33 @@ export default function Presets() {
   };
 
   const remove = async (id: string) => {
-    const c = counts[id] ?? 0;
-    if (c > 0 && !confirm(`Tento preset má ${c} uložených nabídek. Opravdu smazat?`)) return;
+    // Soft-delete (archive) — restorable from Archiv tab.
+    await supabase
+      .from("user_presets")
+      .update({ archived_at: new Date().toISOString(), active: false })
+      .eq("id", id);
+    toast({ title: "Preset přesunut do archivu", description: "Můžeš ho kdykoliv obnovit v sekci 'Archiv hledání'." });
+    await load();
+  };
+
+  const restore = async (id: string, name: string) => {
+    await supabase.from("user_presets").update({ archived_at: null }).eq("id", id);
+    toast({
+      title: "Obnoveno",
+      description: `Obnoveno hledání „${name}" — Leslie si pamatuje co tě u něj zajímalo.`,
+    });
+    await load();
+  };
+
+  const hardDelete = async (id: string, name: string) => {
+    if (!confirm(`Smazat „${name}" NATRVALO? Tuto akci nelze vrátit zpět.`)) return;
     await supabase.from("cached_matches").delete().eq("preset_id", id);
-    await supabase.from("user_presets").delete().eq("id", id);
-    toast({ title: "Preset smazán" });
+    const { error } = await supabase.from("user_presets").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Chyba", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Preset trvale smazán" });
     await load();
   };
 
@@ -116,23 +141,46 @@ export default function Presets() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-4">
+        <div className="flex gap-2 border-b border-border/50">
+          {(["active", "archive"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                tab === t
+                  ? "border-accent text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t === "active"
+                ? `Aktivní (${presets.filter((p) => !p.archived_at).length})`
+                : `Archiv hledání (${presets.filter((p) => p.archived_at).length})`}
+            </button>
+          ))}
+        </div>
         {loading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin text-accent" />
           </div>
-        ) : presets.length === 0 ? (
+        ) : tab === "active" && presets.filter((p) => !p.archived_at).length === 0 ? (
           <Card className="p-8 text-center">
             <p className="text-muted-foreground mb-4">Zatím nemáš žádný preset.</p>
             <Button onClick={() => navigate("/preset/new")} className="gap-1.5">
               <Plus className="w-4 h-4" /> Vytvořit první preset
             </Button>
           </Card>
+        ) : tab === "archive" && presets.filter((p) => p.archived_at).length === 0 ? (
+          <Card className="p-8 text-center">
+            <p className="text-muted-foreground text-sm">Archiv je prázdný — smazané presety se sem ukládají, ať je můžeš obnovit.</p>
+          </Card>
         ) : (
-          presets.map((p) => (
+          presets
+            .filter((p) => (tab === "active" ? !p.archived_at : !!p.archived_at))
+            .map((p) => (
             <Card key={p.id} className={`p-5 ${p.active ? "border-accent/60 bg-accent/5" : ""}`}>
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex-1 min-w-0">
-                  {editingId === p.id ? (
+                  {editingId === p.id && !p.archived_at ? (
                     <div className="flex items-center gap-2">
                       <Input
                         value={editingName}
@@ -148,7 +196,7 @@ export default function Presets() {
                   ) : (
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-foreground">{p.name}</h3>
-                      <button
+                      {!p.archived_at && <button
                         onClick={() => {
                           setEditingId(p.id);
                           setEditingName(p.name);
@@ -156,10 +204,15 @@ export default function Presets() {
                         className="p-1 rounded hover:bg-muted text-muted-foreground"
                       >
                         <Pencil className="w-3.5 h-3.5" />
-                      </button>
+                      </button>}
                       {p.active && (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-accent text-accent-foreground">
                           Aktivní
+                        </span>
+                      )}
+                      {p.archived_at && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                          Archivováno {new Date(p.archived_at).toLocaleDateString()}
                         </span>
                       )}
                     </div>
@@ -180,22 +233,40 @@ export default function Presets() {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {!p.active && (
-                  <Button size="sm" onClick={() => activate(p.id)}>
-                    Použít
-                  </Button>
+                {p.archived_at ? (
+                  <>
+                    <Button size="sm" onClick={() => restore(p.id, p.name)}>
+                      Obnovit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => hardDelete(p.id, p.name)}
+                      className="gap-1.5 text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Smazat natrvalo
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    {!p.active && (
+                      <Button size="sm" onClick={() => activate(p.id)}>
+                        Použít
+                      </Button>
+                    )}
+                    <Button size="sm" variant="outline" onClick={() => navigate(`/preset/edit/${p.id}`)} className="gap-1.5">
+                      <Pencil className="w-3.5 h-3.5" /> Upravit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => remove(p.id)}
+                      className="gap-1.5 text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Smazat
+                    </Button>
+                  </>
                 )}
-                <Button size="sm" variant="outline" onClick={() => navigate(`/preset/edit/${p.id}`)} className="gap-1.5">
-                  <Pencil className="w-3.5 h-3.5" /> Upravit
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => remove(p.id)}
-                  className="gap-1.5 text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="w-3.5 h-3.5" /> Smazat
-                </Button>
               </div>
             </Card>
           ))
