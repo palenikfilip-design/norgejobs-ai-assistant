@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Brain, AlertTriangle, Sparkles, Crown, Pencil, X, Send, Loader2 } from "lucide-react";
+import { Brain, AlertTriangle, Sparkles, Crown, Pencil, X, Send, Loader2, Settings2, ChevronUp } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ const PatternInsightsPanel = () => {
   const [editValue, setEditValue] = useState("");
   const [correction, setCorrection] = useState("");
   const [sending, setSending] = useState(false);
+  const [editMode, setEditMode] = useState(false);
 
   if (!userId) return null;
 
@@ -113,9 +114,21 @@ const PatternInsightsPanel = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-card rounded-xl border border-border p-5 space-y-4">
-      <div className="flex items-center gap-2">
-        <Brain className="w-5 h-5 text-accent" />
-        <h3 className="font-semibold text-foreground">Co jsem se o tobě naučila</h3>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Brain className="w-5 h-5 text-accent" />
+          <h3 className="font-semibold text-foreground">Co jsem se o tobě naučila</h3>
+        </div>
+        {(items.length > 0 || !noLearnings) && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => { setEditMode((v) => !v); setEditingKey(null); }}
+          >
+            {editMode ? <><ChevronUp className="w-3.5 h-3.5" /> Hotovo</> : <><Settings2 className="w-3.5 h-3.5" /> Upravit</>}
+          </Button>
+        )}
       </div>
 
       {noLearnings && (
@@ -147,20 +160,24 @@ const PatternInsightsPanel = () => {
                   <span className="text-foreground/90 flex-1">
                     <span className="text-muted-foreground">{it.label}:</span> {it.value}
                   </span>
-                  <button
-                    onClick={() => { setEditingKey(it.key); setEditValue(it.value); }}
-                    className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    aria-label="Upravit"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => deleteItem(it.key, it.label)}
-                    className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                    aria-label="Smazat"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
+                  {editMode && (
+                    <>
+                      <button
+                        onClick={() => { setEditingKey(it.key); setEditValue(it.value); }}
+                        className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        aria-label="Upravit"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => deleteItem(it.key, it.label)}
+                        className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        aria-label="Smazat"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  )}
                 </>
               )}
             </li>
@@ -179,6 +196,7 @@ const PatternInsightsPanel = () => {
         </div>
       )}
 
+      {editMode && (
       <div className="pt-3 border-t border-border/50 space-y-2">
         <label className="text-xs font-medium text-muted-foreground">
           Něco nesedí? Napiš Leslie co změnit:
@@ -198,6 +216,7 @@ const PatternInsightsPanel = () => {
           </Button>
         </div>
       </div>
+      )}
     </motion.div>
   );
 };
