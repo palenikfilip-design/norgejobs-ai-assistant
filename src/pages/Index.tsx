@@ -149,13 +149,18 @@ const Index = () => {
               className="flex-shrink-0"
             >
               <div className="relative">
-                <div className="absolute -inset-3 bg-accent-gradient rounded-full blur-xl opacity-40 animate-pulse" />
-                <LeslieAvatar
+                {/* Soft glow behind the figure */}
+                <div className="absolute inset-x-0 bottom-0 h-2/3 bg-accent-gradient rounded-full blur-3xl opacity-30 animate-pulse pointer-events-none" />
+                <div className="absolute inset-x-8 bottom-2 h-6 bg-black/40 blur-xl rounded-full pointer-events-none" />
+                <img
+                  src={leslieFullBody}
                   alt="Leslie AI Assistant"
-                  shape="circle"
-                  className="relative w-36 h-36 md:w-48 md:h-48 border-4 border-primary-foreground/20 shadow-2xl"
+                  width={1080}
+                  height={1920}
+                  className="relative w-56 md:w-72 lg:w-80 h-auto drop-shadow-2xl select-none"
+                  draggable={false}
                 />
-                <div className="absolute -bottom-2 -right-2 bg-accent-gradient rounded-full p-2 shadow-lg">
+                <div className="absolute top-2 right-2 md:top-4 md:right-4 bg-accent-gradient rounded-full p-2 shadow-lg">
                   <Sparkles className="w-5 h-5 text-accent-foreground" />
                 </div>
               </div>
