@@ -185,7 +185,7 @@ const Index = () => {
               {/* Stats hierarchy */}
               <div className="mb-8">
                 <div className="rounded-2xl bg-primary-foreground/5 border border-primary-foreground/10 p-5 md:p-6">
-                  <div className="text-center md:text-left">
+                  <div className="text-center">
                     <div className="font-display font-bold text-gradient-accent text-5xl md:text-6xl leading-none">
                       <CountUp value={jobCount} locale={numberLocale} />
                     </div>
