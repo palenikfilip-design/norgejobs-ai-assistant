@@ -233,6 +233,42 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Guard against fully-unconstrained searches that would scan the whole
+    // 23k-job universe and time out. Require AT LEAST one country or one
+    // job-type signal on either the preset or the avatar.
+    const presetCountries: string[] = Array.isArray(preset?.preferred_countries)
+      ? preset.preferred_countries.filter((c: unknown) => typeof c === "string" && c.trim().length > 0)
+      : [];
+    const avatarObj = avatar as Record<string, unknown>;
+    const avatarCountries: string[] = Array.isArray(avatarObj.target_countries)
+      ? (avatarObj.target_countries as unknown[]).filter((c): c is string => typeof c === "string" && c.trim().length > 0)
+      : Array.isArray(avatarObj.preferred_countries)
+        ? (avatarObj.preferred_countries as unknown[]).filter((c): c is string => typeof c === "string" && c.trim().length > 0)
+        : [];
+    const avatarCategories: string[] = Array.isArray(avatarObj.job_categories)
+      ? (avatarObj.job_categories as unknown[]).filter((c): c is string => typeof c === "string" && c.trim().length > 0)
+      : [];
+    const presetCategories: string[] = Array.isArray(preset?.job_categories)
+      ? preset.job_categories.filter((c: unknown) => typeof c === "string" && c.trim().length > 0)
+      : [];
+    const hasAnyConstraint =
+      presetCountries.length > 0 ||
+      avatarCountries.length > 0 ||
+      presetCategories.length > 0 ||
+      avatarCategories.length > 0 ||
+      (typeof avatarObj.profession === "string" && avatarObj.profession.trim().length > 0);
+    if (!hasAnyConstraint) {
+      return new Response(
+        JSON.stringify({
+          matches: [],
+          empty_preset: true,
+          message: "Doplň prosím alespoň zemi nebo typ práce do svého presetu — bez toho ti Leslie neumí najít relevantní nabídky.",
+          debug: { reason: "no_country_no_category", source: "public_jobs" },
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+      );
+    }
+
     // 1) Pull quality candidates (complete + partial)
     let candidates = await fetchCandidates(supabase, preset ?? {}, { includeSparse: false, limit: 100 });
     let sparseFallbackUsed = false;

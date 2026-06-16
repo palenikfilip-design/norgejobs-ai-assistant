@@ -68,12 +68,46 @@ function mergeAvatar(existing: Record<string, unknown>, incoming: Extracted): Re
 }
 
 async function extractPreferences(messages: ChatMessage[], apiKey: string, supabase: any): Promise<Extracted> {
+  // Use full transcript (cap ~30 messages) so earlier context like
+  // "pracovala 15 let v Rakousku a Německu jako pečovatelka" isn't dropped.
   const convo = messages
-    .slice(-6)
+    .slice(-30)
     .map((m) => `${m.role === "user" ? "User" : "Leslie"}: ${m.content}`)
     .join("\n");
 
-  const prompt = `Extract any new job preferences from this conversation. Return ONLY JSON with these keys (omit if not mentioned): {target_countries: [], job_categories: [], languages_spoken: [], min_salary: null, accommodation_needed: null, seasonal_preference: null, additional_notes: ''}. Conversation:\n${convo}`;
+  const prompt = `Extract ALL job preferences mentioned ANYWHERE in this conversation (not just the latest message). Return ONLY a JSON object with these keys (omit a key if truly not mentioned): {target_countries: [], job_categories: [], languages_spoken: [], min_salary: null, accommodation_needed: null, seasonal_preference: null, additional_notes: ''}.
+
+MAPPING RULES — apply these strictly:
+
+Country names → English canonical form. Examples:
+  "Rakousko"/"Rakousku" → "Austria"
+  "Německo"/"Německu"/"Nemecko" → "Germany"
+  "Norsko"/"Norsku" → "Norway"
+  "Česko"/"ČR" → "Czechia"
+  "Slovensko" → "Slovakia"
+  "Švýcarsko" → "Switzerland"
+  "Nizozemsko"/"Holandsko" → "Netherlands"
+  "Polsko" → "Poland"
+  "Velká Británie"/"Anglie" → "United Kingdom"
+  "Itálie" → "Italy", "Španělsko" → "Spain", "Francie" → "France"
+  Extract EVERY country mentioned, not just the last one.
+
+Job/role words → category slugs. Examples:
+  "hotel"/"hotelu"/"recepce"/"číšník"/"kuchař"/"servírka" → "hospitality"
+  "pečovatel"/"pečovatelka"/"ošetřovatel"/"zdravotní sestra"/"nurse"/"caregiver" → "healthcare"
+  "stavba"/"stavební"/"zedník"/"tesař"/"elektrikář"/"construction" → "construction"
+  "sklad"/"warehouse"/"řidič"/"kurýr"/"logistika" → "logistics"
+  "IT"/"programátor"/"developer"/"software" → "tech"
+  "farma"/"zemědělství"/"sběr"/"sklizeň" → "agriculture"
+  "továrna"/"výroba"/"manufacturing" → "manufacturing"
+  "au-pair"/"au pair"/"hlídání dětí" → "aupair"
+  "lyžařské středisko"/"ski resort" → "ski_resort"
+  Include EVERY job type mentioned (e.g. both "hospitality" and "healthcare" if user mentions hotel AND pečovatelka).
+
+Numeric values: extract min_salary as a plain number in EUR (or local currency if user explicitly said so). "aspoň 2000 euro" → min_salary: 2000.
+
+Conversation:
+${convo}`;
 
   const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
