@@ -6,6 +6,7 @@ import { Bot, ArrowRight, Sparkles, Globe, MessageCircle, MessagesSquare, Search
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import LeslieAvatar from "@/components/LeslieAvatar";
+import leslieFullBody from "@/assets/leslie-fullbody.png";
 import { supabase } from "@/integrations/supabase/client";
 
 // Feature flag for testimonials section (flip to true once we have real ones)
