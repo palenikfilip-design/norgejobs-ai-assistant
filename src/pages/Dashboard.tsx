@@ -81,14 +81,21 @@ const Dashboard = () => {
   const { interactions, preferences } = usePreferenceProfile(supabaseUser?.id ?? null, []);
   // Live AI-matched jobs from public APIs (MPSV, NAV) — no DB storage
   const avatarForMatching = useMemo(() => {
-    if (!profile.profession && !profile.country) return null;
     const a = activeAvatars[0];
+    const preferredCountries = a?.preferredCountries ?? [];
+    const hasAnyData =
+      !!profile.profession ||
+      !!profile.country ||
+      preferredCountries.length > 0 ||
+      (profile.languages?.length ?? 0) > 0 ||
+      !!a;
+    if (!hasAnyData) return null;
     return {
       profession: profile.profession,
       country: profile.country,
       languages: profile.languages,
       experience_level: profile.experienceLevel,
-      preferred_countries: a?.preferredCountries ?? [],
+      preferred_countries: preferredCountries,
       preferred_job_type: a?.preferredJobType?.[0] ?? null,
       salary_min: a?.salaryMin ?? null,
       salary_max: a?.salaryMax ?? null,
