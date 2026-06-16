@@ -75,7 +75,7 @@ async function fetchCandidates(
   let q = supabase
     .from("public_jobs")
     .select(
-      "id,source_portal,external_id,title,company,location,country,region,salary,salary_min,salary_max,currency,salary_normalized_eur,url,job_type,category,is_seasonal,description,trust_score,data_completeness",
+      "id,source_portal,external_id,title,company,location,country,region,salary,salary_min,salary_max,currency,salary_normalized_eur,url,job_type,category,is_seasonal,description,trust_score,data_completeness,additional_locations",
     )
     .not("enriched_at", "is", null)
     .order("trust_score", { ascending: false })
@@ -112,7 +112,11 @@ async function fetchCandidates(
     console.error("fetchCandidates error:", error.message);
     return [];
   }
-  return (data ?? []).map(rowToCandidate);
+  return (data ?? []).map((row: any) => {
+    const c = rowToCandidate(row);
+    (c as any).additional_locations = Array.isArray(row.additional_locations) ? row.additional_locations : [];
+    return c;
+  });
 }
 
 async function scoreJobWithAI(
@@ -213,6 +217,51 @@ Return ONLY valid JSON:
 const MAX_AI_SCORING = 50;
 const SPARSE_FALLBACK_THRESHOLD = 10;
 const SPARSE_SCORE_PENALTY = 15;
+const MULTI_COUNTRY_SCORE_PENALTY = 12;
+
+// Aliases so we can substring-match user-facing country names against the
+// free-form `location` / `additional_locations` text on Multiple-country jobs.
+const COUNTRY_ALIASES: Record<string, string[]> = {
+  germany:     ["germany", "deutschland", "german"],
+  austria:     ["austria", "österreich", "oesterreich", "austrian"],
+  switzerland: ["switzerland", "schweiz", "suisse", "svizzera", "swiss"],
+  czechia:     ["czechia", "czech republic", "česko", "cesko", "tschechien"],
+  slovakia:    ["slovakia", "slovensko", "slowakei"],
+  norway:      ["norway", "norge", "norwegen"],
+  sweden:      ["sweden", "sverige", "schweden"],
+  denmark:     ["denmark", "danmark", "dänemark"],
+  iceland:     ["iceland", "island"],
+  netherlands: ["netherlands", "holland", "nederland"],
+  belgium:     ["belgium", "belgique", "belgië"],
+  france:      ["france", "français"],
+  italy:       ["italy", "italia"],
+  spain:       ["spain", "españa", "espana"],
+  portugal:    ["portugal"],
+  poland:      ["poland", "polska", "polen"],
+  finland:     ["finland", "suomi"],
+  ireland:     ["ireland", "éire"],
+  "united kingdom": ["united kingdom", "uk", "england", "britain", "scotland", "wales"],
+};
+
+function locationMatchesAnyCountry(job: CandidateJob, countries: string[]): boolean {
+  if (countries.length === 0) return true;
+  const haystackParts: string[] = [];
+  if (job.location) haystackParts.push(job.location);
+  const addl = (job as any).additional_locations;
+  if (Array.isArray(addl)) {
+    for (const a of addl) if (typeof a === "string") haystackParts.push(a);
+  }
+  if (haystackParts.length === 0) return false;
+  const haystack = haystackParts.join(" | ").toLowerCase();
+  for (const c of countries) {
+    const key = c.toLowerCase().trim();
+    const aliases = COUNTRY_ALIASES[key] ?? [key];
+    for (const alias of aliases) {
+      if (haystack.includes(alias)) return true;
+    }
+  }
+  return false;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -287,6 +336,29 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 1b) Geo post-filter for Multiple-country / Remote / unknown-country jobs.
+    // The DB query lets `country='Multiple'` and `Remote%` through so we don't
+    // miss truly multinational postings — but we must drop the ones whose real
+    // locations are nowhere near the user's preferred countries (Airbnb Tokyo
+    // for a DACH preset, etc.).
+    const preferredCountries: string[] = presetCountries.length > 0
+      ? presetCountries
+      : avatarCountries;
+    const multiCountryIds = new Set<string>();
+    if (preferredCountries.length > 0) {
+      candidates = candidates.filter((c) => {
+        const ctry = (c.country ?? "").toLowerCase();
+        const isExact = preferredCountries.some(
+          (pc) => pc.toLowerCase() === ctry,
+        );
+        if (isExact) return true;
+        // For Multiple/Remote/null, require a location hit on the preferred set.
+        const ok = locationMatchesAnyCountry(c, preferredCountries);
+        if (ok) multiCountryIds.add(c.id);
+        return ok;
+      });
+    }
+
     const candidateCount = candidates.length;
     const toScore = candidates.slice(0, MAX_AI_SCORING);
 
@@ -316,7 +388,11 @@ Deno.serve(async (req) => {
       .map((job, i) => {
         const r = results[i] ?? { score: 50, dimensions: {}, reasons: [], warnings: [], company_signal: "unknown" };
         const isSparse = sparseIds.has(job.id);
-        const score = Math.max(0, Math.min(100, r.score - (isSparse ? SPARSE_SCORE_PENALTY : 0)));
+        const isMulti = multiCountryIds.has(job.id);
+        const penalty =
+          (isSparse ? SPARSE_SCORE_PENALTY : 0) +
+          (isMulti ? MULTI_COUNTRY_SCORE_PENALTY : 0);
+        const score = Math.max(0, Math.min(100, r.score - penalty));
         const warnings = [...r.warnings];
         if (isSparse) warnings.unshift("Omezené informace");
         return {
