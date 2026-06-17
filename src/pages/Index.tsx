@@ -166,6 +166,16 @@ const Index = () => {
               </div>
             </motion.div>
 
+            {/* Mobile: circular portrait */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="flex-shrink-0 md:hidden"
+            >
+              <LeslieAvatar size="xl" showSparkle />
+            </motion.div>
+
             {/* Text content */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
