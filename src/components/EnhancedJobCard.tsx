@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Banknote, Briefcase, Sparkles, ExternalLink, FileText, Heart, ChevronDown, ChevronUp, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
+import { MapPin, Banknote, Briefcase, Sparkles, ExternalLink, FileText, Heart, ChevronDown, ChevronUp, TrendingUp, TrendingDown, AlertTriangle, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { EnhancedJob } from "@/utils/jobMatching";
@@ -21,6 +21,7 @@ import { defaultJobDimensions } from "@/types/candidateDimensions";
 import { generateBoostSuggestions } from "@/utils/skillBooster";
 import { useUser } from "@/context/UserContext";
 import { toCzechPill } from "@/utils/reasonLabels";
+import { getJobViews, formatViews } from "@/utils/jobViews";
 
 interface EnhancedJobCardProps {
   job: EnhancedJob;
@@ -243,6 +244,9 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
           <div className="flex flex-wrap gap-2 text-sm text-muted-foreground mb-3">
             <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{locationDisplay}</span>
             <span className="flex items-center gap-1"><Briefcase className="w-3.5 h-3.5" />{job.type}</span>
+            <span className="flex items-center gap-1" title="Kolik lidí si tuto nabídku zobrazilo na našich stránkách">
+              <Eye className="w-3.5 h-3.5" />{formatViews(getJobViews(job.id))} zobrazení
+            </span>
           </div>
 
           {/* Market Heat Index */}

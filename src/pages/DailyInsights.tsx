@@ -13,6 +13,8 @@ import {
   Lightbulb,
   CalendarDays,
   Minus,
+  Eye,
+  Flame,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,6 +26,7 @@ import { calculateSmartMatch } from "@/utils/smartMatch";
 import { generateBoostSuggestions } from "@/utils/skillBooster";
 import { usePreferenceProfile } from "@/hooks/usePreferenceProfile";
 import { supabase } from "@/integrations/supabase/client";
+import { getJobViews, formatViews } from "@/utils/jobViews";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   PieChart,
@@ -38,13 +41,17 @@ import {
   Legend,
 } from "recharts";
 
+// Tlumená, ale dobře rozlišitelná paleta (teal → modrá → fialová → růžová → jantarová → šedá)
 const COLORS = [
-  "hsl(var(--accent))",
-  "hsl(var(--primary))",
-  "hsl(var(--chart-3, var(--accent)))",
-  "hsl(var(--chart-4, var(--primary)))",
-  "hsl(var(--muted-foreground))",
-  "hsl(var(--secondary-foreground))",
+  "#3b82f6", // blue-500
+  "#0d9488", // teal-600
+  "#8b5cf6", // violet-500
+  "#ec4899", // pink-500
+  "#f59e0b", // amber-500
+  "#10b981", // emerald-500
+  "#6366f1", // indigo-500
+  "#64748b", // slate-500
+  "#a855f7", // purple-500
 ];
 
 const inferIndustry = (job: { title: string; company: string; description: string }): string => {
@@ -123,8 +130,16 @@ const DailyInsights = () => {
 
   const { profile: behaviorProfile } = usePreferenceProfile(userId, mockJobs);
 
-  const top5 = matchedJobs.slice(0, 5);
   const total = matchedJobs.length;
+
+  // Nejvíce proklikané nabídky tento týden (proxy: views z getJobViews)
+  const topViewed = useMemo(() => {
+    return [...matchedJobs]
+      .map((j) => ({ job: j, views: getJobViews(j.id) }))
+      .sort((a, b) => b.views - a.views)
+      .slice(0, 5);
+  }, [matchedJobs]);
+  const top5 = topViewed.map((t) => t.job);
 
   // Build "why it matches" reason for each top job
   const topReasons = useMemo(() => {
@@ -271,15 +286,15 @@ const DailyInsights = () => {
         {/* 1. Best matches */}
         <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-5 h-5 text-accent" />
-            <h2 className="text-xl font-bold text-foreground">🔥 Best matches of the day</h2>
+            <Flame className="w-5 h-5 text-accent" />
+            <h2 className="text-xl font-bold text-foreground">🔥 Nejvíce proklikané nabídky tento týden</h2>
           </div>
           <Card className="p-5">
-            {top5.length === 0 ? (
+            {topViewed.length === 0 ? (
               <p className="text-sm text-muted-foreground">No matches yet.</p>
             ) : (
               <ul className="divide-y divide-border">
-                {top5.map((job, i) => (
+                {topViewed.map(({ job, views }, i) => (
                   <li key={job.id} className="py-3 flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0">
                       <span className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-foreground shrink-0 mt-0.5">
@@ -290,8 +305,9 @@ const DailyInsights = () => {
                         <p className="text-xs text-muted-foreground truncate">
                           {job.company} · {job.city}, {job.country}
                         </p>
-                        <p className="text-xs text-accent mt-1 italic">
-                          Why: {topReasons.get(job.id) ?? "Strong overall fit"}
+                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                          <Eye className="w-3 h-3" />
+                          <span className="font-semibold text-foreground">{formatViews(views)}</span> zobrazení tento týden
                         </p>
                       </div>
                     </div>
