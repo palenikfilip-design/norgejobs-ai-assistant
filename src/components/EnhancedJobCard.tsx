@@ -21,7 +21,7 @@ import { defaultJobDimensions } from "@/types/candidateDimensions";
 import { generateBoostSuggestions } from "@/utils/skillBooster";
 import { useUser } from "@/context/UserContext";
 import { toCzechPill } from "@/utils/reasonLabels";
-import { getJobViews, formatViews } from "@/utils/jobViews";
+import { formatViews, useJobViewCount, registerJobView } from "@/utils/jobViews";
 
 interface EnhancedJobCardProps {
   job: EnhancedJob;
@@ -108,6 +108,15 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
     !/lovable\.app/i.test(rawUrl)
       ? rawUrl
       : null;
+
+  // Real view counter — read from public_jobs.view_count, deduped 1/user/day via RPC.
+  const { count: viewCount, setCount: setViewCount } = useJobViewCount(validUrl);
+
+  const handleViewFullJob = async () => {
+    if (!validUrl) return;
+    const next = await registerJobView(validUrl);
+    if (next > 0) setViewCount(next);
+  };
 
   // Smart Match
   const smartMatch = useMemo(() => {
@@ -245,7 +254,7 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
             <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{locationDisplay}</span>
             <span className="flex items-center gap-1"><Briefcase className="w-3.5 h-3.5" />{job.type}</span>
             <span className="flex items-center gap-1" title="Kolik lidí si tuto nabídku zobrazilo na našich stránkách">
-              <Eye className="w-3.5 h-3.5" />{formatViews(getJobViews(job.id))} zobrazení
+              <Eye className="w-3.5 h-3.5" />{formatViews(viewCount)} zobrazení
             </span>
           </div>
 
@@ -350,7 +359,7 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
           <div className="flex flex-wrap gap-2">
             {validUrl ? (
               <Button variant="outline" size="sm" className="text-xs" asChild>
-                <a href={validUrl} target="_blank" rel="noopener noreferrer">
+                <a href={validUrl} target="_blank" rel="noopener noreferrer" onClick={handleViewFullJob}>
                   <ExternalLink className="w-3 h-3 mr-1" />View Full Job
                 </a>
               </Button>

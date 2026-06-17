@@ -688,6 +688,30 @@ export type Database = {
         }
         Relationships: []
       }
+      job_views: {
+        Row: {
+          created_at: string
+          id: string
+          job_url: string
+          user_id: string
+          view_date: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_url: string
+          user_id: string
+          view_date?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_url?: string
+          user_id?: string
+          view_date?: string
+        }
+        Relationships: []
+      }
       leslie_chat_history: {
         Row: {
           created_at: string
@@ -851,6 +875,7 @@ export type Database = {
           trust_signals: Json
           updated_at: string
           url: string
+          view_count: number
         }
         Insert: {
           additional_locations?: Json
@@ -897,6 +922,7 @@ export type Database = {
           trust_signals?: Json
           updated_at?: string
           url: string
+          view_count?: number
         }
         Update: {
           additional_locations?: Json
@@ -943,6 +969,7 @@ export type Database = {
           trust_signals?: Json
           updated_at?: string
           url?: string
+          view_count?: number
         }
         Relationships: [
           {
@@ -1414,6 +1441,7 @@ export type Database = {
         Returns: boolean
       }
       map_display_category: { Args: { _cat: string }; Returns: string }
+      register_job_view: { Args: { p_job_url: string }; Returns: number }
       set_ingest_cron_secret: { Args: { _value: string }; Returns: undefined }
       verify_ingest_cron_secret: {
         Args: { _provided: string }

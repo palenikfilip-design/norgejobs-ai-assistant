@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.register_job_view(text) FROM PUBLIC, anon;
