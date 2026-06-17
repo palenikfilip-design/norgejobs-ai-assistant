@@ -249,16 +249,16 @@ const Index = () => {
               <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
                 <Button
                   size="lg"
-                  className="bg-accent-gradient text-accent-foreground hover:opacity-90 text-base px-8"
+                  className="bg-accent-gradient text-accent-foreground hover:opacity-90 text-lg px-11 py-6 h-auto"
                   onClick={() => navigate("/signup")}
                 >
                   {t("landing.ctaCreate")}
-                  <ArrowRight className="w-5 h-5 ml-2" />
+                  <ArrowRight className="w-6 h-6 ml-2" />
                 </Button>
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-primary-foreground/50 bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20 text-base px-8"
+                  className="border-primary-foreground/50 bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20 text-lg px-11 py-6 h-auto"
                   onClick={() => navigate("/login")}
                 >
                   {t("landing.ctaLogin")}
