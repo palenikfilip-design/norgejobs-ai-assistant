@@ -173,7 +173,13 @@ const Index = () => {
               transition={{ duration: 0.7, delay: 0.2 }}
               className="flex-shrink-0 md:hidden"
             >
-              <LeslieAvatar size="xl" showSparkle />
+              <div className="relative">
+                <div className="absolute inset-0 bg-accent-gradient rounded-full blur-2xl opacity-30 animate-pulse pointer-events-none" />
+                <LeslieAvatar shape="circle" className="relative w-40 h-40 ring-4 ring-primary-foreground/20 shadow-2xl" />
+                <div className="absolute top-1 right-1 bg-accent-gradient rounded-full p-2 shadow-lg">
+                  <Sparkles className="w-4 h-4 text-accent-foreground" />
+                </div>
+              </div>
             </motion.div>
 
             {/* Text content */}
