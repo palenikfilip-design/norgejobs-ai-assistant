@@ -146,7 +146,7 @@ const Index = () => {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.7, delay: 0.2 }}
-              className="flex-shrink-0"
+              className="flex-shrink-0 hidden md:block"
             >
               <div className="relative">
                 {/* Soft glow behind the figure */}
