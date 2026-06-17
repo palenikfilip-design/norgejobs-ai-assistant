@@ -13,6 +13,8 @@ import {
   Lightbulb,
   CalendarDays,
   Minus,
+  Eye,
+  Flame,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,6 +26,7 @@ import { calculateSmartMatch } from "@/utils/smartMatch";
 import { generateBoostSuggestions } from "@/utils/skillBooster";
 import { usePreferenceProfile } from "@/hooks/usePreferenceProfile";
 import { supabase } from "@/integrations/supabase/client";
+import { getJobViews, formatViews } from "@/utils/jobViews";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   PieChart,
@@ -38,13 +41,17 @@ import {
   Legend,
 } from "recharts";
 
+// Tlumená, ale dobře rozlišitelná paleta (teal → modrá → fialová → růžová → jantarová → šedá)
 const COLORS = [
-  "hsl(var(--accent))",
-  "hsl(var(--primary))",
-  "hsl(var(--chart-3, var(--accent)))",
-  "hsl(var(--chart-4, var(--primary)))",
-  "hsl(var(--muted-foreground))",
-  "hsl(var(--secondary-foreground))",
+  "#3b82f6", // blue-500
+  "#0d9488", // teal-600
+  "#8b5cf6", // violet-500
+  "#ec4899", // pink-500
+  "#f59e0b", // amber-500
+  "#10b981", // emerald-500
+  "#6366f1", // indigo-500
+  "#64748b", // slate-500
+  "#a855f7", // purple-500
 ];
 
 const inferIndustry = (job: { title: string; company: string; description: string }): string => {
