@@ -130,8 +130,16 @@ const DailyInsights = () => {
 
   const { profile: behaviorProfile } = usePreferenceProfile(userId, mockJobs);
 
-  const top5 = matchedJobs.slice(0, 5);
   const total = matchedJobs.length;
+
+  // Nejvíce proklikané nabídky tento týden (proxy: views z getJobViews)
+  const topViewed = useMemo(() => {
+    return [...matchedJobs]
+      .map((j) => ({ job: j, views: getJobViews(j.id) }))
+      .sort((a, b) => b.views - a.views)
+      .slice(0, 5);
+  }, [matchedJobs]);
+  const top5 = topViewed.map((t) => t.job);
 
   // Build "why it matches" reason for each top job
   const topReasons = useMemo(() => {
