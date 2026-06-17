@@ -37,7 +37,7 @@ serve(async (req) => {
     const userId = userData.user.id;
 
     const body = await req.json();
-    const { jobTitle, company, location, language = "cs", jobId } = body;
+    const { jobTitle, company, location, country, salary, language = "cs", jobId } = body;
 
     // Service-role client for usage tracking + profile fetch
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -80,27 +80,21 @@ serve(async (req) => {
       });
     }
 
-    const langMap: Record<string, string> = {
-      cs: "Czech", sk: "Slovak", en: "English", de: "German", pl: "Polish",
-    };
-    const langName = langMap[language] || "Czech";
-
-    const avatarSummary = JSON.stringify({
+    const avatar_json = {
       name: profile?.full_name,
       profession: profile?.profession,
       experience: profile?.work_experience,
       skills: profile?.skills,
       languages: profile?.languages,
       country: profile?.country,
-      avatar: profile?.avatar_json ?? {},
-    });
+      ...(profile?.avatar_json ?? {}),
+    };
 
-    const systemPrompt = `You are a professional cover letter writer. Write a personalized cover letter in ${langName}. Tone: professional but warm. Length: strictly 200-250 words. Do not fabricate any experience, qualifications, or skills not mentioned about the applicant. Address the hiring manager directly.`;
+    const systemPrompt = `You write concise cover letters for Czech/Slovak workers applying to seasonal and international jobs (gastronomy, construction, maritime, hotels). Output ONLY the letter body in the user's language. 150-250 words. Structure strictly: PARAGRAPH 1 (Proč ty): which position you respond to + most relevant experience and skills tied to the job. PARAGRAPH 2 (Proč firma/země): short honest reason for this employer/country. PARAGRAPH 3 (Dostupnost + výzva): start date, mention CV attached, thanks. Then closing line + applicant name. Rules: professional but warm tone. Never fabricate experience. No clichés like 'team player'.`;
 
-    const userPrompt = `Write a personalized cover letter in ${langName} for this job application.
-Job: ${jobTitle} at ${company || "the employer"} in ${location || "the listed location"}.
-About the applicant: ${avatarSummary}
-Length: 200-250 words. Do not fabricate experience.`;
+    const userPrompt = `Job: ${jobTitle} at ${company || "the employer"} in ${location || "the listed location"}, ${country || "unknown country"}. Salary: ${salary || "unknown"}. Applicant profile (avatar_json): ${JSON.stringify(avatar_json)}.`;
+
+    const model = "anthropic/claude-sonnet-4-6";
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -109,7 +103,7 @@ Length: 200-250 words. Do not fabricate experience.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3.1-flash-lite-preview",
+        model,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -134,7 +128,7 @@ Length: 200-250 words. Do not fabricate experience.`;
     const data = await response.json();
     await logAiCall(admin, {
       function_name: "generate-cover-letter",
-      model: "google/gemini-3.1-flash-lite-preview",
+      model,
       usage: data?.usage ?? null,
     });
     const content = data.choices?.[0]?.message?.content || "Unable to generate cover letter.";
