@@ -286,15 +286,15 @@ const DailyInsights = () => {
         {/* 1. Best matches */}
         <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-5 h-5 text-accent" />
-            <h2 className="text-xl font-bold text-foreground">🔥 Best matches of the day</h2>
+            <Flame className="w-5 h-5 text-accent" />
+            <h2 className="text-xl font-bold text-foreground">🔥 Nejvíce proklikané nabídky tento týden</h2>
           </div>
           <Card className="p-5">
-            {top5.length === 0 ? (
+            {topViewed.length === 0 ? (
               <p className="text-sm text-muted-foreground">No matches yet.</p>
             ) : (
               <ul className="divide-y divide-border">
-                {top5.map((job, i) => (
+                {topViewed.map(({ job, views }, i) => (
                   <li key={job.id} className="py-3 flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0">
                       <span className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-foreground shrink-0 mt-0.5">
@@ -305,8 +305,9 @@ const DailyInsights = () => {
                         <p className="text-xs text-muted-foreground truncate">
                           {job.company} · {job.city}, {job.country}
                         </p>
-                        <p className="text-xs text-accent mt-1 italic">
-                          Why: {topReasons.get(job.id) ?? "Strong overall fit"}
+                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                          <Eye className="w-3 h-3" />
+                          <span className="font-semibold text-foreground">{formatViews(views)}</span> zobrazení tento týden
                         </p>
                       </div>
                     </div>
