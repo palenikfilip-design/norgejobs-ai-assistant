@@ -27,7 +27,13 @@ interface NormalizedJob {
 interface EmployerRow {
   id: string;
   company_name: string;
-  ats_type: "greenhouse" | "lever" | "smartrecruiters" | "workday";
+  ats_type:
+    | "greenhouse"
+    | "lever"
+    | "smartrecruiters"
+    | "workday"
+    | "wp_rest"
+    | "html_ischgl";
   ats_config: Record<string, unknown>;
   country: string | null;
 }
@@ -43,6 +49,38 @@ async function fetchJson(url: string, init?: RequestInit) {
   });
   if (!res.ok) throw new Error(`HTTP ${res.status} ${url}`);
   return res.json();
+}
+
+async function fetchText(url: string, init?: RequestInit) {
+  const res = await fetch(url, {
+    ...init,
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (compatible; LeslieJobIngest/1.0; +https://lovable.dev)",
+      Accept: "text/html,*/*",
+      ...(init?.headers ?? {}),
+    },
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status} ${url}`);
+  return res.text();
+}
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<\/(p|div|li|br|h\d)>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{2,}/g, "\n\n")
+    .trim();
 }
 
 async function adapterGreenhouse(emp: EmployerRow): Promise<NormalizedJob[]> {
@@ -162,11 +200,132 @@ async function adapterWorkday(emp: EmployerRow): Promise<NormalizedJob[]> {
     }));
 }
 
+// WordPress REST API adapter — reads a custom post type (default: "job-opening")
+// Reusable for any WP site that exposes its job CPT publicly.
+async function adapterWpRest(emp: EmployerRow): Promise<NormalizedJob[]> {
+  const cfg = emp.ats_config as Record<string, unknown>;
+  const base = String(cfg.base ?? "").replace(/\/+$/, "");
+  const postType = String(cfg.post_type ?? "job-opening");
+  const sourcePortal = String(cfg.source_portal ?? `wp:${base.replace(/^https?:\/\//, "")}`);
+  if (!base) throw new Error("wp_rest: missing base");
+  const url = `${base}/wp-json/wp/v2/${encodeURIComponent(postType)}?per_page=100&_embed=0`;
+  const data = await fetchJson(url);
+  const items: any[] = Array.isArray(data) ? data : [];
+  const isSeasonal = cfg.is_seasonal === true;
+  const seasonalType = cfg.seasonal_type ?? null;
+  const category = cfg.category ?? null;
+  const displayCategory = cfg.display_category ?? null;
+  return items
+    .filter((it) => it?.link && (it?.title?.rendered || it?.slug))
+    .map((it) => ({
+      external_id: it.id != null ? String(it.id) : String(it.slug ?? it.link),
+      source_portal: sourcePortal,
+      title: stripHtml(String(it.title?.rendered ?? it.slug ?? "")).slice(0, 240),
+      company: emp.company_name,
+      description: stripHtml(String(it.content?.rendered ?? it.excerpt?.rendered ?? "")).slice(0, 8000) || null,
+      location: null,
+      country: emp.country,
+      url: String(it.link),
+      job_type: null,
+      salary_min: null,
+      salary_max: null,
+      currency: null,
+      posted_at: it.date ? new Date(it.date).toISOString() : null,
+      raw_data: {
+        wp_id: it.id,
+        is_seasonal: isSeasonal,
+        seasonal_type: seasonalType,
+        category,
+        display_category: displayCategory,
+      },
+      fetched_at: nowIso(),
+    }));
+}
+
+// Ischgl HTML adapter — server-side rendered listing at /en/jobs
+// Detail URLs follow /en/jobs/<slug>_job_<id>
+async function adapterHtmlIschgl(emp: EmployerRow): Promise<NormalizedJob[]> {
+  const cfg = emp.ats_config as Record<string, unknown>;
+  const base = String(cfg.base ?? "https://www.ischgl.com").replace(/\/+$/, "");
+  const listingUrl = String(cfg.listing_url ?? `${base}/en/jobs`);
+  const sourcePortal = String(cfg.source_portal ?? "html:ischgl");
+  const isSeasonal = cfg.is_seasonal === true;
+  const seasonalType = cfg.seasonal_type ?? null;
+  const category = cfg.category ?? null;
+  const displayCategory = cfg.display_category ?? null;
+
+  let listingHtml: string;
+  try {
+    listingHtml = await fetchText(listingUrl);
+  } catch (err) {
+    console.error("[html_ischgl] listing fetch failed", err);
+    return [];
+  }
+
+  // Match links like /en/jobs/<slug>_job_<id> — capture once per id.
+  const linkRe = /href=["'](\/en\/jobs\/[a-z0-9][^"'\s]*?_job_(\d+)[^"']*)["']/gi;
+  const seen = new Map<string, string>();
+  let m: RegExpExecArray | null;
+  while ((m = linkRe.exec(listingHtml)) !== null) {
+    const path = m[1];
+    const id = m[2];
+    if (!seen.has(id)) seen.set(id, path);
+  }
+
+  const jobs: NormalizedJob[] = [];
+  for (const [id, path] of seen) {
+    const url = `${base}${path}`;
+    try {
+      const html = await fetchText(url);
+      // <title>Job title | Ischgl</title>
+      const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+      let title = titleMatch ? stripHtml(titleMatch[1]).replace(/\s*[|–-]\s*Ischgl.*$/i, "").trim() : "";
+      if (!title) {
+        const h1 = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+        title = h1 ? stripHtml(h1[1]) : `Ischgl job ${id}`;
+      }
+      // Description: grab the main content area; fallback to all body text.
+      const main = html.match(/<main[\s\S]*?<\/main>/i)?.[0]
+        ?? html.match(/<article[\s\S]*?<\/article>/i)?.[0]
+        ?? html;
+      const description = stripHtml(main).slice(0, 8000) || null;
+
+      jobs.push({
+        external_id: id,
+        source_portal: sourcePortal,
+        title: title.slice(0, 240),
+        company: emp.company_name,
+        description,
+        location: "Ischgl",
+        country: emp.country,
+        url,
+        job_type: null,
+        salary_min: null,
+        salary_max: null,
+        currency: null,
+        posted_at: null,
+        raw_data: {
+          is_seasonal: isSeasonal,
+          seasonal_type: seasonalType,
+          category,
+          display_category: displayCategory,
+        },
+        fetched_at: nowIso(),
+      });
+    } catch (err) {
+      console.warn(`[html_ischgl] detail ${id} skipped:`, err instanceof Error ? err.message : err);
+    }
+  }
+  return jobs;
+}
+
 const ADAPTERS: Record<EmployerRow["ats_type"], (e: EmployerRow) => Promise<NormalizedJob[]>> = {
   greenhouse: adapterGreenhouse,
   lever: adapterLever,
   smartrecruiters: adapterSmartRecruiters,
   workday: adapterWorkday,
+  wp_rest: adapterWpRest,
+  html_ischgl: adapterHtmlIschgl,
 };
 
 Deno.serve(async (req) => {
