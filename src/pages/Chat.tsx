@@ -140,6 +140,7 @@ const Chat = () => {
           messages: next.filter((m) => m.id !== "welcome").map((m) => ({ role: m.role, content: m.content })),
           userName: firstName,
           ratings: ratingsPayload,
+          conversation_id: conversationId,
         },
       });
       if (error) {
@@ -152,7 +153,10 @@ const Chat = () => {
         setSending(false);
         return;
       }
-      const d = data as { reply?: string; jobs?: JobCard[]; preset_id?: string | null; preset_name?: string | null };
+      const d = data as { reply?: string; jobs?: JobCard[]; preset_id?: string | null; preset_name?: string | null; conversation_id?: string };
+      if (d?.conversation_id && d.conversation_id !== conversationId) {
+        setConversationId(d.conversation_id);
+      }
       setMessages((m) => [...m, {
         id: `a_${Date.now()}`,
         role: "assistant",
@@ -161,6 +165,7 @@ const Chat = () => {
         preset_id: d?.preset_id,
         preset_name: d?.preset_name,
       }]);
+      refreshConversations();
       if (opts?.includeRatings) {
         setPendingRatingsSent(true);
         setRatingDetails({});
