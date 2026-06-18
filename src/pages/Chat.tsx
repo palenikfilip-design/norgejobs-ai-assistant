@@ -5,11 +5,12 @@ import { motion } from "framer-motion";
 import { useUser } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Loader2, Send, User, ThumbsUp, ThumbsDown, ExternalLink, Plus, Sparkles } from "lucide-react";
+import { ArrowLeft, Loader2, Send, User, ThumbsUp, ThumbsDown, ExternalLink, Plus, Sparkles, History, Trash2 } from "lucide-react";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import LeslieAvatar from "@/components/LeslieAvatar";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 interface JobCard {
   id: string;
@@ -39,6 +40,26 @@ interface Message {
 
 const WELCOME = "Ahoj! Jsem Leslie. Řekni mi, jakou práci hledáš v zahraničí – kam chceš jet, co umíš, kolik chceš brát – a já ti hned ukážu konkrétní nabídky z našeho katalogu.";
 
+interface ConversationRow {
+  id: string;
+  title: string | null;
+  created_at: string;
+  last_message_at: string;
+}
+
+function relativeCs(iso: string): string {
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 60) return "právě teď";
+  if (diff < 3600) return `před ${Math.floor(diff / 60)} min`;
+  if (diff < 86400) return `před ${Math.floor(diff / 3600)} h`;
+  const d = Math.floor(diff / 86400);
+  if (d === 1) return "včera";
+  if (d < 30) return `před ${d} dny`;
+  const m = Math.floor(d / 30);
+  if (m < 12) return `před ${m} měs.`;
+  return `před ${Math.floor(d / 365)} r.`;
+}
+
 const Chat = () => {
   const { user, supabaseUser } = useUser();
   const navigate = useNavigate();
@@ -53,6 +74,9 @@ const Chat = () => {
   const [reactions, setReactions] = useState<Record<string, "like" | "dislike">>({});
   const [ratingDetails, setRatingDetails] = useState<Record<string, { action: "like" | "dislike"; title: string; company: string | null; country: string | null; category: string | null }>>({});
   const [pendingRatingsSent, setPendingRatingsSent] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<Array<ConversationRow & { message_count: number }>>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -62,18 +86,17 @@ const Chat = () => {
 
   useEffect(() => { inputRef.current?.focus(); }, [sending]);
 
-  // Load last 20 messages from DB
-  const loadHistory = useCallback(async () => {
-    if (!supabaseUser) return;
+  const loadConversationMessages = useCallback(async (convId: string) => {
     const { data, error } = await supabase
       .from("leslie_chat_history")
       .select("id,message_role,message_content,metadata,preset_id,created_at")
-      .eq("user_id", supabaseUser.id)
-      .order("created_at", { ascending: false })
-      .limit(20);
-    if (error || !data || data.length === 0) return;
-    const ordered = [...data].reverse();
-    const loaded: Message[] = ordered
+      .eq("conversation_id", convId)
+      .order("created_at", { ascending: true });
+    if (error || !data) {
+      setMessages([{ id: "welcome", role: "assistant", content: WELCOME }]);
+      return;
+    }
+    const loaded: Message[] = data
       .filter((r) => r.message_role === "user" || r.message_role === "assistant")
       .map((r) => {
         const meta = (r.metadata ?? {}) as { jobs?: JobCard[]; preset_name?: string | null };
@@ -87,16 +110,72 @@ const Chat = () => {
         };
       });
     setMessages([{ id: "welcome", role: "assistant", content: WELCOME }, ...loaded]);
+  }, []);
+
+  const refreshConversations = useCallback(async () => {
+    if (!supabaseUser) return [] as ConversationRow[];
+    const { data: convs } = await supabase
+      .from("leslie_conversations")
+      .select("id,title,created_at,last_message_at")
+      .is("deleted_at", null)
+      .order("last_message_at", { ascending: false });
+    if (!convs) return [];
+    const ids = convs.map((c) => c.id);
+    const counts: Record<string, number> = {};
+    if (ids.length) {
+      const { data: hist } = await supabase
+        .from("leslie_chat_history")
+        .select("conversation_id")
+        .in("conversation_id", ids);
+      (hist ?? []).forEach((h) => {
+        const k = h.conversation_id as string;
+        if (k) counts[k] = (counts[k] ?? 0) + 1;
+      });
+    }
+    setConversations(convs.map((c) => ({ ...c, message_count: counts[c.id] ?? 0 })));
+    return convs as ConversationRow[];
   }, [supabaseUser]);
 
-  useEffect(() => { loadHistory(); }, [loadHistory]);
+  useEffect(() => {
+    if (!supabaseUser) return;
+    (async () => {
+      const convs = await refreshConversations();
+      if (convs.length > 0) {
+        setConversationId(convs[0].id);
+        await loadConversationMessages(convs[0].id);
+      } else {
+        setConversationId(crypto.randomUUID());
+      }
+    })();
+  }, [supabaseUser, refreshConversations, loadConversationMessages]);
 
   const newConversation = async () => {
+    setConversationId(crypto.randomUUID());
     setMessages([{ id: "welcome", role: "assistant", content: WELCOME }]);
     setReactions({});
     setRatingDetails({});
     setPendingRatingsSent(false);
     setInput("");
+    setHistoryOpen(false);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const switchConversation = async (id: string) => {
+    setHistoryOpen(false);
+    setConversationId(id);
+    setReactions({});
+    setRatingDetails({});
+    setPendingRatingsSent(false);
+    await loadConversationMessages(id);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const deleteConversation = async (id: string) => {
+    await supabase.from("leslie_conversations").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+    setConversations((prev) => prev.filter((c) => c.id !== id));
+    if (id === conversationId) {
+      await newConversation();
+    }
   };
 
   const reactToJob = async (job: JobCard, presetId: string | null | undefined, action: "like" | "dislike") => {
@@ -140,6 +219,7 @@ const Chat = () => {
           messages: next.filter((m) => m.id !== "welcome").map((m) => ({ role: m.role, content: m.content })),
           userName: firstName,
           ratings: ratingsPayload,
+          conversation_id: conversationId,
         },
       });
       if (error) {
@@ -152,7 +232,10 @@ const Chat = () => {
         setSending(false);
         return;
       }
-      const d = data as { reply?: string; jobs?: JobCard[]; preset_id?: string | null; preset_name?: string | null };
+      const d = data as { reply?: string; jobs?: JobCard[]; preset_id?: string | null; preset_name?: string | null; conversation_id?: string };
+      if (d?.conversation_id && d.conversation_id !== conversationId) {
+        setConversationId(d.conversation_id);
+      }
       setMessages((m) => [...m, {
         id: `a_${Date.now()}`,
         role: "assistant",
@@ -161,6 +244,7 @@ const Chat = () => {
         preset_id: d?.preset_id,
         preset_name: d?.preset_name,
       }]);
+      refreshConversations();
       if (opts?.includeRatings) {
         setPendingRatingsSent(true);
         setRatingDetails({});
@@ -197,6 +281,56 @@ const Chat = () => {
           <Button variant="ghost" size="sm" onClick={newConversation} className="text-xs">
             <Plus className="w-4 h-4 mr-1" /> Nová
           </Button>
+          <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="Historie konverzací">
+                <History className="w-5 h-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[320px] sm:w-[380px] p-0 flex flex-col">
+              <SheetHeader className="p-4 border-b">
+                <SheetTitle>Historie konverzací</SheetTitle>
+              </SheetHeader>
+              <div className="flex-1 overflow-y-auto">
+                {conversations.length === 0 && (
+                  <p className="p-4 text-sm text-muted-foreground">Žádné konverzace.</p>
+                )}
+                {conversations.map((c) => {
+                  const active = c.id === conversationId;
+                  return (
+                    <div
+                      key={c.id}
+                      className={`group flex items-start gap-2 px-3 py-2 border-b border-border/50 cursor-pointer transition-colors ${active ? "bg-accent/10" : "hover:bg-muted/50"}`}
+                      onClick={() => switchConversation(c.id)}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm truncate ${active ? "font-semibold text-foreground" : "text-foreground"}`}>
+                          {c.title || "Nová konverzace"}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {relativeCs(c.last_message_at)} · {c.message_count} {c.message_count === 1 ? "zpráva" : c.message_count < 5 ? "zprávy" : "zpráv"}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 opacity-0 group-hover:opacity-100 shrink-0"
+                        aria-label="Smazat"
+                        onClick={(e) => { e.stopPropagation(); deleteConversation(c.id); }}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="p-3 border-t">
+                <Button variant="outline" className="w-full" onClick={newConversation}>
+                  <Plus className="w-4 h-4 mr-1" /> Nová konverzace
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
           <LanguageSwitcher />
         </div>
       </header>

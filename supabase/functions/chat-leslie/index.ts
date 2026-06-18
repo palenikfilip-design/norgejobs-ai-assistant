@@ -438,15 +438,32 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const incoming: ChatMessage[] = Array.isArray(body?.messages) ? body.messages : [];
     const userName: string | undefined = typeof body?.userName === "string" ? body.userName : undefined;
+    const conversationId: string | null = typeof body?.conversation_id === "string" ? body.conversation_id : null;
     const ratings = Array.isArray(body?.ratings) ? body.ratings as Array<{
       action: "like" | "dislike"; title?: string; company?: string | null; country?: string | null; category?: string | null;
     }> : [];
     if (incoming.length === 0) return new Response(JSON.stringify({ error: "messages_required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const svc = getServiceSupabase();
+
+    // Ensure conversation row exists for this user
+    let convId = conversationId;
+    if (convId) {
+      const { data: existing } = await svc.from("leslie_conversations").select("id").eq("id", convId).eq("user_id", user.id).maybeSingle();
+      if (!existing) {
+        const { data: created, error: cErr } = await svc.from("leslie_conversations").insert({ id: convId, user_id: user.id }).select("id").single();
+        if (cErr || !created) convId = null;
+      }
+    }
+    if (!convId) {
+      const { data: created } = await svc.from("leslie_conversations").insert({ user_id: user.id }).select("id").single();
+      convId = created?.id ?? null;
+    }
+    if (!convId) return new Response(JSON.stringify({ error: "conversation_failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
     const lastUser = [...incoming].reverse().find((m) => m.role === "user");
     if (lastUser) {
-      await svc.from("leslie_chat_history").insert({ user_id: user.id, message_role: "user", message_content: lastUser.content });
+      await svc.from("leslie_chat_history").insert({ user_id: user.id, conversation_id: convId, message_role: "user", message_content: lastUser.content });
     }
 
     const systemContent = userName ? `${SYSTEM_PROMPT}\n\nUživatel se jmenuje ${userName}.` : SYSTEM_PROMPT;
@@ -540,13 +557,14 @@ Deno.serve(async (req) => {
 
       await svc.from("leslie_chat_history").insert({
         user_id: user.id,
+        conversation_id: convId,
         message_role: "assistant",
         message_content: reply,
         preset_id: presetId,
         metadata: { jobs, preset_name: presetName },
       });
 
-      return new Response(JSON.stringify({ reply, jobs, preset_id: presetId, preset_name: presetName }), {
+      return new Response(JSON.stringify({ reply, jobs, preset_id: presetId, preset_name: presetName, conversation_id: convId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
