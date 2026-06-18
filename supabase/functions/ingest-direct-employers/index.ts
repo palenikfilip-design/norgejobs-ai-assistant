@@ -279,16 +279,34 @@ async function adapterHtmlIschgl(emp: EmployerRow): Promise<NormalizedJob[]> {
       const html = await fetchText(url);
       // <title>Job title | Ischgl</title>
       const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
-      let title = titleMatch ? stripHtml(titleMatch[1]).replace(/\s*[|–-]\s*Ischgl.*$/i, "").trim() : "";
+      let title = titleMatch ? stripHtml(titleMatch[1]).replace(/\s*[|\-–·]\s*Ischgl.*$/i, "").trim() : "";
       if (!title) {
         const h1 = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
         title = h1 ? stripHtml(h1[1]) : `Ischgl job ${id}`;
       }
-      // Description: grab the main content area; fallback to all body text.
-      const main = html.match(/<main[\s\S]*?<\/main>/i)?.[0]
-        ?? html.match(/<article[\s\S]*?<\/article>/i)?.[0]
-        ?? html;
-      const description = stripHtml(main).slice(0, 8000) || null;
+      // Compose description from Ischgl's job-specific containers, not page chrome.
+      const parts: string[] = [];
+      const heroDesc = html.match(/class="job-hero__description"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/i);
+      if (heroDesc) {
+        const t = stripHtml(heroDesc[1]);
+        if (t) parts.push(t);
+      }
+      const infoBoxRe = /class="info-box__body[^"]*"[^>]*>([\s\S]*?)<\/div>/gi;
+      let ib: RegExpExecArray | null;
+      while ((ib = infoBoxRe.exec(html)) !== null) {
+        const t = stripHtml(ib[1]);
+        if (t && t.length > 20) parts.push(t);
+      }
+      let description: string | null = parts.join("\n\n").trim() || null;
+      if (!description) {
+        // Fallback: <main>/<article>/whole body — guarded so we never crash.
+        const fallback = html.match(/<main[\s\S]*?<\/main>/i)?.[0]
+          ?? html.match(/<article[\s\S]*?<\/article>/i)?.[0]
+          ?? "";
+        description = stripHtml(fallback).slice(0, 4000) || null;
+      } else {
+        description = description.slice(0, 8000);
+      }
 
       jobs.push({
         external_id: id,
