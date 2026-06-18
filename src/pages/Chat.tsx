@@ -281,6 +281,56 @@ const Chat = () => {
           <Button variant="ghost" size="sm" onClick={newConversation} className="text-xs">
             <Plus className="w-4 h-4 mr-1" /> Nová
           </Button>
+          <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="Historie konverzací">
+                <History className="w-5 h-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[320px] sm:w-[380px] p-0 flex flex-col">
+              <SheetHeader className="p-4 border-b">
+                <SheetTitle>Historie konverzací</SheetTitle>
+              </SheetHeader>
+              <div className="flex-1 overflow-y-auto">
+                {conversations.length === 0 && (
+                  <p className="p-4 text-sm text-muted-foreground">Žádné konverzace.</p>
+                )}
+                {conversations.map((c) => {
+                  const active = c.id === conversationId;
+                  return (
+                    <div
+                      key={c.id}
+                      className={`group flex items-start gap-2 px-3 py-2 border-b border-border/50 cursor-pointer transition-colors ${active ? "bg-accent/10" : "hover:bg-muted/50"}`}
+                      onClick={() => switchConversation(c.id)}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm truncate ${active ? "font-semibold text-foreground" : "text-foreground"}`}>
+                          {c.title || "Nová konverzace"}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {relativeCs(c.last_message_at)} · {c.message_count} {c.message_count === 1 ? "zpráva" : c.message_count < 5 ? "zprávy" : "zpráv"}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 opacity-0 group-hover:opacity-100 shrink-0"
+                        aria-label="Smazat"
+                        onClick={(e) => { e.stopPropagation(); deleteConversation(c.id); }}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="p-3 border-t">
+                <Button variant="outline" className="w-full" onClick={newConversation}>
+                  <Plus className="w-4 h-4 mr-1" /> Nová konverzace
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
           <LanguageSwitcher />
         </div>
       </header>
