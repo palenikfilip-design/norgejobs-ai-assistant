@@ -714,6 +714,7 @@ export type Database = {
       }
       leslie_chat_history: {
         Row: {
+          conversation_id: string
           created_at: string
           id: string
           message_content: string
@@ -723,6 +724,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          conversation_id: string
           created_at?: string
           id?: string
           message_content: string
@@ -732,12 +734,48 @@ export type Database = {
           user_id: string
         }
         Update: {
+          conversation_id?: string
           created_at?: string
           id?: string
           message_content?: string
           message_role?: string
           metadata?: Json
           preset_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leslie_chat_history_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "leslie_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leslie_conversations: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          last_message_at: string
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          last_message_at?: string
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          last_message_at?: string
+          title?: string | null
           user_id?: string
         }
         Relationships: []
