@@ -9,13 +9,21 @@ const headers = {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers });
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  );
-  const { data, error } = await supabase.from("leslie_stats").select("*").maybeSingle();
-  if (error) {
-    return new Response(JSON.stringify({ error: error.message }), { headers, status: 500 });
+  try {
+    const url = Deno.env.get("SUPABASE_URL");
+    const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!url || !key) {
+      return new Response(JSON.stringify({ fallback: true, error: "config" }), { headers, status: 200 });
+    }
+    const supabase = createClient(url, key);
+    const { data, error } = await supabase.from("leslie_stats").select("*").maybeSingle();
+    if (error) {
+      console.error("leslie_stats query error:", error.message);
+      return new Response(JSON.stringify({ fallback: true, error: error.message }), { headers, status: 200 });
+    }
+    return new Response(JSON.stringify(data ?? {}), { headers, status: 200 });
+  } catch (e) {
+    console.error("get-leslie-stats unhandled:", e);
+    return new Response(JSON.stringify({ fallback: true, error: String(e?.message ?? e) }), { headers, status: 200 });
   }
-  return new Response(JSON.stringify(data ?? {}), { headers, status: 200 });
 });
