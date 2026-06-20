@@ -3,6 +3,12 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { hasBudgetRemaining, logAiCall, BUDGET_BLOCKED_MESSAGE_CS } from "../_shared/aiBudget.ts";
+import {
+  classifyJobSkill,
+  locationMatchesAnyCountry,
+  MANUAL_CATEGORIES,
+  type SkillClass,
+} from "../_shared/skillFilter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -220,72 +226,9 @@ const SPARSE_SCORE_PENALTY = 15;
 const MULTI_COUNTRY_SCORE_PENALTY = 12;
 
 // --- Skill-level classification ---------------------------------------------
-// Used as a HARD filter when the preset's skill_level is "manual" so a
-// manual-work seeker never gets engineers / specialists / managers padded in.
-const MANAGEMENT_RE = /\b(manager|management|vedouc[ií]|head\s+of|chef\s+de|director|directeur|šéf|sef|leader|lead\b|supervisor|principal|coordinator\s+lead)\b/i;
-const SKILLED_RE = /\b(specialist|specialista|engineer|engineering|ingenieur|inžen[ýi]r|ingenj[öo]r|developer|architect|analyst|consultant|controller|accountant|accounting|auditor|nurse|registered\s+nurse|doctor|physician|pilot|avionic|hse|agronom|technician|technik(?!a)|pharmacist|teacher|professor|attorney|lawyer|odbornik|odborník|expert)\b/i;
-const MANUAL_CATEGORIES = new Set([
-  "hospitality", "gastronomy", "construction", "logistics", "transport",
-  "agriculture", "manufacturing", "ski_resort", "skiresort", "aupair",
-  "marine", "cleaning",
-]);
-const MANUAL_TITLE_HINT_RE = /\b(cleaner|cleaning|úklid|uklid|housekeep|kitchen|kuchyň|kuchar|kuchař|dishwash|warehouse|sklad|picker|packer|porter|bagboy|baggage|ramp|laborer|labourer|dělník|delnik|pomocn|helper|harvest|sběrač|sklizeň|chambermaid|pokoj|seasonal\s+worker|server|servírka|cisnik|číšník|waiter|waitress|barista|hotel\s+staff|stagione)\b/i;
-
-type SkillClass = "manual" | "skilled" | "management" | "unknown";
-
-function classifyJobSkill(job: CandidateJob): SkillClass {
-  const title = job.title ?? "";
-  if (MANAGEMENT_RE.test(title)) return "management";
-  if (SKILLED_RE.test(title)) return "skilled";
-  if (MANUAL_TITLE_HINT_RE.test(title)) return "manual";
-  const cat = (job.category ?? "").toLowerCase().trim();
-  if (cat && MANUAL_CATEGORIES.has(cat)) return "manual";
-  return "unknown";
-}
-
-// Aliases so we can substring-match user-facing country names against the
-// free-form `location` / `additional_locations` text on Multiple-country jobs.
-const COUNTRY_ALIASES: Record<string, string[]> = {
-  germany:     ["germany", "deutschland", "german"],
-  austria:     ["austria", "österreich", "oesterreich", "austrian"],
-  switzerland: ["switzerland", "schweiz", "suisse", "svizzera", "swiss"],
-  czechia:     ["czechia", "czech republic", "česko", "cesko", "tschechien"],
-  slovakia:    ["slovakia", "slovensko", "slowakei"],
-  norway:      ["norway", "norge", "norwegen"],
-  sweden:      ["sweden", "sverige", "schweden"],
-  denmark:     ["denmark", "danmark", "dänemark"],
-  iceland:     ["iceland", "island"],
-  netherlands: ["netherlands", "holland", "nederland"],
-  belgium:     ["belgium", "belgique", "belgië"],
-  france:      ["france", "français"],
-  italy:       ["italy", "italia"],
-  spain:       ["spain", "españa", "espana"],
-  portugal:    ["portugal"],
-  poland:      ["poland", "polska", "polen"],
-  finland:     ["finland", "suomi"],
-  ireland:     ["ireland", "éire"],
-  "united kingdom": ["united kingdom", "uk", "england", "britain", "scotland", "wales"],
-};
-
-function locationMatchesAnyCountry(job: CandidateJob, countries: string[]): boolean {
-  if (countries.length === 0) return true;
-  const haystackParts: string[] = [];
-  if (job.location) haystackParts.push(job.location);
-  const addl = (job as any).additional_locations;
-  if (Array.isArray(addl)) {
-    for (const a of addl) if (typeof a === "string") haystackParts.push(a);
-  }
-  if (haystackParts.length === 0) return false;
-  const haystack = haystackParts.join(" | ").toLowerCase();
-  for (const c of countries) {
-    const key = c.toLowerCase().trim();
-    const aliases = COUNTRY_ALIASES[key] ?? [key];
-    for (const alias of aliases) {
-      if (haystack.includes(alias)) return true;
-    }
-  }
-  return false;
-}
+// Helpers (classifyJobSkill, locationMatchesAnyCountry, MANUAL_CATEGORIES)
+// live in ../_shared/skillFilter.ts and are imported above so chat-leslie
+// and match-jobs share the SAME classification.
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -397,13 +340,16 @@ Deno.serve(async (req) => {
     let skillFilteredOutCount = 0;
     if (skillLevel === "manual") {
       const before = candidates.length;
+      const skillCounts: Record<SkillClass, number> = { manual: 0, skilled: 0, management: 0, unknown: 0 };
+      for (const c of candidates) skillCounts[classifyJobSkill(c)]++;
       candidates = candidates.filter((c) => {
         const cls = classifyJobSkill(c);
-        return cls === "manual" || cls === "unknown";
+        // Strict: "unknown" is EXCLUDED for manual seekers — better few
+        // certain-manual results than leaked specialists/strategists.
+        return cls === "manual";
       });
-      // Extra guard: drop "unknown" that have salary high enough to suggest a
-      // pro role when title clearly contains skilled/management words missed by regex.
       skillFilteredOutCount = before - candidates.length;
+      console.log("match-jobs skill filter (manual):", skillCounts, "kept=", candidates.length);
 
       // If we wiped out too much, relax COUNTRY (not skill) and try again.
       if (candidates.length < SPARSE_FALLBACK_THRESHOLD && preferredCountries.length > 0) {
@@ -413,7 +359,7 @@ Deno.serve(async (req) => {
         for (const c of widened) {
           if (have.has(c.id)) continue;
           const cls = classifyJobSkill(c);
-          if (cls === "manual" || (cls === "unknown" && MANUAL_CATEGORIES.has((c.category ?? "").toLowerCase()))) {
+          if (cls === "manual") {
             candidates.push(c);
             if (c.data_completeness === "sparse") sparseIds.add(c.id);
           }
