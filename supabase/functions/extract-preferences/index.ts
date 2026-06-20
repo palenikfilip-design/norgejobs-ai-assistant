@@ -368,3 +368,11 @@ function mapSeasonal(raw: string): string {
   if (s.includes("winter") || s.includes("zimn")) return "winter";
   return "any";
 }
+
+function mapSkillLevel(raw: string): string {
+  const s = raw.toLowerCase().trim();
+  if (s.startsWith("manual") || s.includes("entry") || s.includes("unskilled") || s.includes("manuál") || s.includes("fyzic") || s.includes("bez kval")) return "manual";
+  if (s.startsWith("manag") || s.includes("vedouc") || s.includes("lead")) return "management";
+  if (s.startsWith("skill") || s.includes("odborn") || s.includes("specialist")) return "skilled";
+  return "any";
+}
