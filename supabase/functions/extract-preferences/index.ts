@@ -287,6 +287,9 @@ Deno.serve(async (req) => {
               typeof extracted.seasonal_preference === "string"
                 ? mapSeasonal(extracted.seasonal_preference)
                 : "any",
+            skill_level: typeof extracted.skill_level === "string" && extracted.skill_level
+              ? mapSkillLevel(extracted.skill_level)
+              : null,
             last_used_at: new Date().toISOString(),
           })
           .select("*")
@@ -310,6 +313,9 @@ Deno.serve(async (req) => {
         }
         if (typeof extracted.seasonal_preference === "string" && extracted.seasonal_preference) {
           patch.seasonal_preference = mapSeasonal(extracted.seasonal_preference);
+        }
+        if (typeof extracted.skill_level === "string" && extracted.skill_level) {
+          patch.skill_level = mapSkillLevel(extracted.skill_level);
         }
         if (Array.isArray(extracted.languages_spoken) && extracted.languages_spoken.length > 0) {
           const existingLangs = Array.isArray(presetRow.language_requirements)
