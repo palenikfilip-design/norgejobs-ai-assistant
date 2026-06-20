@@ -57,6 +57,8 @@ function mergeAvatar(existing: Record<string, unknown>, incoming: Extracted): Re
     merged.accommodation_needed = incoming.accommodation_needed;
   if (incoming.seasonal_preference !== undefined && incoming.seasonal_preference !== null && incoming.seasonal_preference !== "")
     merged.seasonal_preference = incoming.seasonal_preference;
+  if (incoming.skill_level !== undefined && incoming.skill_level !== null && incoming.skill_level !== "")
+    merged.skill_level = incoming.skill_level;
 
   if (incoming.additional_notes && incoming.additional_notes.trim()) {
     const prev = typeof existing.additional_notes === "string" ? existing.additional_notes : "";
@@ -219,6 +221,7 @@ Deno.serve(async (req) => {
       (typeof extracted.min_salary === "number" && extracted.min_salary > 0) ||
       typeof extracted.accommodation_needed === "boolean" ||
       (typeof extracted.seasonal_preference === "string" && extracted.seasonal_preference) ||
+      (typeof extracted.skill_level === "string" && extracted.skill_level) ||
       (Array.isArray(extracted.job_categories) && extracted.job_categories.length > 0)
     );
     const routedTo = hasIdentity && hasSearch ? "both" : hasIdentity ? "avatar" : hasSearch ? "preset" : "none";
