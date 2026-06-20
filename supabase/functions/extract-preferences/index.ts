@@ -23,6 +23,7 @@ interface Extracted {
   min_salary?: number | null;
   accommodation_needed?: boolean | null;
   seasonal_preference?: string | null;
+  skill_level?: string | null;
   additional_notes?: string;
 }
 
@@ -105,6 +106,14 @@ Job/role words → category slugs. Examples:
   Include EVERY job type mentioned (e.g. both "hospitality" and "healthcare" if user mentions hotel AND pečovatelka).
 
 Numeric values: extract min_salary as a plain number in EUR (or local currency if user explicitly said so). "aspoň 2000 euro" → min_salary: 2000.
+
+SKILL LEVEL — set skill_level to one of "manual" | "skilled" | "management" | "any":
+  - "manual" when user says: "manuální", "manual", "fyzická práce", "bez kvalifikace", "nepotřebuji odbornost", "nic neumím", "pomocné práce", "nekvalifikovaná", "unskilled", "entry level", "labor", "pomocník", "brigáda".
+    Also "manual" when they explicitly reject specialist/management roles ("nechci být manažer", "ne odborné").
+  - "management" only when user explicitly seeks lead/manager/director role.
+  - "skilled" only when user explicitly mentions their qualification/specialization as the requirement (engineer, accountant, IT specialist, nurse with diploma, …).
+  - "any" or omit when not mentioned.
+  This field is as important as country and salary — always set it when there is any signal.
 
 Conversation:
 ${convo}`;
