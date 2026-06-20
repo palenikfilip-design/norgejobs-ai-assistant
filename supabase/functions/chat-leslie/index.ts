@@ -3,6 +3,12 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { hasBudgetRemaining, logAiCall, BUDGET_BLOCKED_MESSAGE_CS } from "../_shared/aiBudget.ts";
+import {
+  classifyJobSkill,
+  locationMatchesAnyCountry,
+  isMultiCountryBucket,
+  type SkillClass,
+} from "../_shared/skillFilter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -74,10 +80,15 @@ ABSOLUTNÍ PRAVIDLA (neporušuj nikdy):
 - Estimovaný plat (salary_is_estimated=true) NIKDY neprezentuj jako jistý. V odpovědi piš "odhad ~X €/měs".
 - RESPEKTUJ ZEMI uživatele. Když uživatel řekl konkrétní zemi (např. "Norsko"), preset MUSÍ obsahovat tu zemi. Když search_catalog vrátí převážně z JINÉ země než kterou chtěl, ŘEKNI to upřímně: "Norsko bohužel zatím nemám moc obsazené, tady jsou podobné ze Švédska — chceš upozornit, až přibydou norské?" — nikdy tiše nezamlčuj, že jde o náhradu.
 - KOMENTUJ PLAT vůči cíli uživatele. Když znáš jeho salary_min (z presetu/zprávy), u zobrazených nabídek krátce zmiň: "Tyhle pozice mají odhadem kolem {X} €, což odpovídá tvému cíli {Y} €" nebo "Některé jsou pod tvým cílem {Y} €, ale ukázala jsem je, protože jinak sedí." Estimáty označ "odhad".
-- KDYŽ DOSTANEŠ blok [HODNOCENÍ UŽIVATELE …], nesnaž se znovu vyhledávat. Místo toho:
-   1) jemně, Sokratovsky shrň vzorec ("vidím, že tě spíš baví práce venku než v kuchyni — sedí to?"),
-   2) navrhni konkrétní DALŠÍ KROK: "zúžit hledání na X?", "víc podobných?", nebo "zkusit jinou zemi?".
-   Reaguj krátce (2–3 věty), neopakuj celý seznam.
+- TYP PRÁCE (skill_level): Když uživatel řekne "manuální / fyzická / bez kvalifikace / nepotřebuji vzdělání / brigáda / pomocná práce / dělník", nastav v create_preset i search_catalog skill_level="manual". Když řekne "kvalifikovaná / odborná / IT / inženýr / specialista", nastav "skilled". "Vedoucí / manažer" → "management". Jinak nech "any". Tohle je TVRDÉ pravidlo — manual seeker NESMÍ dostat specialisty, inženýry, manažery, učitele ani strategisty.
+- HODNOCENÍ UŽIVATELE — pravidla pro reakci:
+   * Kategorie/vlastnosti nabídek označených 👎 (NELÍBÍ SE) = uživatel je ODMÍTL. NEnavrhuj je znovu a hledej OD NICH PRYČ.
+   * Kategorie z 👍 (LÍBÍ SE) = posiluj, hledej víc podobných.
+   * Pouhá přítomnost kategorie v hodnocení NEznamená zájem — záleží, zda byla 👍 nebo 👎.
+   * Stručně a Sokratovsky shrň pozorovaný vzorec VLASTNÍMI SLOVY na základě skutečných dat z hodnocení — NIKDY nepoužívej předpřipravenou frázi ani neuváděj příklady, které ti někdo dal v promptu. Tvoje shrnutí musí přímo odkazovat na konkrétní odmítnuté/oblíbené kategorie nebo země z bloku [HODNOCENÍ UŽIVATELE].
+   * Když uživatel ODMÍTL VŠECHNY nabídky (samé 👎, žádné 👍): neopakuj předchozí návrh. Otevřeně to uznej ("vidím, že zatím nic nesedělo") a navrhni VÝRAZNĚ jiný směr — jinou kategorii nebo zemi, kterou jsi ještě nezkusila. Nebo se zeptej na konkrétní upřesnění. NIKDY nenavrhuj znovu to, co uživatel právě odmítl.
+   * ANTI-OPAKOVÁNÍ: Nenabízej stejný návrh ani skoro stejnou formulaci, kterou jsi už v této konverzaci použila. Když předchozí směr nevedl k výsledku, posuň se JINAM (jiná kategorie/země/skill_level), neopakuj stejnou větu znovu.
+   * Reaguj krátce (2–3 věty), neopakuj celý seznam nabídek.
 
 TVŮJ FLOW:
 1. Uživatel řekne, co chce.
@@ -117,6 +128,11 @@ const TOOLS = [
           category: { type: "string", description: `One of: ${DISPLAY_CATEGORIES.join(", ")}` },
           salary_min_eur: { type: "number", description: "Minimum monthly salary in EUR (convert from CZK: 25 CZK ≈ 1 EUR)." },
           seasonal: { type: "string", enum: ["any","seasonal","year_round"] },
+          skill_level: {
+            type: "string",
+            enum: ["manual","skilled","management","any"],
+            description: "manual = unskilled/physical work (cleaning, kitchen, warehouse, harvest...). skilled = trade/professional (engineer, nurse, specialist). management = lead/manager. any = unspecified.",
+          },
         },
         required: ["name"],
       },
@@ -135,13 +151,18 @@ const TOOLS = [
           categories: { type: "array", items: { type: "string" }, description: "Multiple categories (e.g. ['hospitality','construction']). When provided, results will be a balanced mix across them." },
           salary_min_eur: { type: "number" },
           seasonal: { type: "boolean" },
+          skill_level: {
+            type: "string",
+            enum: ["manual","skilled","management","any"],
+            description: "When 'manual', results are HARD-filtered to manual-classified jobs only (no specialists/engineers/managers leak through, even if unknown).",
+          },
         },
       },
     },
   },
 ];
 
-const SELECT_COLS = "id,title,title_cs,summary_cs,company,location,country,salary_normalized_eur,salary_estimated_eur,salary_is_estimated,salary,currency,url,display_category,trust_score";
+const SELECT_COLS = "id,title,title_cs,summary_cs,company,location,country,salary_normalized_eur,salary_estimated_eur,salary_is_estimated,salary,currency,url,display_category,trust_score,additional_locations";
 
 type SearchAttempt = {
   countries: string[] | null;
@@ -150,7 +171,11 @@ type SearchAttempt = {
   label: string;
 };
 
-async function executeSearch(attempt: SearchAttempt): Promise<any[]> {
+async function executeSearch(
+  attempt: SearchAttempt,
+  userCountries: string[],
+  skillLevel: string,
+): Promise<{ jobs: any[]; counts: Record<string, number> }> {
   const svc = getServiceSupabase();
   let q = svc.from("public_jobs")
     .select(SELECT_COLS)
@@ -165,17 +190,46 @@ async function executeSearch(attempt: SearchAttempt): Promise<any[]> {
   }
   if (attempt.salaryMin) {
     const floor = Math.floor(attempt.salaryMin * 0.8);
-    // Accept either confirmed or estimated salary above the floor; also accept
-    // rows with no salary info at all so we don't unfairly drop them.
     q = q.or(`salary_normalized_eur.gte.${floor},salary_estimated_eur.gte.${floor},and(salary_normalized_eur.is.null,salary_estimated_eur.is.null)`);
   }
   q = q.order("trust_score", { ascending: false })
     .order("salary_normalized_eur", { ascending: false, nullsFirst: false })
     .order("salary_estimated_eur", { ascending: false, nullsFirst: false })
-    .limit(30);
+    .limit(60);
   const { data, error } = await q;
-  if (error) { console.error(`search[${attempt.label}] error`, error); return []; }
-  return data ?? [];
+  if (error) { console.error(`search[${attempt.label}] error`, error); return { jobs: [], counts: { fetched: 0, dropped_location: 0, manual: 0, skilled: 0, management: 0, unknown: 0 } }; }
+  const rows = data ?? [];
+  const counts = { fetched: rows.length, dropped_location: 0, manual: 0, skilled: 0, management: 0, unknown: 0 };
+
+  // 1) Location post-filter: Multiple/Remote/Global/empty jobs must have a
+  // location-text hit on one of the user's preferred countries. Kills
+  // "Stripe San Francisco" sneaking into a Scandinavia search.
+  let filtered = rows;
+  if (userCountries.length > 0) {
+    filtered = rows.filter((j: any) => {
+      const ctry = String(j.country ?? "").toLowerCase();
+      const isExact = userCountries.some((pc) => pc.toLowerCase() === ctry);
+      if (isExact) return true;
+      if (!isMultiCountryBucket(j.country)) {
+        counts.dropped_location++;
+        return false;
+      }
+      const ok = locationMatchesAnyCountry(j, userCountries);
+      if (!ok) counts.dropped_location++;
+      return ok;
+    });
+  }
+
+  // 2) Skill-level classification + HARD filter for manual seekers.
+  const classified = filtered.map((j: any) => ({ job: j, cls: classifyJobSkill(j) as SkillClass }));
+  for (const { cls } of classified) counts[cls]++;
+  let kept = classified;
+  if (skillLevel === "manual") {
+    kept = classified.filter((c) => c.cls === "manual"); // STRICT: no unknown leak
+  } else if (skillLevel === "skilled" || skillLevel === "management") {
+    kept = classified.filter((c) => c.cls === skillLevel || c.cls === "unknown");
+  }
+  return { jobs: kept.map((c) => c.job), counts };
 }
 
 // Diversify a candidate pool down to N jobs:
@@ -279,6 +333,7 @@ async function runSearch(args: Record<string, unknown>) {
   const requestedCats = Array.from(new Set(rawCats));
   const category = requestedCats[0] ?? null;
   const salaryMin = typeof args.salary_min_eur === "number" ? args.salary_min_eur : null;
+  const skillLevel = typeof args.skill_level === "string" ? args.skill_level.toLowerCase().trim() : "";
 
   const isManualSeeker = category != null && MANUAL_CATEGORIES.has(category);
   const isWhiteCollarSeeker = category != null && WHITE_COLLAR_CATEGORIES.has(category);
@@ -340,24 +395,25 @@ async function runSearch(args: Record<string, unknown>) {
   // ship San Francisco finance jobs to a Scandinavian manual-work seeker.
 
   let chosen: { attempt: SearchAttempt; jobs: any[] } | null = null;
-  const tried: Array<{ label: string; count: number }> = [];
+  const tried: Array<{ label: string; count: number; counts: Record<string, number> }> = [];
   for (const a of attempts) {
-    const jobs = await executeSearch(a);
-    tried.push({ label: a.label, count: jobs.length });
+    const { jobs, counts } = await executeSearch(a, countries, skillLevel);
+    tried.push({ label: a.label, count: jobs.length, counts });
     if (jobs.length >= 3 || (chosen == null && jobs.length > 0)) {
       chosen = { attempt: a, jobs };
       if (jobs.length >= 3) break;
     }
   }
+  console.log("chat-leslie runSearch tried:", JSON.stringify(tried));
 
   if (!chosen || chosen.jobs.length === 0) {
     return {
       jobs: [],
       fallback_level: "none_in_region",
-      requested: { countries, category, salary_min_eur: salaryMin },
+      requested: { countries, category, salary_min_eur: salaryMin, skill_level: skillLevel || null },
       tried,
       message: countries.length && category
-        ? `Zatím pro tebe v ${rawCountries.join("/") || countries.join("/")} nemám nic v ${category}.`
+        ? `Zatím pro tebe v ${rawCountries.join("/") || countries.join("/")} nemám nic v ${category}${skillLevel === "manual" ? " (manuální práce)" : ""}.`
         : "Zatím pro tebe v katalogu nemám vhodnou nabídku.",
     };
   }
@@ -367,7 +423,7 @@ async function runSearch(args: Record<string, unknown>) {
   return {
     jobs: finalJobs,
     fallback_level: chosen.attempt.label,
-    requested: { countries, categories: requestedCats, salary_min_eur: salaryMin },
+    requested: { countries, categories: requestedCats, salary_min_eur: salaryMin, skill_level: skillLevel || null },
     tried,
   };
 }
@@ -378,6 +434,8 @@ async function runCreatePreset(userId: string, args: Record<string, unknown>) {
   const countries = Array.isArray(args.countries) ? (args.countries as string[]) : [];
   const salaryMinEur = typeof args.salary_min_eur === "number" ? args.salary_min_eur : 0;
   const seasonal = typeof args.seasonal === "string" ? args.seasonal : "any";
+  const rawSkill = typeof args.skill_level === "string" ? args.skill_level.toLowerCase().trim() : "";
+  const skillLevel = ["manual","skilled","management","any"].includes(rawSkill) ? rawSkill : null;
   const description = typeof args.category === "string" ? `Leslie preset – kategorie ${args.category}` : "Leslie preset";
 
   // Find most recent active Leslie preset for this user (last 7 days) to UPDATE
@@ -398,19 +456,21 @@ async function runCreatePreset(userId: string, args: Record<string, unknown>) {
   });
 
   if (leslieRow) {
-    const { data, error } = await svc.from("user_presets").update({
+    const updatePayload: Record<string, unknown> = {
       name,
       preferred_countries: countries,
       salary_min: salaryMinEur,
       seasonal_preference: seasonal,
       description,
       learning_data: { source: "leslie", category: args.category ?? null },
-    }).eq("id", leslieRow.id).select("id,name").single();
+    };
+    if (skillLevel) updatePayload.skill_level = skillLevel;
+    const { data, error } = await svc.from("user_presets").update(updatePayload).eq("id", leslieRow.id).select("id,name,skill_level").single();
     if (error) { console.error("update_preset error", error); return { error: error.message }; }
-    return { preset_id: data.id, preset_name: data.name, updated: true };
+    return { preset_id: data.id, preset_name: data.name, skill_level: (data as any).skill_level ?? null, updated: true };
   }
 
-  const { data, error } = await svc.from("user_presets").insert({
+  const insertPayload: Record<string, unknown> = {
     user_id: userId,
     name,
     preferred_countries: countries,
@@ -419,9 +479,11 @@ async function runCreatePreset(userId: string, args: Record<string, unknown>) {
     seasonal_preference: seasonal,
     description,
     learning_data: { source: "leslie", category: args.category ?? null },
-  }).select("id,name").single();
+  };
+  if (skillLevel) insertPayload.skill_level = skillLevel;
+  const { data, error } = await svc.from("user_presets").insert(insertPayload).select("id,name,skill_level").single();
   if (error) { console.error("create_preset error", error); return { error: error.message }; }
-  return { preset_id: data.id, preset_name: data.name, updated: false };
+  return { preset_id: data.id, preset_name: data.name, skill_level: (data as any).skill_level ?? null, updated: false };
 }
 
 Deno.serve(async (req) => {
