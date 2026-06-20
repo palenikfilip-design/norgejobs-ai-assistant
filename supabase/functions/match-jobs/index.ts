@@ -482,7 +482,7 @@ Deno.serve(async (req) => {
           limited_info: isSparse,
         };
       })
-      .filter((m) => m.score >= 50)
+      .filter((m) => m.score >= (skillLevel === "manual" ? 40 : 50))
       .sort((a, b) => b.score - a.score);
 
     return new Response(
