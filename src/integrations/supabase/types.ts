@@ -1342,6 +1342,7 @@ export type Database = {
           salary_max: number
           salary_min: number
           seasonal_preference: string | null
+          skill_level: string | null
           updated_at: string
           user_id: string
         }
@@ -1364,6 +1365,7 @@ export type Database = {
           salary_max?: number
           salary_min?: number
           seasonal_preference?: string | null
+          skill_level?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1386,6 +1388,7 @@ export type Database = {
           salary_max?: number
           salary_min?: number
           seasonal_preference?: string | null
+          skill_level?: string | null
           updated_at?: string
           user_id?: string
         }

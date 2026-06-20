@@ -23,6 +23,7 @@ interface Extracted {
   min_salary?: number | null;
   accommodation_needed?: boolean | null;
   seasonal_preference?: string | null;
+  skill_level?: string | null;
   additional_notes?: string;
 }
 
@@ -56,6 +57,8 @@ function mergeAvatar(existing: Record<string, unknown>, incoming: Extracted): Re
     merged.accommodation_needed = incoming.accommodation_needed;
   if (incoming.seasonal_preference !== undefined && incoming.seasonal_preference !== null && incoming.seasonal_preference !== "")
     merged.seasonal_preference = incoming.seasonal_preference;
+  if (incoming.skill_level !== undefined && incoming.skill_level !== null && incoming.skill_level !== "")
+    merged.skill_level = incoming.skill_level;
 
   if (incoming.additional_notes && incoming.additional_notes.trim()) {
     const prev = typeof existing.additional_notes === "string" ? existing.additional_notes : "";
@@ -105,6 +108,14 @@ Job/role words → category slugs. Examples:
   Include EVERY job type mentioned (e.g. both "hospitality" and "healthcare" if user mentions hotel AND pečovatelka).
 
 Numeric values: extract min_salary as a plain number in EUR (or local currency if user explicitly said so). "aspoň 2000 euro" → min_salary: 2000.
+
+SKILL LEVEL — set skill_level to one of "manual" | "skilled" | "management" | "any":
+  - "manual" when user says: "manuální", "manual", "fyzická práce", "bez kvalifikace", "nepotřebuji odbornost", "nic neumím", "pomocné práce", "nekvalifikovaná", "unskilled", "entry level", "labor", "pomocník", "brigáda".
+    Also "manual" when they explicitly reject specialist/management roles ("nechci být manažer", "ne odborné").
+  - "management" only when user explicitly seeks lead/manager/director role.
+  - "skilled" only when user explicitly mentions their qualification/specialization as the requirement (engineer, accountant, IT specialist, nurse with diploma, …).
+  - "any" or omit when not mentioned.
+  This field is as important as country and salary — always set it when there is any signal.
 
 Conversation:
 ${convo}`;
@@ -210,6 +221,7 @@ Deno.serve(async (req) => {
       (typeof extracted.min_salary === "number" && extracted.min_salary > 0) ||
       typeof extracted.accommodation_needed === "boolean" ||
       (typeof extracted.seasonal_preference === "string" && extracted.seasonal_preference) ||
+      (typeof extracted.skill_level === "string" && extracted.skill_level) ||
       (Array.isArray(extracted.job_categories) && extracted.job_categories.length > 0)
     );
     const routedTo = hasIdentity && hasSearch ? "both" : hasIdentity ? "avatar" : hasSearch ? "preset" : "none";
@@ -275,6 +287,9 @@ Deno.serve(async (req) => {
               typeof extracted.seasonal_preference === "string"
                 ? mapSeasonal(extracted.seasonal_preference)
                 : "any",
+            skill_level: typeof extracted.skill_level === "string" && extracted.skill_level
+              ? mapSkillLevel(extracted.skill_level)
+              : null,
             last_used_at: new Date().toISOString(),
           })
           .select("*")
@@ -298,6 +313,9 @@ Deno.serve(async (req) => {
         }
         if (typeof extracted.seasonal_preference === "string" && extracted.seasonal_preference) {
           patch.seasonal_preference = mapSeasonal(extracted.seasonal_preference);
+        }
+        if (typeof extracted.skill_level === "string" && extracted.skill_level) {
+          patch.skill_level = mapSkillLevel(extracted.skill_level);
         }
         if (Array.isArray(extracted.languages_spoken) && extracted.languages_spoken.length > 0) {
           const existingLangs = Array.isArray(presetRow.language_requirements)
@@ -348,5 +366,13 @@ function mapSeasonal(raw: string): string {
   if (s.includes("permanent") || s.includes("trval")) return "permanent";
   if (s.includes("summer") || s.includes("letn")) return "summer";
   if (s.includes("winter") || s.includes("zimn")) return "winter";
+  return "any";
+}
+
+function mapSkillLevel(raw: string): string {
+  const s = raw.toLowerCase().trim();
+  if (s.startsWith("manual") || s.includes("entry") || s.includes("unskilled") || s.includes("manuál") || s.includes("fyzic") || s.includes("bez kval")) return "manual";
+  if (s.startsWith("manag") || s.includes("vedouc") || s.includes("lead")) return "management";
+  if (s.startsWith("skill") || s.includes("odborn") || s.includes("specialist")) return "skilled";
   return "any";
 }

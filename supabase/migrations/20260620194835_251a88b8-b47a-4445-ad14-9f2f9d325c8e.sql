@@ -1,0 +1,1 @@
+ALTER TABLE public.user_presets ADD COLUMN IF NOT EXISTS skill_level text; COMMENT ON COLUMN public.user_presets.skill_level IS 'manual | skilled | management | any';
