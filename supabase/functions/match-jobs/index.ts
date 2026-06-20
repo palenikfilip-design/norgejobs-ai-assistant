@@ -386,6 +386,46 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ---- SKILL-LEVEL HARD FILTER ----
+    // Manual is a HARD constraint. We'd rather show fewer relevant manual jobs
+    // (even with unknown salary) than pad the list with engineers/managers.
+    // Relax cascade for skill_level="manual":
+    //   1. salary  — already lenient (NULL allowed in fetchCandidates).
+    //   2. country — relax NEXT if needed (re-fetch without country).
+    //   3. skill_level — NEVER relaxed.
+    let skillRelaxedCountry = false;
+    let skillFilteredOutCount = 0;
+    if (skillLevel === "manual") {
+      const before = candidates.length;
+      candidates = candidates.filter((c) => {
+        const cls = classifyJobSkill(c);
+        return cls === "manual" || cls === "unknown";
+      });
+      // Extra guard: drop "unknown" that have salary high enough to suggest a
+      // pro role when title clearly contains skilled/management words missed by regex.
+      skillFilteredOutCount = before - candidates.length;
+
+      // If we wiped out too much, relax COUNTRY (not skill) and try again.
+      if (candidates.length < SPARSE_FALLBACK_THRESHOLD && preferredCountries.length > 0) {
+        skillRelaxedCountry = true;
+        const widened = await fetchCandidates(supabase, { ...preset, preferred_countries: [] }, { includeSparse: true, limit: 100 });
+        const have = new Set(candidates.map((c) => c.id));
+        for (const c of widened) {
+          if (have.has(c.id)) continue;
+          const cls = classifyJobSkill(c);
+          if (cls === "manual" || (cls === "unknown" && MANUAL_CATEGORIES.has((c.category ?? "").toLowerCase()))) {
+            candidates.push(c);
+            if (c.data_completeness === "sparse") sparseIds.add(c.id);
+          }
+        }
+      }
+    } else if (skillLevel === "skilled" || skillLevel === "management") {
+      candidates = candidates.filter((c) => {
+        const cls = classifyJobSkill(c);
+        return cls === skillLevel || cls === "unknown";
+      });
+    }
+
     const candidateCount = candidates.length;
     const toScore = candidates.slice(0, MAX_AI_SCORING);
 
@@ -456,6 +496,9 @@ Deno.serve(async (req) => {
           matches_above_50: matches.length,
           sparse_fallback_used: sparseFallbackUsed,
           sparse_in_pool: sparseIds.size,
+          skill_level: skillLevel || null,
+          skill_filtered_out: skillFilteredOutCount,
+          skill_relaxed_country: skillRelaxedCountry,
         },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
