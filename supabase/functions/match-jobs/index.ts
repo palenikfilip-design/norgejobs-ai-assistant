@@ -219,6 +219,30 @@ const SPARSE_FALLBACK_THRESHOLD = 10;
 const SPARSE_SCORE_PENALTY = 15;
 const MULTI_COUNTRY_SCORE_PENALTY = 12;
 
+// --- Skill-level classification ---------------------------------------------
+// Used as a HARD filter when the preset's skill_level is "manual" so a
+// manual-work seeker never gets engineers / specialists / managers padded in.
+const MANAGEMENT_RE = /\b(manager|management|vedouc[ií]|head\s+of|chef\s+de|director|directeur|šéf|sef|leader|lead\b|supervisor|principal|coordinator\s+lead)\b/i;
+const SKILLED_RE = /\b(specialist|specialista|engineer|engineering|ingenieur|inžen[ýi]r|ingenj[öo]r|developer|architect|analyst|consultant|controller|accountant|accounting|auditor|nurse|registered\s+nurse|doctor|physician|pilot|avionic|hse|agronom|technician|technik(?!a)|pharmacist|teacher|professor|attorney|lawyer|odbornik|odborník|expert)\b/i;
+const MANUAL_CATEGORIES = new Set([
+  "hospitality", "gastronomy", "construction", "logistics", "transport",
+  "agriculture", "manufacturing", "ski_resort", "skiresort", "aupair",
+  "marine", "cleaning",
+]);
+const MANUAL_TITLE_HINT_RE = /\b(cleaner|cleaning|úklid|uklid|housekeep|kitchen|kuchyň|kuchar|kuchař|dishwash|warehouse|sklad|picker|packer|porter|bagboy|baggage|ramp|laborer|labourer|dělník|delnik|pomocn|helper|harvest|sběrač|sklizeň|chambermaid|pokoj|seasonal\s+worker|server|servírka|cisnik|číšník|waiter|waitress|barista|hotel\s+staff|stagione)\b/i;
+
+type SkillClass = "manual" | "skilled" | "management" | "unknown";
+
+function classifyJobSkill(job: CandidateJob): SkillClass {
+  const title = job.title ?? "";
+  if (MANAGEMENT_RE.test(title)) return "management";
+  if (SKILLED_RE.test(title)) return "skilled";
+  if (MANUAL_TITLE_HINT_RE.test(title)) return "manual";
+  const cat = (job.category ?? "").toLowerCase().trim();
+  if (cat && MANUAL_CATEGORIES.has(cat)) return "manual";
+  return "unknown";
+}
+
 // Aliases so we can substring-match user-facing country names against the
 // free-form `location` / `additional_locations` text on Multiple-country jobs.
 const COUNTRY_ALIASES: Record<string, string[]> = {
@@ -300,6 +324,9 @@ Deno.serve(async (req) => {
     const presetCategories: string[] = Array.isArray(preset?.job_categories)
       ? preset.job_categories.filter((c: unknown) => typeof c === "string" && c.trim().length > 0)
       : [];
+    const skillLevel: string = typeof preset?.skill_level === "string"
+      ? String(preset.skill_level).toLowerCase().trim()
+      : "";
     const hasAnyConstraint =
       presetCountries.length > 0 ||
       avatarCountries.length > 0 ||
