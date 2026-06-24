@@ -189,29 +189,30 @@ const Index = () => {
               transition={{ duration: 0.7 }}
               className="text-center md:text-left flex-1 min-w-0"
             >
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-foreground/10 border border-primary-foreground/10 text-primary-foreground/80 text-sm mb-4">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-foreground/10 border border-primary-foreground/10 text-primary-foreground/80 text-sm mb-3">
                 <Sparkles className="w-4 h-4 text-red-accent" />
                 {t("landing.badge")}
               </div>
 
-              <h1 className="font-display text-4xl md:text-6xl font-bold text-primary-foreground leading-tight mb-4">
+              <h1 className="font-display text-2xl md:text-4xl font-bold text-primary-foreground leading-tight mb-3">
                 {t("landing.hiIm")} <span className="text-gradient-accent">Leslie</span>
-                <br />
-                <span className="text-3xl md:text-5xl">{t("landing.tagline")}</span>
+                <span className="text-lg md:text-2xl text-primary-foreground/80 ml-0 md:ml-2 whitespace-nowrap">
+                  {t("landing.tagline")}
+                </span>
               </h1>
 
-              <p className="text-lg md:text-xl text-primary-foreground/60 max-w-xl mb-6">
+              <p className="text-base md:text-lg text-primary-foreground/60 max-w-xl mb-4">
                 {t("landing.intro")}
               </p>
 
               {/* Stats hierarchy */}
-              <div className="mb-6">
-                <div className="rounded-2xl bg-primary-foreground/5 border border-primary-foreground/10 p-5 md:p-6">
+              <div className="mb-4">
+                <div className="rounded-2xl bg-primary-foreground/5 border border-primary-foreground/10 p-4 md:p-5">
                   <div className="text-center">
-                    <div className="font-display font-bold text-gradient-accent text-5xl md:text-6xl leading-none">
+                    <div className="font-display font-bold text-gradient-accent text-4xl md:text-5xl leading-none">
                       <CountUp value={jobCount} locale={numberLocale} />
                     </div>
-                    <div className="mt-2 text-primary-foreground/70 text-sm md:text-base">
+                    <div className="mt-1 text-primary-foreground/70 text-sm md:text-base">
                       {t("landing.activeJobsLabel")}
                     </div>
                     {qualityCount != null && jobCount != null && qualityCount < jobCount && (
@@ -220,7 +221,7 @@ const Index = () => {
                       </div>
                     )}
                   </div>
-                  <div className="mt-5 pt-5 border-t border-primary-foreground/10 grid grid-cols-2 gap-3 text-center">
+                  <div className="mt-4 pt-4 border-t border-primary-foreground/10 grid grid-cols-2 gap-3 text-center">
                     <div>
                       <div className="text-xl md:text-2xl font-display font-semibold text-primary-foreground">
                         🏢 <CountUp value={companies} locale={numberLocale} />
