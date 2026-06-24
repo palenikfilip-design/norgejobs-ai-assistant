@@ -659,13 +659,15 @@ Deno.serve(async (req) => {
           try { parsed = JSON.parse(tc.function?.arguments ?? "{}"); } catch { /* */ }
           let result: unknown;
           if (tc.function?.name === "search_catalog") {
-            const r = await runSearch(parsed);
+            const r = await runSearch(parsed, user.id);
             result = r;
             if (Array.isArray(r.jobs)) collectedJobs.push(...r.jobs);
           } else if (tc.function?.name === "create_preset") {
             const r = await runCreatePreset(user.id, parsed);
             if (r.preset_id) { presetId = r.preset_id; presetName = r.preset_name ?? null; }
             result = r;
+          } else if (tc.function?.name === "save_alert") {
+            result = await runSaveAlert(user.id, parsed);
           } else {
             result = { error: "unknown_tool" };
           }
