@@ -61,7 +61,7 @@ function relativeCs(iso: string): string {
 }
 
 const Chat = () => {
-  const { user, supabaseUser } = useUser();
+  const { user, supabaseUser, loading: authLoading } = useUser();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -85,6 +85,12 @@ const Chat = () => {
   }, [messages, sending]);
 
   useEffect(() => { inputRef.current?.focus(); }, [sending]);
+
+  useEffect(() => {
+    if (!authLoading && !supabaseUser) {
+      navigate("/auth?redirect=/chat", { replace: true });
+    }
+  }, [authLoading, supabaseUser, navigate]);
 
   const loadConversationMessages = useCallback(async (convId: string) => {
     const { data, error } = await supabase
