@@ -169,6 +169,19 @@ const TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "save_alert",
+      description: "Mark the user's current active Leslie preset as a watch/alert so they get notified when matching jobs are added. Call this when the user agrees to be notified about empty/no-match searches.",
+      parameters: {
+        type: "object",
+        properties: {
+          note: { type: "string", description: "Short Czech note describing what they want notified about." },
+        },
+      },
+    },
+  },
 ];
 
 const SELECT_COLS = "id,title,title_cs,summary_cs,company,location,country,salary_normalized_eur,salary_estimated_eur,salary_is_estimated,salary,currency,url,display_category,trust_score,additional_locations";
