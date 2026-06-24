@@ -533,6 +533,26 @@ async function runCreatePreset(userId: string, args: Record<string, unknown>) {
   return { preset_id: data.id, preset_name: data.name, skill_level: (data as any).skill_level ?? null, updated: false };
 }
 
+async function runSaveAlert(userId: string, args: Record<string, unknown>) {
+  const svc = getServiceSupabase();
+  const note = typeof args.note === "string" ? args.note : null;
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: existing } = await svc
+    .from("user_presets")
+    .select("id,name,learning_data")
+    .eq("user_id", userId)
+    .eq("active", true)
+    .gte("updated_at", sevenDaysAgo)
+    .order("updated_at", { ascending: false })
+    .limit(5);
+  const row = (existing ?? []).find((r: any) => (r.learning_data ?? {})?.source === "leslie") ?? (existing ?? [])[0];
+  if (!row) return { ok: false, error: "no_active_preset" };
+  const ld = { ...(row.learning_data ?? {}), alert: true, alert_note: note, alert_saved_at: new Date().toISOString() };
+  const { error } = await svc.from("user_presets").update({ learning_data: ld }).eq("id", row.id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, preset_id: row.id, preset_name: row.name, message: "Alert uložen. Dám vědět, jakmile přibyde něco vhodného." };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
