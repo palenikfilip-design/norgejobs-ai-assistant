@@ -139,8 +139,8 @@ const Index = () => {
           <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-navy-light/40 rounded-full blur-[120px]" />
         </div>
 
-        <div className="relative max-w-5xl mx-auto px-4 py-20 md:py-28">
-          <div className="flex flex-col md:flex-row items-center gap-10 md:gap-16">
+        <div className="relative max-w-5xl mx-auto px-4 py-10 md:py-14">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-8 md:gap-12">
             {/* Leslie Avatar */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
@@ -189,23 +189,23 @@ const Index = () => {
               transition={{ duration: 0.7 }}
               className="text-center md:text-left flex-1 min-w-0"
             >
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-foreground/10 border border-primary-foreground/10 text-primary-foreground/80 text-sm mb-6">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-foreground/10 border border-primary-foreground/10 text-primary-foreground/80 text-sm mb-4">
                 <Sparkles className="w-4 h-4 text-red-accent" />
                 {t("landing.badge")}
               </div>
 
-              <h1 className="font-display text-4xl md:text-6xl font-bold text-primary-foreground leading-tight mb-5">
+              <h1 className="font-display text-4xl md:text-6xl font-bold text-primary-foreground leading-tight mb-4">
                 {t("landing.hiIm")} <span className="text-gradient-accent">Leslie</span>
                 <br />
                 <span className="text-3xl md:text-5xl">{t("landing.tagline")}</span>
               </h1>
 
-              <p className="text-lg md:text-xl text-primary-foreground/60 max-w-xl mb-8">
+              <p className="text-lg md:text-xl text-primary-foreground/60 max-w-xl mb-6">
                 {t("landing.intro")}
               </p>
 
               {/* Stats hierarchy */}
-              <div className="mb-8">
+              <div className="mb-6">
                 <div className="rounded-2xl bg-primary-foreground/5 border border-primary-foreground/10 p-5 md:p-6">
                   <div className="text-center">
                     <div className="font-display font-bold text-gradient-accent text-5xl md:text-6xl leading-none">
