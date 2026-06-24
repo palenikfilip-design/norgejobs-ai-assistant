@@ -194,9 +194,9 @@ const Index = () => {
                 {t("landing.badge")}
               </div>
 
-              <h1 className="font-display text-2xl md:text-4xl font-bold text-primary-foreground leading-tight mb-3">
-                <span className="inline">{t("landing.hiIm")} <span className="text-gradient-accent">Leslie</span></span>
-                <span className="block md:inline text-xl md:text-2xl text-primary-foreground/80 md:ml-2 md:whitespace-nowrap">
+              <h1 className="font-display text-3xl md:text-5xl font-bold text-primary-foreground leading-tight mb-3">
+                {t("landing.hiIm")} <span className="text-gradient-accent">Leslie</span>
+                <span className="block text-2xl md:text-3xl text-primary-foreground/80">
                   {t("landing.tagline")}
                 </span>
               </h1>
@@ -209,7 +209,7 @@ const Index = () => {
               <div className="mb-4">
                 <div className="rounded-2xl bg-primary-foreground/5 border border-primary-foreground/10 p-4 md:p-5">
                   <div className="text-center">
-                    <div className="font-display font-bold text-gradient-accent text-4xl md:text-5xl leading-none">
+                    <div className="font-display font-bold text-gradient-accent text-5xl md:text-6xl leading-none">
                       <CountUp value={jobCount} locale={numberLocale} />
                     </div>
                     <div className="mt-1 text-primary-foreground/70 text-sm md:text-base">
@@ -223,7 +223,7 @@ const Index = () => {
                   </div>
                   <div className="mt-4 pt-4 border-t border-primary-foreground/10 grid grid-cols-2 gap-3 text-center">
                     <div>
-                      <div className="text-xl md:text-2xl font-display font-semibold text-primary-foreground">
+                      <div className="text-2xl md:text-3xl font-display font-semibold text-primary-foreground">
                         🏢 <CountUp value={companies} locale={numberLocale} />
                       </div>
                       <div className="text-[11px] md:text-xs text-primary-foreground/60 mt-1">
@@ -231,7 +231,7 @@ const Index = () => {
                       </div>
                     </div>
                     <div>
-                      <div className="text-xl md:text-2xl font-display font-semibold text-primary-foreground">
+                      <div className="text-2xl md:text-3xl font-display font-semibold text-primary-foreground">
                         🌍 <CountUp value={countries} locale={numberLocale} />
                       </div>
                       <div className="text-[11px] md:text-xs text-primary-foreground/60 mt-1">
