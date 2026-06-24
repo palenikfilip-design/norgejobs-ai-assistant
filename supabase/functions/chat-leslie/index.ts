@@ -343,7 +343,25 @@ function roundRobinByCountry(jobs: any[]): any[] {
   return out;
 }
 
-async function runSearch(args: Record<string, unknown>) {
+async function getActivePresetSkillLevel(userId: string): Promise<string | null> {
+  try {
+    const svc = getServiceSupabase();
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data } = await svc
+      .from("user_presets")
+      .select("skill_level,learning_data,updated_at")
+      .eq("user_id", userId)
+      .eq("active", true)
+      .gte("updated_at", sevenDaysAgo)
+      .order("updated_at", { ascending: false })
+      .limit(5);
+    const leslie = (data ?? []).find((r: any) => (r.learning_data ?? {})?.source === "leslie");
+    const sl = leslie?.skill_level;
+    return typeof sl === "string" && sl ? sl : null;
+  } catch { return null; }
+}
+
+async function runSearch(args: Record<string, unknown>, userId: string) {
   const rawCountries = Array.isArray(args.countries) ? (args.countries as string[]).filter(Boolean) : [];
   const countries = expandCountriesWithRegions(rawCountries);
   // Accept either a single `category` or a `categories` array.
@@ -355,7 +373,14 @@ async function runSearch(args: Record<string, unknown>) {
   const requestedCats = Array.from(new Set(rawCats));
   const category = requestedCats[0] ?? null;
   const salaryMin = typeof args.salary_min_eur === "number" ? args.salary_min_eur : null;
-  const skillLevel = typeof args.skill_level === "string" ? args.skill_level.toLowerCase().trim() : "";
+  let skillLevel = typeof args.skill_level === "string" ? args.skill_level.toLowerCase().trim() : "";
+  // ENFORCE: if AI omitted skill_level (especially on a "broaden" follow-up call),
+  // inherit it from the user's active Leslie preset. This stops the relax cascade
+  // from quietly dropping the manual filter.
+  if (!skillLevel || skillLevel === "any") {
+    const fromPreset = await getActivePresetSkillLevel(userId);
+    if (fromPreset && fromPreset !== "any") skillLevel = fromPreset;
+  }
 
   const isManualSeeker = category != null && MANUAL_CATEGORIES.has(category);
   const isWhiteCollarSeeker = category != null && WHITE_COLLAR_CATEGORIES.has(category);
