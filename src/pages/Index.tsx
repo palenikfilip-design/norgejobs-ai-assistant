@@ -195,8 +195,8 @@ const Index = () => {
               </div>
 
               <h1 className="font-display text-2xl md:text-4xl font-bold text-primary-foreground leading-tight mb-3">
-                {t("landing.hiIm")} <span className="text-gradient-accent">Leslie</span>
-                <span className="text-lg md:text-2xl text-primary-foreground/80 ml-0 md:ml-2 whitespace-nowrap">
+                <span className="inline">{t("landing.hiIm")} <span className="text-gradient-accent">Leslie</span></span>
+                <span className="block md:inline text-xl md:text-2xl text-primary-foreground/80 md:ml-2 md:whitespace-nowrap">
                   {t("landing.tagline")}
                 </span>
               </h1>
