@@ -89,6 +89,14 @@ ABSOLUTNÍ PRAVIDLA (neporušuj nikdy):
    * Když uživatel ODMÍTL VŠECHNY nabídky (samé 👎, žádné 👍): neopakuj předchozí návrh. Otevřeně to uznej ("vidím, že zatím nic nesedělo") a navrhni VÝRAZNĚ jiný směr — jinou kategorii nebo zemi, kterou jsi ještě nezkusila. Nebo se zeptej na konkrétní upřesnění. NIKDY nenavrhuj znovu to, co uživatel právě odmítl.
    * ANTI-OPAKOVÁNÍ: Nenabízej stejný návrh ani skoro stejnou formulaci, kterou jsi už v této konverzaci použila. Když předchozí směr nevedl k výsledku, posuň se JINAM (jiná kategorie/země/skill_level), neopakuj stejnou větu znovu.
    * Reaguj krátce (2–3 věty), neopakuj celý seznam nabídek.
+- MĚNA: Když uživatel jasně uvede měnu ("Kč", "CZK", "korun", "€", "EUR", "eur"), NIKDY se neptej znovu jakou měnu myslí. Přijmi to a převeď do EUR (25 CZK ≈ 1 EUR) tiše v create_preset / search_catalog.
+- NIKDY NEKONČI DO SLEPÉ ULIČKY. Když search_catalog vrátí prázdno nebo "none_in_region", NEpiš jen "dám ti vědět" a netiše nezavírej konverzaci. VŽDY:
+   1) navrhni save_alert ("Chceš, abych ti dala vědět, jakmile se objeví něco nového v {region} v {kategorii}?") — a když uživatel souhlasí, ZAVOLEJ tool save_alert,
+   2) NEBO nabídni stejný typ práce v JINÉ blízké zemi, kterou katalog má (např. manuální v Německu/Rakousku místo Skandinávie),
+   3) NEBO se zeptej, jestli může rozšířit typ (např. ze "manuální" na "kvalifikovanou ve stejném oboru").
+   Vždy zakonči OTÁZKOU, která dává uživateli konkrétní volbu mezi 2–3 možnostmi. Nikdy ne pasivní "dám vědět" bez otázky.
+- BUĎ OTEVŘENÁ NOVÝM SMĚRŮM. Pokud uživatel explicitně nezamkl hledání ("jen tohle, nic jiného"), můžeš příležitostně přidat 1 zajímavou nabídku z blízké kategorie nebo sousední země s krátkou poznámkou ("mám tu i tohle, kdyby tě to zajímalo — chceš rozšířit hledání tímhle směrem?"). Nabízíš, nevnucuješ. Když uživatel řekl "jen X", drž se X.
+- FALLBACK SEKCE: Pokud kaskáda relaxuje a vrátí jobs, které NEsplňují skill_level uživatele (např. management/skilled u manuálního hledače), MUSÍŠ je uvést v jasně oddělené sekci s nadpisem typu "Tohle nejsou manuální, ale je to nejbližší, co teď mám:" — nikdy je neprezentuj jako odpověď na "manuální".
 
 TVŮJ FLOW:
 1. Uživatel řekne, co chce.
@@ -96,6 +104,7 @@ TVŮJ FLOW:
 3. Polož max. 1 doplňující otázku, pak ZAVOLEJ create_preset (i s neúplnými údaji) a hned poté search_catalog. Při dalším upřesnění (např. "spíš lesnictví než kuchyně") volej create_preset znovu — backend AKTUALIZUJE existující aktivní preset, ne vytvoří nový.
 4. search_catalog má vestavěný kaskádový fallback (uvolní plat → region → příbuzné kategorie ve STEJNÉM univerzu manuální/white-collar). Pole "fallback_level" v odpovědi ti řekne, jak moc byl dotaz uvolněn. Pokud je "none_in_region", řekni to upřímně.
 5. Po zobrazení nabídek pobídni: "Klikni 👍/👎 a pak dej 'Hotovo, co dál?' ať vím, co tě baví."
+6. Když nic není (none_in_region) → postupuj podle pravidla "NIKDY NEKONČI DO SLEPÉ ULIČKY".
 
 Dostupné kategorie (display_category): ${DISPLAY_CATEGORIES.join(", ")}.
 Když uživatel zmíní VÍCE typů práce (např. "gastro a stavby"), pošli search_catalog parametr "categories" jako pole VŠECH zmíněných kategorií — výsledek bude pak namíchaný napůl. Nepoužívej jen jednu, pokud řekl víc.
@@ -156,6 +165,19 @@ const TOOLS = [
             enum: ["manual","skilled","management","any"],
             description: "When 'manual', results are HARD-filtered to manual-classified jobs only (no specialists/engineers/managers leak through, even if unknown).",
           },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "save_alert",
+      description: "Mark the user's current active Leslie preset as a watch/alert so they get notified when matching jobs are added. Call this when the user agrees to be notified about empty/no-match searches.",
+      parameters: {
+        type: "object",
+        properties: {
+          note: { type: "string", description: "Short Czech note describing what they want notified about." },
         },
       },
     },
@@ -321,7 +343,25 @@ function roundRobinByCountry(jobs: any[]): any[] {
   return out;
 }
 
-async function runSearch(args: Record<string, unknown>) {
+async function getActivePresetSkillLevel(userId: string): Promise<string | null> {
+  try {
+    const svc = getServiceSupabase();
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data } = await svc
+      .from("user_presets")
+      .select("skill_level,learning_data,updated_at")
+      .eq("user_id", userId)
+      .eq("active", true)
+      .gte("updated_at", sevenDaysAgo)
+      .order("updated_at", { ascending: false })
+      .limit(5);
+    const leslie = (data ?? []).find((r: any) => (r.learning_data ?? {})?.source === "leslie");
+    const sl = leslie?.skill_level;
+    return typeof sl === "string" && sl ? sl : null;
+  } catch { return null; }
+}
+
+async function runSearch(args: Record<string, unknown>, userId: string) {
   const rawCountries = Array.isArray(args.countries) ? (args.countries as string[]).filter(Boolean) : [];
   const countries = expandCountriesWithRegions(rawCountries);
   // Accept either a single `category` or a `categories` array.
@@ -333,7 +373,14 @@ async function runSearch(args: Record<string, unknown>) {
   const requestedCats = Array.from(new Set(rawCats));
   const category = requestedCats[0] ?? null;
   const salaryMin = typeof args.salary_min_eur === "number" ? args.salary_min_eur : null;
-  const skillLevel = typeof args.skill_level === "string" ? args.skill_level.toLowerCase().trim() : "";
+  let skillLevel = typeof args.skill_level === "string" ? args.skill_level.toLowerCase().trim() : "";
+  // ENFORCE: if AI omitted skill_level (especially on a "broaden" follow-up call),
+  // inherit it from the user's active Leslie preset. This stops the relax cascade
+  // from quietly dropping the manual filter.
+  if (!skillLevel || skillLevel === "any") {
+    const fromPreset = await getActivePresetSkillLevel(userId);
+    if (fromPreset && fromPreset !== "any") skillLevel = fromPreset;
+  }
 
   const isManualSeeker = category != null && MANUAL_CATEGORIES.has(category);
   const isWhiteCollarSeeker = category != null && WHITE_COLLAR_CATEGORIES.has(category);
@@ -486,6 +533,26 @@ async function runCreatePreset(userId: string, args: Record<string, unknown>) {
   return { preset_id: data.id, preset_name: data.name, skill_level: (data as any).skill_level ?? null, updated: false };
 }
 
+async function runSaveAlert(userId: string, args: Record<string, unknown>) {
+  const svc = getServiceSupabase();
+  const note = typeof args.note === "string" ? args.note : null;
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: existing } = await svc
+    .from("user_presets")
+    .select("id,name,learning_data")
+    .eq("user_id", userId)
+    .eq("active", true)
+    .gte("updated_at", sevenDaysAgo)
+    .order("updated_at", { ascending: false })
+    .limit(5);
+  const row = (existing ?? []).find((r: any) => (r.learning_data ?? {})?.source === "leslie") ?? (existing ?? [])[0];
+  if (!row) return { ok: false, error: "no_active_preset" };
+  const ld = { ...(row.learning_data ?? {}), alert: true, alert_note: note, alert_saved_at: new Date().toISOString() };
+  const { error } = await svc.from("user_presets").update({ learning_data: ld }).eq("id", row.id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, preset_id: row.id, preset_name: row.name, message: "Alert uložen. Dám vědět, jakmile přibyde něco vhodného." };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
@@ -592,13 +659,15 @@ Deno.serve(async (req) => {
           try { parsed = JSON.parse(tc.function?.arguments ?? "{}"); } catch { /* */ }
           let result: unknown;
           if (tc.function?.name === "search_catalog") {
-            const r = await runSearch(parsed);
+            const r = await runSearch(parsed, user.id);
             result = r;
             if (Array.isArray(r.jobs)) collectedJobs.push(...r.jobs);
           } else if (tc.function?.name === "create_preset") {
             const r = await runCreatePreset(user.id, parsed);
             if (r.preset_id) { presetId = r.preset_id; presetName = r.preset_name ?? null; }
             result = r;
+          } else if (tc.function?.name === "save_alert") {
+            result = await runSaveAlert(user.id, parsed);
           } else {
             result = { error: "unknown_tool" };
           }

@@ -2,7 +2,7 @@
 // chat-leslie so the two job pipelines can never drift apart again.
 
 export const MANAGEMENT_RE =
-  /\b(manager|management|vedouc[ií]|head\s+of|chef\s+de|director|directeur|šéf|sef|leader|lead\b|supervisor|principal|coordinator\s+lead|koordinator|coordinator)\b/i;
+  /\b(manager|management|vedouc[ií]|head\s+of|chef\s+de|director|directeur|šéf|sef|leader|lead\b|supervisor|principal|coordinator\s+lead|koordinator|coordinator|chef|ledare|ansvarig|samordnare|arbetsledare|enhetschef|platschef|driftchef|gruppchef|teamchef|projektledare|byggledare|f[öo]rman)\b/i;
 
 export const SKILLED_RE =
   /\b(specialist|specialista|engineer|engineering|ingenieur|ingeniør|inžen[ýi]r|ingenj[öo]r|developer|architect|analyst|analytiker|consultant|controller|accountant|accounting|auditor|nurse|registered\s+nurse|doctor|physician|pilot|avionic|hse|agronom(?:ist)?|horticultur(?:alist|ist|e)?|facilities|technician|technik(?!a)|pharmacist|teacher|l[äa]rare|yrkesl[äa]rare|lehrer|professor|attorney|lawyer|odbornik|odborník|expert|strategist|strateg)\b/i;
