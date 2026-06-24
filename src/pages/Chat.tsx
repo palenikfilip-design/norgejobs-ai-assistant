@@ -86,6 +86,12 @@ const Chat = () => {
 
   useEffect(() => { inputRef.current?.focus(); }, [sending]);
 
+  useEffect(() => {
+    if (supabaseUser === null) {
+      navigate("/auth?redirect=/chat", { replace: true });
+    }
+  }, [supabaseUser, navigate]);
+
   const loadConversationMessages = useCallback(async (convId: string) => {
     const { data, error } = await supabase
       .from("leslie_chat_history")
