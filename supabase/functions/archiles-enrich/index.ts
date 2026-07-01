@@ -505,6 +505,16 @@ async function enrichJob(
     const summaryCs = typeof ai.summary_cs === "string" && ai.summary_cs.trim()
       ? ai.summary_cs.trim().slice(0, 400) : null;
 
+    // Accommodation + benefits (new fields)
+    const accommodation = ["included","available","not_offered","unclear"].includes(ai.accommodation)
+      ? ai.accommodation : "unclear";
+    const benefits = Array.isArray(ai.benefits)
+      ? ai.benefits
+          .filter((b: unknown) => typeof b === "string" && b.trim().length > 0)
+          .map((b: string) => b.trim().toLowerCase().slice(0, 40))
+          .slice(0, 5)
+      : [];
+
     // STEP D — Trust score with multi-country company presence.
     // For multinationals that mark country="Multiple" (e.g. Stripe) we also count
     // distinct entries from additional_locations so the multinational bonus applies.
