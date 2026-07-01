@@ -387,7 +387,7 @@ const Chat = () => {
                 )}
                 {msg.role === "assistant" && msg.jobs && msg.jobs.length > 0 && (
                   <div className="w-full space-y-2 mt-1">
-                    {msg.jobs.map((job) => (
+                    {msg.jobs.filter((j) => !!j.url).map((job) => (
                       <div key={job.id} className="glass-card rounded-xl p-3 text-sm">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
