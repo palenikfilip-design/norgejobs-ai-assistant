@@ -435,6 +435,14 @@ const Chat = () => {
                             onClick={() => reactToJob(job, msg.preset_id, "dislike")}>
                             <ThumbsDown className="w-3 h-3" />
                           </Button>
+                          <a
+                            href={job.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="ml-auto inline-flex items-center gap-1 h-7 px-3 rounded-md bg-accent text-accent-foreground text-xs font-medium hover:opacity-90"
+                          >
+                            <ExternalLink className="w-3 h-3" /> Otevřít nabídku
+                          </a>
                         </div>
                       </div>
                     ))}
