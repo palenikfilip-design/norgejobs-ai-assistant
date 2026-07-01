@@ -2,10 +2,10 @@
 // chat-leslie so the two job pipelines can never drift apart again.
 
 export const MANAGEMENT_RE =
-  /\b(manager|management|vedouc[ií]|head\s+of|chef\s+de|director|directeur|šéf|sef|leader|lead\b|supervisor|principal|coordinator\s+lead|koordinator|coordinator|chef|ledare|ansvarig|samordnare|arbetsledare|enhetschef|platschef|driftchef|gruppchef|teamchef|projektledare|byggledare|f[öo]rman)\b/i;
+  /\b(manager|manaž(?:er)?|management|vedouc[ií]|head\s+of|chef\s+de|director|directeur|šéf|sef|leader|lead\b|supervisor|principal|coordinator\s+lead|koordinator|coordinator|chef|ledare|ansvarig|samordnare|arbetsledare|enhetschef|platschef|driftchef|gruppchef|teamchef|projektledare|byggledare|f[öo]rman|leiter|projektleiter|bauleiter|abteilungsleiter|filialleiter|teamleiter|meister)\b/i;
 
 export const SKILLED_RE =
-  /\b(specialist|specialista|engineer|engineering|ingenieur|ingeniør|inžen[ýi]r|ingenj[öo]r|developer|architect|analyst|analytiker|consultant|controller|accountant|accounting|auditor|nurse|registered\s+nurse|doctor|physician|pilot|avionic|hse|agronom(?:ist)?|horticultur(?:alist|ist|e)?|facilities|technician|technik(?!a)|pharmacist|teacher|l[äa]rare|yrkesl[äa]rare|lehrer|professor|attorney|lawyer|odbornik|odborník|expert|strategist|strateg)\b/i;
+  /\b(specialist|specialista|engineer|engineering|ingenieur|ingeniør|inžen[ýi]r|ingenj[öo]r|developer|architect|analyst|analytiker|consultant|controller|accountant|accounting|auditor|nurse|registered\s+nurse|doctor|physician|pilot|avionic|hse|agronom(?:ist)?|horticultur(?:alist|ist|e)?|facilities|technician|technik(?!a)|technik\s+automatizace|automation\s+engineer|automatisierung|pharmacist|teacher|l[äa]rare|yrkesl[äa]rare|lehrer|professor|attorney|lawyer|odbornik|odborník|expert|strategist|strateg)\b/i;
 
 export const MANUAL_TITLE_HINT_RE =
   /\b(cleaner|cleaning|úklid|uklid|housekeep|kitchen|kuchyň|kuchar|kuchař|dishwash|warehouse|sklad|picker|packer|porter|bagboy|baggage|ramp|laborer|labourer|dělník|delnik|pomocn|helper|harvest|sběrač|sklizeň|chambermaid|pokoj|seasonal\s+worker|server|servírka|cisnik|číšník|waiter|waitress|barista|hotel\s+staff|stagione)\b/i;
