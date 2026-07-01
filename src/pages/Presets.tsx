@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Plus, Pencil, Trash2, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, Check, Loader2, MessageCircle } from "lucide-react";
 
 interface PresetRow {
   id: string;
@@ -257,6 +257,22 @@ export default function Presets() {
                     <Button size="sm" variant="outline" onClick={() => navigate(`/preset/edit/${p.id}`)} className="gap-1.5">
                       <Pencil className="w-3.5 h-3.5" /> Upravit
                     </Button>
+                    {(() => {
+                      const ld = (p.learning_data ?? {}) as { conversation_id?: string | null; source?: string };
+                      if (ld.source === "leslie" && ld.conversation_id) {
+                        return (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => navigate(`/chat?conversation=${ld.conversation_id}`)}
+                            className="gap-1.5"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" /> Zpět do Leslie
+                          </Button>
+                        );
+                      }
+                      return null;
+                    })()}
                     <Button
                       size="sm"
                       variant="outline"
