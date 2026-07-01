@@ -471,16 +471,18 @@ async function runSearch(args: Record<string, unknown>, userId: string) {
   }
 
   const finalJobs = diversify(chosen.jobs, requestedCats.length ? requestedCats : null, 5);
+  // Never ship a job card without a clickable URL — user can't apply otherwise.
+  const withUrls = finalJobs.filter((j: any) => typeof j?.url === "string" && j.url.trim().length > 0);
 
   return {
-    jobs: finalJobs,
+    jobs: withUrls,
     fallback_level: chosen.attempt.label,
     requested: { countries, categories: requestedCats, salary_min_eur: salaryMin, skill_level: skillLevel || null },
     tried,
   };
 }
 
-async function runCreatePreset(userId: string, args: Record<string, unknown>) {
+async function runCreatePreset(userId: string, args: Record<string, unknown>, conversationId: string | null) {
   const svc = getServiceSupabase();
   const name = typeof args.name === "string" && args.name ? args.name : "Nové hledání";
   const countries = Array.isArray(args.countries) ? (args.countries as string[]) : [];
@@ -488,6 +490,7 @@ async function runCreatePreset(userId: string, args: Record<string, unknown>) {
   const seasonal = typeof args.seasonal === "string" ? args.seasonal : "any";
   const rawSkill = typeof args.skill_level === "string" ? args.skill_level.toLowerCase().trim() : "";
   const skillLevel = ["manual","skilled","management","any"].includes(rawSkill) ? rawSkill : null;
+  const finalized = args.finalized === true;
   const description = typeof args.category === "string" ? `Leslie preset – kategorie ${args.category}` : "Leslie preset";
 
   // Find most recent active Leslie preset for this user (last 7 days) to UPDATE
@@ -514,12 +517,19 @@ async function runCreatePreset(userId: string, args: Record<string, unknown>) {
       salary_min: salaryMinEur,
       seasonal_preference: seasonal,
       description,
-      learning_data: { source: "leslie", category: args.category ?? null },
+      learning_data: {
+        ...((leslieRow.learning_data as Record<string, unknown>) ?? {}),
+        source: "leslie",
+        category: args.category ?? null,
+        conversation_id: conversationId,
+        finalized: finalized || ((leslieRow.learning_data as { finalized?: boolean } | null)?.finalized ?? false),
+        finalized_at: finalized ? new Date().toISOString() : ((leslieRow.learning_data as { finalized_at?: string } | null)?.finalized_at ?? null),
+      },
     };
     if (skillLevel) updatePayload.skill_level = skillLevel;
     const { data, error } = await svc.from("user_presets").update(updatePayload).eq("id", leslieRow.id).select("id,name,skill_level").single();
     if (error) { console.error("update_preset error", error); return { error: error.message }; }
-    return { preset_id: data.id, preset_name: data.name, skill_level: (data as any).skill_level ?? null, updated: true };
+    return { preset_id: data.id, preset_name: data.name, skill_level: (data as any).skill_level ?? null, updated: true, finalized };
   }
 
   const insertPayload: Record<string, unknown> = {
@@ -530,12 +540,18 @@ async function runCreatePreset(userId: string, args: Record<string, unknown>) {
     active: true,
     seasonal_preference: seasonal,
     description,
-    learning_data: { source: "leslie", category: args.category ?? null },
+    learning_data: {
+      source: "leslie",
+      category: args.category ?? null,
+      conversation_id: conversationId,
+      finalized,
+      finalized_at: finalized ? new Date().toISOString() : null,
+    },
   };
   if (skillLevel) insertPayload.skill_level = skillLevel;
   const { data, error } = await svc.from("user_presets").insert(insertPayload).select("id,name,skill_level").single();
   if (error) { console.error("create_preset error", error); return { error: error.message }; }
-  return { preset_id: data.id, preset_name: data.name, skill_level: (data as any).skill_level ?? null, updated: false };
+  return { preset_id: data.id, preset_name: data.name, skill_level: (data as any).skill_level ?? null, updated: false, finalized };
 }
 
 async function runSaveAlert(userId: string, args: Record<string, unknown>) {
@@ -668,7 +684,7 @@ Deno.serve(async (req) => {
             result = r;
             if (Array.isArray(r.jobs)) collectedJobs.push(...r.jobs);
           } else if (tc.function?.name === "create_preset") {
-            const r = await runCreatePreset(user.id, parsed);
+            const r = await runCreatePreset(user.id, parsed, convId);
             if (r.preset_id) { presetId = r.preset_id; presetName = r.preset_name ?? null; }
             result = r;
           } else if (tc.function?.name === "save_alert") {
