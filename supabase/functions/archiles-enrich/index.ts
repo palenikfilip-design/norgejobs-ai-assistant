@@ -586,6 +586,8 @@ async function enrichJob(
       data_completeness: completeness.label,
       enriched_at: new Date().toISOString(),
       enrichment_version: ENRICHMENT_VERSION,
+      accommodation,
+      benefits,
     };
     if (titleCs) updatePayload.title_cs = titleCs;
     if (summaryCs) updatePayload.summary_cs = summaryCs;
