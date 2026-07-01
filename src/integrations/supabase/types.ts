@@ -869,9 +869,11 @@ export type Database = {
       }
       public_jobs: {
         Row: {
+          accommodation: string | null
           additional_locations: Json
           archiles_confidence: number
           archiles_notes: string | null
+          benefits: Json
           category: string | null
           company: string | null
           country: string | null
@@ -916,9 +918,11 @@ export type Database = {
           view_count: number
         }
         Insert: {
+          accommodation?: string | null
           additional_locations?: Json
           archiles_confidence?: number
           archiles_notes?: string | null
+          benefits?: Json
           category?: string | null
           company?: string | null
           country?: string | null
@@ -963,9 +967,11 @@ export type Database = {
           view_count?: number
         }
         Update: {
+          accommodation?: string | null
           additional_locations?: Json
           archiles_confidence?: number
           archiles_notes?: string | null
+          benefits?: Json
           category?: string | null
           company?: string | null
           country?: string | null

@@ -327,10 +327,20 @@ Return ONLY valid JSON with ALL of these fields (do not omit any field, especial
   "country_resolved": "<English country name resolved from Location, or null>",
   "country_confidence": "high" | "medium" | "low",
   "title_cs": "<short natural Czech translation/adaptation of the job title, max 80 chars>",
-  "summary_cs": "<1-2 sentence Czech summary of what the job involves, max 240 chars>"
+  "summary_cs": "<1-2 sentence Czech summary of what the job involves, max 240 chars>",
+  "accommodation": "included" | "available" | "not_offered" | "unclear",
+  "benefits": ["ubytování", "doprava", ...]
 }
 
 title_cs / summary_cs MUST be in Czech regardless of source language. If the title is already Czech, copy it verbatim into title_cs. If you cannot produce a faithful Czech version (e.g. empty/unreadable input), set them to null.
+
+accommodation:
+- "included" — housing provided free (e.g. "accommodation provided", "free housing", "ubytování zdarma", "Unterkunft gestellt", "boende ingår").
+- "available" — housing offered but may cost extra / be deducted from salary.
+- "not_offered" — description explicitly says no housing.
+- "unclear" — accommodation not mentioned. Default to "unclear" when in doubt.
+
+benefits: JSON array (max 5) of SHORT Czech tags detected in the description. Use lowercase Czech nouns. Empty array [] if nothing detected. Preferred vocabulary (use these exact strings when applicable): "ubytování", "doprava", "stravování", "13. plat", "jazykový kurz", "pojištění", "bonusy", "služební auto", "relokační příspěvek", "školení", "flexibilní pracovní doba", "home office", "stravenky", "dovolená navíc".
 
 Detect how many positions are offered. Look for phrases like "hiring 5 chefs", "X positions available", "více pozic", "multiple positions", "X otevřených pozic". If found, return that integer for positions_available. If not mentioned, default to 1.
 
@@ -495,6 +505,16 @@ async function enrichJob(
     const summaryCs = typeof ai.summary_cs === "string" && ai.summary_cs.trim()
       ? ai.summary_cs.trim().slice(0, 400) : null;
 
+    // Accommodation + benefits (new fields)
+    const accommodation = ["included","available","not_offered","unclear"].includes(ai.accommodation)
+      ? ai.accommodation : "unclear";
+    const benefits = Array.isArray(ai.benefits)
+      ? ai.benefits
+          .filter((b: unknown) => typeof b === "string" && b.trim().length > 0)
+          .map((b: string) => b.trim().toLowerCase().slice(0, 40))
+          .slice(0, 5)
+      : [];
+
     // STEP D — Trust score with multi-country company presence.
     // For multinationals that mark country="Multiple" (e.g. Stripe) we also count
     // distinct entries from additional_locations so the multinational bonus applies.
@@ -566,6 +586,8 @@ async function enrichJob(
       data_completeness: completeness.label,
       enriched_at: new Date().toISOString(),
       enrichment_version: ENRICHMENT_VERSION,
+      accommodation,
+      benefits,
     };
     if (titleCs) updatePayload.title_cs = titleCs;
     if (summaryCs) updatePayload.summary_cs = summaryCs;
