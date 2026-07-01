@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { useUser } from "@/context/UserContext";
@@ -63,6 +63,7 @@ function relativeCs(iso: string): string {
 const Chat = () => {
   const { user, supabaseUser, loading: authLoading } = useUser();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation();
   const { toast } = useToast();
   const avatar = user.profile;
@@ -146,14 +147,24 @@ const Chat = () => {
     if (!supabaseUser) return;
     (async () => {
       const convs = await refreshConversations();
-      if (convs.length > 0) {
+      const requested = searchParams.get("conversation");
+      const target = requested && convs.find((c) => c.id === requested) ? requested : (convs[0]?.id ?? null);
+      if (target) {
+        setConversationId(target);
+        await loadConversationMessages(target);
+        if (requested) {
+          const next = new URLSearchParams(searchParams);
+          next.delete("conversation");
+          setSearchParams(next, { replace: true });
+        }
+      } else if (convs.length > 0) {
         setConversationId(convs[0].id);
         await loadConversationMessages(convs[0].id);
       } else {
         setConversationId(crypto.randomUUID());
       }
     })();
-  }, [supabaseUser, refreshConversations, loadConversationMessages]);
+  }, [supabaseUser, refreshConversations, loadConversationMessages, searchParams, setSearchParams]);
 
   const newConversation = async () => {
     setConversationId(crypto.randomUUID());
