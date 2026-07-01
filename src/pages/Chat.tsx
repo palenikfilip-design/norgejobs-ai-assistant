@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { useUser } from "@/context/UserContext";
@@ -63,6 +63,7 @@ function relativeCs(iso: string): string {
 const Chat = () => {
   const { user, supabaseUser, loading: authLoading } = useUser();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation();
   const { toast } = useToast();
   const avatar = user.profile;
@@ -146,14 +147,24 @@ const Chat = () => {
     if (!supabaseUser) return;
     (async () => {
       const convs = await refreshConversations();
-      if (convs.length > 0) {
+      const requested = searchParams.get("conversation");
+      const target = requested && convs.find((c) => c.id === requested) ? requested : (convs[0]?.id ?? null);
+      if (target) {
+        setConversationId(target);
+        await loadConversationMessages(target);
+        if (requested) {
+          const next = new URLSearchParams(searchParams);
+          next.delete("conversation");
+          setSearchParams(next, { replace: true });
+        }
+      } else if (convs.length > 0) {
         setConversationId(convs[0].id);
         await loadConversationMessages(convs[0].id);
       } else {
         setConversationId(crypto.randomUUID());
       }
     })();
-  }, [supabaseUser, refreshConversations, loadConversationMessages]);
+  }, [supabaseUser, refreshConversations, loadConversationMessages, searchParams, setSearchParams]);
 
   const newConversation = async () => {
     setConversationId(crypto.randomUUID());
@@ -376,7 +387,7 @@ const Chat = () => {
                 )}
                 {msg.role === "assistant" && msg.jobs && msg.jobs.length > 0 && (
                   <div className="w-full space-y-2 mt-1">
-                    {msg.jobs.map((job) => (
+                    {msg.jobs.filter((j) => !!j.url).map((job) => (
                       <div key={job.id} className="glass-card rounded-xl p-3 text-sm">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
@@ -424,6 +435,14 @@ const Chat = () => {
                             onClick={() => reactToJob(job, msg.preset_id, "dislike")}>
                             <ThumbsDown className="w-3 h-3" />
                           </Button>
+                          <a
+                            href={job.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="ml-auto inline-flex items-center gap-1 h-7 px-3 rounded-md bg-accent text-accent-foreground text-xs font-medium hover:opacity-90"
+                          >
+                            <ExternalLink className="w-3 h-3" /> Otevřít nabídku
+                          </a>
                         </div>
                       </div>
                     ))}

@@ -97,6 +97,10 @@ ABSOLUTNÍ PRAVIDLA (neporušuj nikdy):
    Vždy zakonči OTÁZKOU, která dává uživateli konkrétní volbu mezi 2–3 možnostmi. Nikdy ne pasivní "dám vědět" bez otázky.
 - BUĎ OTEVŘENÁ NOVÝM SMĚRŮM. Pokud uživatel explicitně nezamkl hledání ("jen tohle, nic jiného"), můžeš příležitostně přidat 1 zajímavou nabídku z blízké kategorie nebo sousední země s krátkou poznámkou ("mám tu i tohle, kdyby tě to zajímalo — chceš rozšířit hledání tímhle směrem?"). Nabízíš, nevnucuješ. Když uživatel řekl "jen X", drž se X.
 - FALLBACK SEKCE: Pokud kaskáda relaxuje a vrátí jobs, které NEsplňují skill_level uživatele (např. management/skilled u manuálního hledače), MUSÍŠ je uvést v jasně oddělené sekci s nadpisem typu "Tohle nejsou manuální, ale je to nejbližší, co teď mám:" — nikdy je neprezentuj jako odpověď na "manuální".
+- ZÁKAZ VÝČTU V TEXTU: V odpovědi NIKDY nevyjmenovávej konkrétní názvy nabídek (např. "Sýrař, Malíř, Pomocník na stavbě"). Karty s nabídkami se vykreslí AUTOMATICKY pod tvou zprávou. Ty jen krátce shrň (1–2 věty: kolik jich je, jaký typ, případný komentář k platu) a řekni, co dál. Vypisování názvů způsobuje, že uživateli chybí prokliky.
+- PRIORITY PRO MANUAL + SLABÝ JAZYK / BEZ KVALIFIKACE: Jakmile uživatel řekl (nebo z konverzace vyplývá) MANUÁLNÍ práci + slabou jazykovou znalost NEBO bez odborné kvalifikace, HNED v prvním search_catalog volej s categories=["construction","manufacturing","agriculture","logistics","hospitality"] a skill_level="manual". Nezačínej od jedné úzké kategorie — front-loaduj široký entry-level manuální mix (úklid, sklad, pomocník na stavbě, malíř, dělník ve výrobě, kuchyňský pomocník, sezónní práce). NIKDY jako první výsledek nedávej manažera / technika / inženýra — ty pro tohoto uživatele nejsou vhodné.
+- ŽÁDNÉ VÝPLŇOVÉ NABÍDKY: Když skill_level="manual" (obzvlášť když je jazyk slabý), NIKDY do výsledků nepřidávej management/specialist/engineer/technik/projektleitera "z regionu" jako výplň. Lepší 3 vhodné manuální než 3 vhodné + 4 nevhodné. Když jich je málo, řekni upřímně kolik jich je a nabídni save_alert + jinou zemi + rozšíření sezónnosti.
+- FINALIZACE PRESETU: Když uživatel jasně potvrdí, že seznam sedí ("tento seznam je super", "beru", "tohle se mi líbí", "hotovo"), ZAVOLEJ create_preset naposled se všemi nasbíranými kritérii (name, countries, category, salary_min_eur, skill_level, finalized=true) a v odpovědi to potvrď: "Uložila jsem tvůj preset '{name}' — najdeš ho v sekci Presety, odkud se můžeš vrátit i sem do naší konverzace nebo si kritéria doladit ručně." Nezakončuj bez uložení.
 
 TVŮJ FLOW:
 1. Uživatel řekne, co chce.
@@ -142,6 +146,7 @@ const TOOLS = [
             enum: ["manual","skilled","management","any"],
             description: "manual = unskilled/physical work (cleaning, kitchen, warehouse, harvest...). skilled = trade/professional (engineer, nurse, specialist). management = lead/manager. any = unspecified.",
           },
+          finalized: { type: "boolean", description: "Set true when user confirmed this preset is final — locks it in and marks it as user-confirmed." },
         },
         required: ["name"],
       },
@@ -466,16 +471,18 @@ async function runSearch(args: Record<string, unknown>, userId: string) {
   }
 
   const finalJobs = diversify(chosen.jobs, requestedCats.length ? requestedCats : null, 5);
+  // Never ship a job card without a clickable URL — user can't apply otherwise.
+  const withUrls = finalJobs.filter((j: any) => typeof j?.url === "string" && j.url.trim().length > 0);
 
   return {
-    jobs: finalJobs,
+    jobs: withUrls,
     fallback_level: chosen.attempt.label,
     requested: { countries, categories: requestedCats, salary_min_eur: salaryMin, skill_level: skillLevel || null },
     tried,
   };
 }
 
-async function runCreatePreset(userId: string, args: Record<string, unknown>) {
+async function runCreatePreset(userId: string, args: Record<string, unknown>, conversationId: string | null) {
   const svc = getServiceSupabase();
   const name = typeof args.name === "string" && args.name ? args.name : "Nové hledání";
   const countries = Array.isArray(args.countries) ? (args.countries as string[]) : [];
@@ -483,6 +490,7 @@ async function runCreatePreset(userId: string, args: Record<string, unknown>) {
   const seasonal = typeof args.seasonal === "string" ? args.seasonal : "any";
   const rawSkill = typeof args.skill_level === "string" ? args.skill_level.toLowerCase().trim() : "";
   const skillLevel = ["manual","skilled","management","any"].includes(rawSkill) ? rawSkill : null;
+  const finalized = args.finalized === true;
   const description = typeof args.category === "string" ? `Leslie preset – kategorie ${args.category}` : "Leslie preset";
 
   // Find most recent active Leslie preset for this user (last 7 days) to UPDATE
@@ -509,12 +517,19 @@ async function runCreatePreset(userId: string, args: Record<string, unknown>) {
       salary_min: salaryMinEur,
       seasonal_preference: seasonal,
       description,
-      learning_data: { source: "leslie", category: args.category ?? null },
+      learning_data: {
+        ...((leslieRow.learning_data as Record<string, unknown>) ?? {}),
+        source: "leslie",
+        category: args.category ?? null,
+        conversation_id: conversationId,
+        finalized: finalized || ((leslieRow.learning_data as { finalized?: boolean } | null)?.finalized ?? false),
+        finalized_at: finalized ? new Date().toISOString() : ((leslieRow.learning_data as { finalized_at?: string } | null)?.finalized_at ?? null),
+      },
     };
     if (skillLevel) updatePayload.skill_level = skillLevel;
     const { data, error } = await svc.from("user_presets").update(updatePayload).eq("id", leslieRow.id).select("id,name,skill_level").single();
     if (error) { console.error("update_preset error", error); return { error: error.message }; }
-    return { preset_id: data.id, preset_name: data.name, skill_level: (data as any).skill_level ?? null, updated: true };
+    return { preset_id: data.id, preset_name: data.name, skill_level: (data as any).skill_level ?? null, updated: true, finalized };
   }
 
   const insertPayload: Record<string, unknown> = {
@@ -525,12 +540,18 @@ async function runCreatePreset(userId: string, args: Record<string, unknown>) {
     active: true,
     seasonal_preference: seasonal,
     description,
-    learning_data: { source: "leslie", category: args.category ?? null },
+    learning_data: {
+      source: "leslie",
+      category: args.category ?? null,
+      conversation_id: conversationId,
+      finalized,
+      finalized_at: finalized ? new Date().toISOString() : null,
+    },
   };
   if (skillLevel) insertPayload.skill_level = skillLevel;
   const { data, error } = await svc.from("user_presets").insert(insertPayload).select("id,name,skill_level").single();
   if (error) { console.error("create_preset error", error); return { error: error.message }; }
-  return { preset_id: data.id, preset_name: data.name, skill_level: (data as any).skill_level ?? null, updated: false };
+  return { preset_id: data.id, preset_name: data.name, skill_level: (data as any).skill_level ?? null, updated: false, finalized };
 }
 
 async function runSaveAlert(userId: string, args: Record<string, unknown>) {
@@ -663,7 +684,7 @@ Deno.serve(async (req) => {
             result = r;
             if (Array.isArray(r.jobs)) collectedJobs.push(...r.jobs);
           } else if (tc.function?.name === "create_preset") {
-            const r = await runCreatePreset(user.id, parsed);
+            const r = await runCreatePreset(user.id, parsed, convId);
             if (r.preset_id) { presetId = r.preset_id; presetName = r.preset_name ?? null; }
             result = r;
           } else if (tc.function?.name === "save_alert") {
