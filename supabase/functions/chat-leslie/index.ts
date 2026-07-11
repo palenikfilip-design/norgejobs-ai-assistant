@@ -5,6 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { hasBudgetRemaining, logAiCall, BUDGET_BLOCKED_MESSAGE_CS } from "../_shared/aiBudget.ts";
 import {
   classifyJobSkill,
+  getJobSkillClass,
   locationMatchesAnyCountry,
   isMultiCountryBucket,
   type SkillClass,
@@ -189,7 +190,7 @@ const TOOLS = [
   },
 ];
 
-const SELECT_COLS = "id,title,title_cs,summary_cs,company,location,country,salary_normalized_eur,salary_estimated_eur,salary_is_estimated,salary,currency,url,display_category,trust_score,additional_locations";
+const SELECT_COLS = "id,title,title_cs,summary_cs,company,location,country,salary_normalized_eur,salary_estimated_eur,salary_is_estimated,salary,currency,url,display_category,category,trust_score,additional_locations,skill_class,foreigner_friendly,foreigner_signals";
 
 type SearchAttempt = {
   countries: string[] | null;
@@ -248,7 +249,7 @@ async function executeSearch(
   }
 
   // 2) Skill-level classification + HARD filter for manual seekers.
-  const classified = filtered.map((j: any) => ({ job: j, cls: classifyJobSkill(j) as SkillClass }));
+  const classified = filtered.map((j: any) => ({ job: j, cls: getJobSkillClass(j) as SkillClass }));
   for (const { cls } of classified) counts[cls]++;
   let kept = classified;
   if (skillLevel === "manual") {

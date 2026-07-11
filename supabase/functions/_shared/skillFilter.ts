@@ -32,6 +32,26 @@ export function classifyJobSkill(job: {
   return "unknown";
 }
 
+/**
+ * Preferred entry point for match-time skill classification.
+ * Reads the pre-computed `skill_class` stored during Archiles enrichment;
+ * only falls back to regex for rows not yet enriched (skill_class IS NULL).
+ * Keeps the two search paths (match-jobs + chat-leslie) consistent and
+ * avoids re-running the regex on every request.
+ */
+export function getJobSkillClass(job: {
+  skill_class?: string | null;
+  title?: string | null;
+  category?: string | null;
+  display_category?: string | null;
+}): SkillClass {
+  const stored = typeof job.skill_class === "string" ? job.skill_class.toLowerCase() : "";
+  if (stored === "manual" || stored === "skilled" || stored === "management" || stored === "unknown") {
+    return stored as SkillClass;
+  }
+  return classifyJobSkill(job);
+}
+
 export const COUNTRY_ALIASES: Record<string, string[]> = {
   germany:     ["germany", "deutschland", "german"],
   austria:     ["austria", "österreich", "oesterreich", "austrian"],
