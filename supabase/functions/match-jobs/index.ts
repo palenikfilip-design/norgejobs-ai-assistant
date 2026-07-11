@@ -5,6 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { hasBudgetRemaining, logAiCall, BUDGET_BLOCKED_MESSAGE_CS } from "../_shared/aiBudget.ts";
 import {
   classifyJobSkill,
+  getJobSkillClass,
   locationMatchesAnyCountry,
   MANUAL_CATEGORIES,
   type SkillClass,
@@ -37,6 +38,9 @@ interface CandidateJob {
   description: string | null;
   trust_score: number;
   data_completeness: string;
+  skill_class?: string | null;
+  foreigner_friendly?: boolean | null;
+  foreigner_signals?: unknown;
 }
 
 function rowToCandidate(j: any): CandidateJob {
@@ -70,6 +74,10 @@ function rowToCandidate(j: any): CandidateJob {
     description: j.description ?? null,
     trust_score: j.trust_score ?? 50,
     data_completeness: j.data_completeness ?? "unknown",
+    // stored classification from Archiles (nullable — falls back to regex in getJobSkillClass)
+    skill_class: j.skill_class ?? null,
+    foreigner_friendly: j.foreigner_friendly ?? null,
+    foreigner_signals: j.foreigner_signals ?? null,
   };
 }
 
@@ -81,7 +89,7 @@ async function fetchCandidates(
   let q = supabase
     .from("public_jobs")
     .select(
-      "id,source_portal,external_id,title,company,location,country,region,salary,salary_min,salary_max,currency,salary_normalized_eur,url,job_type,category,is_seasonal,description,trust_score,data_completeness,additional_locations",
+      "id,source_portal,external_id,title,company,location,country,region,salary,salary_min,salary_max,currency,salary_normalized_eur,url,job_type,category,is_seasonal,description,trust_score,data_completeness,additional_locations,skill_class,foreigner_friendly,foreigner_signals",
     )
     .not("enriched_at", "is", null)
     .order("trust_score", { ascending: false })
@@ -341,9 +349,9 @@ Deno.serve(async (req) => {
     if (skillLevel === "manual") {
       const before = candidates.length;
       const skillCounts: Record<SkillClass, number> = { manual: 0, skilled: 0, management: 0, unknown: 0 };
-      for (const c of candidates) skillCounts[classifyJobSkill(c)]++;
+      for (const c of candidates) skillCounts[getJobSkillClass(c as any)]++;
       candidates = candidates.filter((c) => {
-        const cls = classifyJobSkill(c);
+        const cls = getJobSkillClass(c as any);
         // Strict: "unknown" is EXCLUDED for manual seekers — better few
         // certain-manual results than leaked specialists/strategists.
         return cls === "manual";
@@ -358,7 +366,7 @@ Deno.serve(async (req) => {
         const have = new Set(candidates.map((c) => c.id));
         for (const c of widened) {
           if (have.has(c.id)) continue;
-          const cls = classifyJobSkill(c);
+          const cls = getJobSkillClass(c as any);
           if (cls === "manual") {
             candidates.push(c);
             if (c.data_completeness === "sparse") sparseIds.add(c.id);
@@ -367,7 +375,7 @@ Deno.serve(async (req) => {
       }
     } else if (skillLevel === "skilled" || skillLevel === "management") {
       candidates = candidates.filter((c) => {
-        const cls = classifyJobSkill(c);
+        const cls = getJobSkillClass(c as any);
         return cls === skillLevel || cls === "unknown";
       });
     }

@@ -2,6 +2,7 @@
 // Processes public_jobs rows: deterministic region+salary, AI extraction, trust score, review decision.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { hasBudgetRemaining, logAiCall } from "../_shared/aiBudget.ts";
+import { classifyJobSkill, type SkillClass } from "../_shared/skillFilter.ts";
 
 // Bump this when the enrichment logic meaningfully changes, then reprocess
 // WHERE enrichment_version < ENRICHMENT_VERSION in small batches.
@@ -329,7 +330,15 @@ Return ONLY valid JSON with ALL of these fields (do not omit any field, especial
   "title_cs": "<short natural Czech translation/adaptation of the job title, max 80 chars>",
   "summary_cs": "<1-2 sentence Czech summary of what the job involves, max 240 chars>",
   "accommodation": "included" | "available" | "not_offered" | "unclear",
-  "benefits": ["ubytování", "doprava", ...]
+  "benefits": ["ubytování", "doprava", ...],
+  "skill_class": "manual" | "skilled" | "management" | "unknown",
+  "foreigner_signals": {
+    "language_ok": true|false,
+    "accommodation": true|false,
+    "hires_foreign": true|false,
+    "international_agency": true|false,
+    "requires_local_language": true|false
+  }
 }
 
 title_cs / summary_cs MUST be in Czech regardless of source language. If the title is already Czech, copy it verbatim into title_cs. If you cannot produce a faithful Czech version (e.g. empty/unreadable input), set them to null.
@@ -341,6 +350,20 @@ accommodation:
 - "unclear" — accommodation not mentioned. Default to "unclear" when in doubt.
 
 benefits: JSON array (max 5) of SHORT Czech tags detected in the description. Use lowercase Czech nouns. Empty array [] if nothing detected. Preferred vocabulary (use these exact strings when applicable): "ubytování", "doprava", "stravování", "13. plat", "jazykový kurz", "pojištění", "bonusy", "služební auto", "relokační příspěvek", "školení", "flexibilní pracovní doba", "home office", "stravenky", "dovolená navíc".
+
+skill_class — the physical-work classification (DIFFERENT from skill_level seniority above):
+- "manual" — physical / entry-level / no formal qualification needed (cleaner, kitchen helper, warehouse, construction laborer, harvest, seasonal, waiter, chambermaid, driver).
+- "skilled" — requires professional qualification / degree (engineer, nurse, developer, teacher, accountant, technician, specialist).
+- "management" — leads people or a unit (manager, head of, Leiter, vedoucí, supervisor).
+- "unknown" — cannot tell from the text.
+
+foreigner_signals — detect concrete signals in the description; each field true only when clearly present:
+- language_ok: local language NOT required, or English/basic language explicitly accepted ("English is enough", "no German required", "basic level").
+- accommodation: housing provided or help finding it.
+- hires_foreign: text explicitly welcomes foreign / EU / international workers.
+- international_agency: employer is an agency recruiting internationally.
+- requires_local_language: text explicitly REQUIRES fluent local language (fluent German/Norwegian/Czech mandatory).
+Only set fields you actually see evidence for; omit others (default false).
 
 Detect how many positions are offered. Look for phrases like "hiring 5 chefs", "X positions available", "více pozic", "multiple positions", "X otevřených pozic". If found, return that integer for positions_available. If not mentioned, default to 1.
 
@@ -515,6 +538,33 @@ async function enrichJob(
           .slice(0, 5)
       : [];
 
+    // Skill classification: cheap regex first; only trust AI when regex is unknown.
+    const catHint = job.category ?? (typeof ai.category_suggestion === "string" ? ai.category_suggestion : null);
+    let skillClass: SkillClass = classifyJobSkill({
+      title: job.title,
+      category: catHint,
+      display_category: job.display_category ?? null,
+    });
+    if (skillClass === "unknown") {
+      const aiCls = String(ai.skill_class ?? "").toLowerCase();
+      if (aiCls === "manual" || aiCls === "skilled" || aiCls === "management") {
+        skillClass = aiCls as SkillClass;
+      }
+    }
+
+    // Foreigner-friendly signals
+    const rawSignals = (ai && typeof ai.foreigner_signals === "object" && ai.foreigner_signals) ? ai.foreigner_signals : {};
+    const foreignerSignals: Record<string, boolean> = {};
+    for (const k of ["language_ok","accommodation","hires_foreign","international_agency","requires_local_language"]) {
+      if (rawSignals[k] === true) foreignerSignals[k] = true;
+    }
+    // Housing "included" also implies accommodation signal.
+    if (accommodation === "included" || accommodation === "available") foreignerSignals.accommodation = true;
+    let foreignerFriendly: boolean | null = null;
+    const strong = foreignerSignals.language_ok || foreignerSignals.accommodation || foreignerSignals.hires_foreign || foreignerSignals.international_agency;
+    if (strong) foreignerFriendly = true;
+    else if (foreignerSignals.requires_local_language) foreignerFriendly = false;
+
     // STEP D — Trust score with multi-country company presence.
     // For multinationals that mark country="Multiple" (e.g. Stripe) we also count
     // distinct entries from additional_locations so the multinational bonus applies.
@@ -588,6 +638,9 @@ async function enrichJob(
       enrichment_version: ENRICHMENT_VERSION,
       accommodation,
       benefits,
+      skill_class: skillClass,
+      foreigner_friendly: foreignerFriendly,
+      foreigner_signals: Object.keys(foreignerSignals).length > 0 ? foreignerSignals : null,
     };
     if (titleCs) updatePayload.title_cs = titleCs;
     if (summaryCs) updatePayload.summary_cs = summaryCs;

@@ -887,6 +887,8 @@ export type Database = {
           expat_openness: string
           external_id: string | null
           fetched_at: string
+          foreigner_friendly: boolean | null
+          foreigner_signals: Json | null
           id: string
           is_seasonal: boolean | null
           job_type: string | null
@@ -905,6 +907,7 @@ export type Database = {
           salary_max: number | null
           salary_min: number | null
           salary_normalized_eur: number | null
+          skill_class: Database["public"]["Enums"]["job_skill_class"] | null
           skill_level: string
           source_id: string | null
           source_portal: string
@@ -936,6 +939,8 @@ export type Database = {
           expat_openness?: string
           external_id?: string | null
           fetched_at?: string
+          foreigner_friendly?: boolean | null
+          foreigner_signals?: Json | null
           id?: string
           is_seasonal?: boolean | null
           job_type?: string | null
@@ -954,6 +959,7 @@ export type Database = {
           salary_max?: number | null
           salary_min?: number | null
           salary_normalized_eur?: number | null
+          skill_class?: Database["public"]["Enums"]["job_skill_class"] | null
           skill_level?: string
           source_id?: string | null
           source_portal: string
@@ -985,6 +991,8 @@ export type Database = {
           expat_openness?: string
           external_id?: string | null
           fetched_at?: string
+          foreigner_friendly?: boolean | null
+          foreigner_signals?: Json | null
           id?: string
           is_seasonal?: boolean | null
           job_type?: string | null
@@ -1003,6 +1011,7 @@ export type Database = {
           salary_max?: number | null
           salary_min?: number | null
           salary_normalized_eur?: number | null
+          skill_class?: Database["public"]["Enums"]["job_skill_class"] | null
           skill_level?: string
           source_id?: string | null
           source_portal?: string
@@ -1497,6 +1506,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      job_skill_class: "manual" | "skilled" | "management" | "unknown"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1625,6 +1635,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      job_skill_class: ["manual", "skilled", "management", "unknown"],
     },
   },
 } as const
