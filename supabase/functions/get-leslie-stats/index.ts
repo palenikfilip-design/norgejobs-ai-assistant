@@ -121,7 +121,15 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ fallback: true, error: "config" }), { headers, status: 200 });
     }
     const supabase = createClient(url, key);
-    const { data, error } = await supabase.from("leslie_stats").select("*").maybeSingle();
+    let data: unknown = null;
+    let error: unknown = null;
+    try {
+      const res = await withTimeout(supabase.from("leslie_stats").select("*").maybeSingle());
+      data = res.data;
+      error = res.error;
+    } catch (e) {
+      error = e;
+    }
     if (error) {
       console.error("leslie_stats query error:", errorMessage(error));
       const snapshot = await readSnapshot(supabase);
