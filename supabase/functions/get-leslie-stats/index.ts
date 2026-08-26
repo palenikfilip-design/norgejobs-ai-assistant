@@ -65,38 +65,48 @@ const snapshotToStats = (snapshot: LeslieStatsSnapshot): LeslieStats => ({
 });
 
 const persistSnapshot = async (supabase: ReturnType<typeof createClient>, stats: LeslieStats) => {
-  const { error } = await supabase
-    .from("leslie_stats_snapshot")
-    .upsert(
-      {
-        id: true,
-        total_active_jobs: stats.total_active_jobs ?? 0,
-        fully_enriched: stats.quality_active_jobs ?? 0,
-        employers: stats.active_companies ?? 0,
-        countries: stats.countries_covered ?? 0,
-        updated_at: stats.computed_at ?? new Date().toISOString(),
-      },
-      { onConflict: "id" },
+  try {
+    const { error } = await withTimeout(
+      supabase
+        .from("leslie_stats_snapshot")
+        .upsert(
+          {
+            id: true,
+            total_active_jobs: stats.total_active_jobs ?? 0,
+            fully_enriched: stats.quality_active_jobs ?? 0,
+            employers: stats.active_companies ?? 0,
+            countries: stats.countries_covered ?? 0,
+            updated_at: stats.computed_at ?? new Date().toISOString(),
+          },
+          { onConflict: "id" },
+        ),
     );
-
-  if (error) {
-    console.warn("leslie_stats_snapshot upsert warning:", errorMessage(error));
+    if (error) console.warn("leslie_stats_snapshot upsert warning:", errorMessage(error));
+  } catch (e) {
+    console.warn("leslie_stats_snapshot upsert skipped:", errorMessage(e));
   }
 };
 
 const readSnapshot = async (supabase: ReturnType<typeof createClient>) => {
-  const { data, error } = await supabase
-    .from("leslie_stats_snapshot")
-    .select("total_active_jobs, fully_enriched, employers, countries, updated_at")
-    .eq("id", true)
-    .maybeSingle();
+  try {
+    const { data, error } = await withTimeout(
+      supabase
+        .from("leslie_stats_snapshot")
+        .select("total_active_jobs, fully_enriched, employers, countries, updated_at")
+        .eq("id", true)
+        .maybeSingle(),
+    );
 
-  if (error || !data) {
-    console.error("leslie_stats_snapshot fallback error:", errorMessage(error));
+    if (error || !data) {
+      console.error("leslie_stats_snapshot fallback error:", errorMessage(error));
+      return null;
+    }
+
+    return snapshotToStats(data as LeslieStatsSnapshot);
+  } catch (e) {
+    console.error("leslie_stats_snapshot fallback timeout:", errorMessage(e));
     return null;
   }
-
-  return snapshotToStats(data as LeslieStatsSnapshot);
 };
 
 Deno.serve(async (req) => {
