@@ -8,7 +8,23 @@ const headers = {
 };
 
 const TTL_MS = 5 * 60 * 1000;
+const QUERY_TIMEOUT_MS = 6000;
 let cache: { data: unknown; expires: number } | null = null;
+
+/** Never let a hanging DB call block the response. */
+const withTimeout = async <T>(p: PromiseLike<T>, ms = QUERY_TIMEOUT_MS): Promise<T> => {
+  let timer: number | undefined;
+  try {
+    return await Promise.race([
+      p as Promise<T>,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("db_timeout")), ms) as unknown as number;
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+};
 
 type LeslieStats = {
   active_companies?: number;
