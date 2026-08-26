@@ -52,12 +52,22 @@ const Index = () => {
   const [stats, setStats] = useState<LeslieStats | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    // Hard client-side cap so a hanging backend never blocks the page.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
     supabase.functions
-      .invoke("get-leslie-stats")
+      .invoke("get-leslie-stats", { signal: controller.signal })
       .then(({ data, error }) => {
-        if (!error && data) setStats(data as LeslieStats);
+        if (!cancelled && !error && data) setStats(data as LeslieStats);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => clearTimeout(timer));
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, []);
 
   useEffect(() => {

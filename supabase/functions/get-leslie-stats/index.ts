@@ -8,7 +8,23 @@ const headers = {
 };
 
 const TTL_MS = 5 * 60 * 1000;
+const QUERY_TIMEOUT_MS = 6000;
 let cache: { data: unknown; expires: number } | null = null;
+
+/** Never let a hanging DB call block the response. */
+const withTimeout = async <T>(p: PromiseLike<T>, ms = QUERY_TIMEOUT_MS): Promise<T> => {
+  let timer: number | undefined;
+  try {
+    return await Promise.race([
+      p as Promise<T>,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("db_timeout")), ms) as unknown as number;
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+};
 
 type LeslieStats = {
   active_companies?: number;
@@ -49,38 +65,48 @@ const snapshotToStats = (snapshot: LeslieStatsSnapshot): LeslieStats => ({
 });
 
 const persistSnapshot = async (supabase: ReturnType<typeof createClient>, stats: LeslieStats) => {
-  const { error } = await supabase
-    .from("leslie_stats_snapshot")
-    .upsert(
-      {
-        id: true,
-        total_active_jobs: stats.total_active_jobs ?? 0,
-        fully_enriched: stats.quality_active_jobs ?? 0,
-        employers: stats.active_companies ?? 0,
-        countries: stats.countries_covered ?? 0,
-        updated_at: stats.computed_at ?? new Date().toISOString(),
-      },
-      { onConflict: "id" },
+  try {
+    const { error } = await withTimeout(
+      supabase
+        .from("leslie_stats_snapshot")
+        .upsert(
+          {
+            id: true,
+            total_active_jobs: stats.total_active_jobs ?? 0,
+            fully_enriched: stats.quality_active_jobs ?? 0,
+            employers: stats.active_companies ?? 0,
+            countries: stats.countries_covered ?? 0,
+            updated_at: stats.computed_at ?? new Date().toISOString(),
+          },
+          { onConflict: "id" },
+        ),
     );
-
-  if (error) {
-    console.warn("leslie_stats_snapshot upsert warning:", errorMessage(error));
+    if (error) console.warn("leslie_stats_snapshot upsert warning:", errorMessage(error));
+  } catch (e) {
+    console.warn("leslie_stats_snapshot upsert skipped:", errorMessage(e));
   }
 };
 
 const readSnapshot = async (supabase: ReturnType<typeof createClient>) => {
-  const { data, error } = await supabase
-    .from("leslie_stats_snapshot")
-    .select("total_active_jobs, fully_enriched, employers, countries, updated_at")
-    .eq("id", true)
-    .maybeSingle();
+  try {
+    const { data, error } = await withTimeout(
+      supabase
+        .from("leslie_stats_snapshot")
+        .select("total_active_jobs, fully_enriched, employers, countries, updated_at")
+        .eq("id", true)
+        .maybeSingle(),
+    );
 
-  if (error || !data) {
-    console.error("leslie_stats_snapshot fallback error:", errorMessage(error));
+    if (error || !data) {
+      console.error("leslie_stats_snapshot fallback error:", errorMessage(error));
+      return null;
+    }
+
+    return snapshotToStats(data as LeslieStatsSnapshot);
+  } catch (e) {
+    console.error("leslie_stats_snapshot fallback timeout:", errorMessage(e));
     return null;
   }
-
-  return snapshotToStats(data as LeslieStatsSnapshot);
 };
 
 Deno.serve(async (req) => {
@@ -95,7 +121,15 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ fallback: true, error: "config" }), { headers, status: 200 });
     }
     const supabase = createClient(url, key);
-    const { data, error } = await supabase.from("leslie_stats").select("*").maybeSingle();
+    let data: unknown = null;
+    let error: unknown = null;
+    try {
+      const res = await withTimeout(supabase.from("leslie_stats").select("*").maybeSingle());
+      data = res.data;
+      error = res.error;
+    } catch (e) {
+      error = e;
+    }
     if (error) {
       console.error("leslie_stats query error:", errorMessage(error));
       const snapshot = await readSnapshot(supabase);
