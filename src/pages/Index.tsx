@@ -8,20 +8,16 @@ import { useTranslation } from "react-i18next";
 import LeslieAvatar from "@/components/LeslieAvatar";
 import leslieFullBody from "@/assets/leslie-fullbody.png";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  type LeslieStats,
+  STATIC_STATS_FALLBACK,
+  hasStatNumbers,
+  readCachedStats,
+  writeCachedStats,
+} from "@/data/statsFallback";
 
 // Feature flag for testimonials section (flip to true once we have real ones)
 const SHOW_TESTIMONIALS = false;
-
-type LeslieStats = {
-  active_sources?: number;
-  active_companies?: number;
-  countries_covered?: number;
-  total_active_jobs?: number;
-  quality_active_jobs?: number;
-  total_positions?: number;
-  quality_total_positions?: number;
-  last_ingest_run?: string | null;
-};
 
 /** Lightweight count-up: animates from 0 → value over ~1s using rAF. */
 function CountUp({ value, locale }: { value: number | null; locale: string }) {
@@ -49,7 +45,9 @@ const Index = () => {
   const navigate = useNavigate();
   const { user } = useUser();
   const { t, i18n } = useTranslation();
-  const [stats, setStats] = useState<LeslieStats | null>(null);
+  // Start from the browser's last good copy (or the baked-in floor) so the
+  // counters are never empty, then refresh from the live endpoint.
+  const [stats, setStats] = useState<LeslieStats>(() => readCachedStats() ?? STATIC_STATS_FALLBACK);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,7 +57,12 @@ const Index = () => {
     supabase.functions
       .invoke("get-leslie-stats", { signal: controller.signal })
       .then(({ data, error }) => {
-        if (!cancelled && !error && data) setStats(data as LeslieStats);
+        if (cancelled || error) return;
+        const fresh = data as LeslieStats | null;
+        if (hasStatNumbers(fresh)) {
+          setStats(fresh);
+          writeCachedStats(fresh);
+        }
       })
       .catch(() => {})
       .finally(() => clearTimeout(timer));
@@ -94,11 +97,11 @@ const Index = () => {
   ];
 
   // Show the real catalog size; enrichment progress is shown as a subtitle.
-  const jobCount = stats?.total_active_jobs ?? stats?.quality_active_jobs ?? null;
-  const qualityCount = stats?.quality_active_jobs ?? null;
-  const companies = stats?.active_companies ?? null;
-  const countries = stats?.countries_covered ?? null;
-  const sources = stats?.active_sources ?? 9;
+  const jobCount = stats.total_active_jobs ?? stats.quality_active_jobs ?? STATIC_STATS_FALLBACK.total_active_jobs!;
+  const qualityCount = stats.quality_active_jobs ?? null;
+  const companies = stats.active_companies ?? STATIC_STATS_FALLBACK.active_companies!;
+  const countries = stats.countries_covered ?? STATIC_STATS_FALLBACK.countries_covered!;
+  const sources = stats.active_sources ?? 9;
 
   const steps = [
     { num: "1", icon: MessagesSquare, title: t("landing.step1Title"), desc: t("landing.step1Desc") },
