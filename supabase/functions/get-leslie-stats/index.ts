@@ -8,8 +8,13 @@ const headers = {
 };
 
 const TTL_MS = 5 * 60 * 1000;
-const QUERY_TIMEOUT_MS = 6000;
-let cache: { data: unknown; expires: number } | null = null;
+// Keep individual DB waits short – the whole request must answer well under the client cap.
+const QUERY_TIMEOUT_MS = 4000;
+
+/** Fresh cache (served without touching the DB while valid). */
+let cache: { data: LeslieStats; expires: number } | null = null;
+/** Last known good payload – never expires; served whenever the DB is unreachable. */
+let lastGood: LeslieStats | null = null;
 
 /** Never let a hanging DB call block the response. */
 const withTimeout = async <T>(p: PromiseLike<T>, ms = QUERY_TIMEOUT_MS): Promise<T> => {
@@ -27,13 +32,17 @@ const withTimeout = async <T>(p: PromiseLike<T>, ms = QUERY_TIMEOUT_MS): Promise
 };
 
 type LeslieStats = {
+  active_sources?: number;
   active_companies?: number;
   countries_covered?: number;
   total_active_jobs?: number;
   quality_active_jobs?: number;
+  total_positions?: number;
+  quality_total_positions?: number;
   computed_at?: string | null;
   last_ingest_run?: string | null;
   from_snapshot?: boolean;
+  stale?: boolean;
 };
 
 type LeslieStatsSnapshot = {
@@ -64,6 +73,9 @@ const snapshotToStats = (snapshot: LeslieStatsSnapshot): LeslieStats => ({
   from_snapshot: true,
 });
 
+const hasNumbers = (s: LeslieStats | null | undefined): s is LeslieStats =>
+  !!s && typeof s.total_active_jobs === "number" && s.total_active_jobs > 0;
+
 const persistSnapshot = async (supabase: ReturnType<typeof createClient>, stats: LeslieStats) => {
   try {
     const { error } = await withTimeout(
@@ -87,7 +99,21 @@ const persistSnapshot = async (supabase: ReturnType<typeof createClient>, stats:
   }
 };
 
-const readSnapshot = async (supabase: ReturnType<typeof createClient>) => {
+const readMatview = async (supabase: ReturnType<typeof createClient>): Promise<LeslieStats | null> => {
+  try {
+    const { data, error } = await withTimeout(supabase.from("leslie_stats").select("*").maybeSingle());
+    if (error) {
+      console.error("leslie_stats query error:", errorMessage(error));
+      return null;
+    }
+    return hasNumbers(data as LeslieStats) ? (data as LeslieStats) : null;
+  } catch (e) {
+    console.error("leslie_stats query timeout:", errorMessage(e));
+    return null;
+  }
+};
+
+const readSnapshot = async (supabase: ReturnType<typeof createClient>): Promise<LeslieStats | null> => {
   try {
     const { data, error } = await withTimeout(
       supabase
@@ -96,12 +122,10 @@ const readSnapshot = async (supabase: ReturnType<typeof createClient>) => {
         .eq("id", true)
         .maybeSingle(),
     );
-
     if (error || !data) {
       console.error("leslie_stats_snapshot fallback error:", errorMessage(error));
       return null;
     }
-
     return snapshotToStats(data as LeslieStatsSnapshot);
   } catch (e) {
     console.error("leslie_stats_snapshot fallback timeout:", errorMessage(e));
@@ -109,42 +133,46 @@ const readSnapshot = async (supabase: ReturnType<typeof createClient>) => {
   }
 };
 
+const respond = (body: unknown) => new Response(JSON.stringify(body), { headers, status: 200 });
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers });
   try {
-    if (cache && cache.expires > Date.now()) {
-      return new Response(JSON.stringify(cache.data), { headers, status: 200 });
-    }
+    if (cache && cache.expires > Date.now()) return respond(cache.data);
+
     const url = Deno.env.get("SUPABASE_URL");
     const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!url || !key) {
-      return new Response(JSON.stringify({ fallback: true, error: "config" }), { headers, status: 200 });
+      return respond(lastGood ? { ...lastGood, stale: true } : { fallback: true, error: "config" });
     }
     const supabase = createClient(url, key);
-    let data: unknown = null;
-    let error: unknown = null;
-    try {
-      const res = await withTimeout(supabase.from("leslie_stats").select("*").maybeSingle());
-      data = res.data;
-      error = res.error;
-    } catch (e) {
-      error = e;
+
+    // Query the matview and the snapshot in parallel so a dead DB costs at most one timeout window.
+    const [matview, snapshot] = await Promise.all([readMatview(supabase), readSnapshot(supabase)]);
+
+    if (matview) {
+      lastGood = matview;
+      cache = { data: matview, expires: Date.now() + TTL_MS };
+      // Fire-and-forget: don't hold the response for the snapshot write.
+      persistSnapshot(supabase, matview);
+      return respond(matview);
     }
-    if (error) {
-      console.error("leslie_stats query error:", errorMessage(error));
-      const snapshot = await readSnapshot(supabase);
-      if (snapshot) {
-        cache = { data: snapshot, expires: Date.now() + TTL_MS };
-        return new Response(JSON.stringify(snapshot), { headers, status: 200 });
-      }
-      return new Response(JSON.stringify({ fallback: true, error: errorMessage(error) }), { headers, status: 200 });
+
+    if (snapshot) {
+      lastGood = snapshot;
+      // Short cache so we retry the matview soon.
+      cache = { data: snapshot, expires: Date.now() + 60 * 1000 };
+      return respond(snapshot);
     }
-    const payload = (data ?? {}) as LeslieStats;
-    await persistSnapshot(supabase, payload);
-    cache = { data: payload, expires: Date.now() + TTL_MS };
-    return new Response(JSON.stringify(payload), { headers, status: 200 });
+
+    if (lastGood) {
+      return respond({ ...lastGood, stale: true });
+    }
+
+    return respond({ fallback: true, error: "db_timeout" });
   } catch (e) {
     console.error("get-leslie-stats unhandled:", e);
-    return new Response(JSON.stringify({ fallback: true, error: String(e?.message ?? e) }), { headers, status: 200 });
+    if (lastGood) return respond({ ...lastGood, stale: true });
+    return respond({ fallback: true, error: String((e as Error)?.message ?? e) });
   }
 });
