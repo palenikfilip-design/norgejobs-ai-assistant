@@ -1,4 +1,4 @@
 # Roadmap
 
-- [ ] Zmapovat Archiles a všechny aktuální zdroje pracovních nabídek
-- [ ] Shrnout způsob načítání a stav zdrojů pro uživatele
+- [x] Zmapovat Archiles a všechny aktuální zdroje pracovních nabídek
+- [x] Shrnout způsob načítání a stav zdrojů pro uživatele
