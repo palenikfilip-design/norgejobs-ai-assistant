@@ -1146,14 +1146,14 @@ async function fetchDetailJobtechdev(_s: JobSource, job: NormalizedJob & { salar
 
 /**
  * Arbeitsagentur (Germany) — Bundesagentur jobdetails endpoint.
- * GET https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v2/jobdetails/{base64(refnr)}
+ * GET https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v4/jobdetails/{base64url(referenznummer)}  (v2/v3/v6 return 403)
  * Headers: X-API-Key: jobboerse-jobsuche  — 3 req/s
  */
 async function fetchDetailArbeitsagentur(_s: JobSource, job: NormalizedJob & { salary?: string | null }): Promise<void> {
   if (!job.external_id) return;
-  // v2/jobdetails expects URL-safe base64 of the refnr.
+  // v4/jobdetails expects URL-safe base64 of the referenznummer.
   const refnrB64 = btoa(job.external_id).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  const url = `https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v2/jobdetails/${refnrB64}`;
+  const url = `https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v4/jobdetails/${refnrB64}`;
   try {
     const d = await fetchJson(url, {
       headers: {
@@ -1162,7 +1162,7 @@ async function fetchDetailArbeitsagentur(_s: JobSource, job: NormalizedJob & { s
         Accept: "application/json",
       },
     });
-    const beschreibung = d?.stellenbeschreibung ?? null;
+    const beschreibung = d?.stellenangebotsBeschreibung ?? d?.stellenbeschreibung ?? null;
     const arbeitgeber = d?.arbeitgeberdarstellung ?? null;
     const combined = [beschreibung, arbeitgeber && `\n\n${arbeitgeber}`]
       .filter(Boolean)
@@ -1172,10 +1172,10 @@ async function fetchDetailArbeitsagentur(_s: JobSource, job: NormalizedJob & { s
     if (combined) job.description = combined;
     (job as any).raw_data = {
       ...(job.raw_data ?? {}),
-      arbeitgeber: d?.arbeitgeber ?? null,
+      arbeitgeber: d?.firma ?? d?.arbeitgeber ?? null,
       branche: d?.branche ?? null,
-      beruf: d?.beruf ?? null,
-      eintrittsdatum: d?.eintrittsdatum ?? null,
+      beruf: d?.hauptberuf ?? d?.beruf ?? null,
+      eintrittsdatum: d?.eintrittszeitraum?.von ?? d?.eintrittsdatum ?? null,
     };
   } catch (e) {
     (job as any).raw_data = { ...(job.raw_data ?? {}), detail_fetch_error: e instanceof Error ? e.message : String(e) };
