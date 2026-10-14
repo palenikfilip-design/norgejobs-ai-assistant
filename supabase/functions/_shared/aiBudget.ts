@@ -1,14 +1,12 @@
 // Shared cost-tracking + daily-budget enforcement for all AI-calling edge functions.
 // Rates are approximate published Lovable AI gateway prices, USD per 1M tokens.
 const RATES: Record<string, { in: number; out: number }> = {
-  "google/gemini-2.5-flash-lite": { in: 0.025, out: 0.10 },
-  "google/gemini-3.1-flash-lite-preview": { in: 0.025, out: 0.10 },
-  "google/gemini-2.5-flash": { in: 0.075, out: 0.30 },
-  "google/gemini-2.5-pro": { in: 0.30, out: 2.50 },
+  "google/gemini-3.1-flash-lite": { in: 0.025, out: 0.10 },
+  "google/gemini-3-flash-preview": { in: 0.30, out: 2.50 },
 };
 
 export function estimateCost(model: string, inputTokens: number, outputTokens: number): number {
-  const r = RATES[model] ?? RATES["google/gemini-2.5-flash"];
+  const r = RATES[model] ?? RATES["google/gemini-3-flash-preview"];
   return (inputTokens / 1_000_000) * r.in + (outputTokens / 1_000_000) * r.out;
 }
 

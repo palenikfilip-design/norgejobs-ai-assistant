@@ -384,7 +384,7 @@ Be conservative. If unsure, use "unknown" or null. Better to mark for human revi
       "X-Lovable-AIG-SDK": "raw",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash-lite",
+      model: "google/gemini-3.1-flash-lite",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
     }),
@@ -468,7 +468,7 @@ async function enrichJob(
     const ai = await callArchilesAi(job, lovableApiKey);
     await logAiCall(supabase, {
       function_name: "archiles-enrich",
-      model: "google/gemini-2.5-flash-lite",
+      model: "google/gemini-3.1-flash-lite",
       usage: (callArchilesAi as any)._lastUsage,
     });
     const aiConfidence = Math.max(0, Math.min(100, Number(ai.confidence ?? 0)));

@@ -127,7 +127,7 @@ ${convo}`;
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-3-flash-preview",
       messages: [{ role: "user", content: prompt }],
     }),
   });
@@ -143,7 +143,7 @@ ${convo}`;
     const { logAiCall } = await import("../_shared/aiBudget.ts");
     await logAiCall(supabase, {
       function_name: "extract-preferences",
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-3-flash-preview",
       usage: data?.usage ?? null,
     });
   } catch { /* best-effort */ }

@@ -13,7 +13,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MODEL = "google/gemini-2.5-flash-lite";
+const MODEL = "google/gemini-3.1-flash-lite";
 
 async function translateOne(
   apiKey: string,
