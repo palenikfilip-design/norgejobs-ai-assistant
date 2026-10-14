@@ -2,8 +2,6 @@
 // Rates are approximate published Lovable AI gateway prices, USD per 1M tokens.
 const RATES: Record<string, { in: number; out: number }> = {
   "google/gemini-3.1-flash-lite": { in: 0.025, out: 0.10 },
-  "google/gemini-3.1-flash-lite": { in: 0.025, out: 0.10 },
-  "google/gemini-3-flash-preview": { in: 0.075, out: 0.30 },
   "google/gemini-3-flash-preview": { in: 0.30, out: 2.50 },
 };
 
