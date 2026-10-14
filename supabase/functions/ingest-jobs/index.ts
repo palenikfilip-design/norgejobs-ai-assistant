@@ -729,9 +729,75 @@ async function adapterAshby(s: JobSource): Promise<NormalizedJob[]> {
     });
 }
 
+/**
+ * Arbeitsagentur (DE) — jobsuche-service pc/v6/jobs (v4 search was retired Aug 2026).
+ * v6 fields: ergebnisliste[], stellenangebotsTitel, firma, referenznummer,
+ * stellenlokationen[0].adresse.ort, gehaltsspanneVon/Bis + verguetungsangabe,
+ * datumErsteVeroeffentlichung, arbeitszeit*, vertragsdauer, hauptberuf.
+ * Defensive: jobs missing title/refnr are logged and skipped, never crash the run.
+ */
+async function adapterArbeitsagenturV6(s: JobSource): Promise<NormalizedJob[]> {
+  let url = String(s.config.url ?? "").replace(/\/pc\/v\d+\/jobs/i, "/pc/v6/jobs");
+  if (!/\/pc\/v6\/jobs/i.test(url)) url = "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v6/jobs?size=100";
+  const headers: Record<string, string> = {
+    "X-API-Key": "jobboerse-jobsuche",
+    "User-Agent": "Mozilla/5.0 (compatible; LeslieBot/1.0; +https://leslie.app)",
+    Accept: "application/json",
+    ...(s.config.headers ?? {}),
+  };
+  const data = await fetchJson(url, { headers });
+  const items: any[] = Array.isArray(data?.ergebnisliste) ? data.ergebnisliste : [];
+  if (!Array.isArray(data?.ergebnisliste)) console.warn(`[arbeitsagentur] response has no ergebnisliste; keys=${Object.keys(data ?? {}).join(",")}`);
+  const skipped: Record<string, number> = {};
+  const out: NormalizedJob[] = [];
+  for (const it of items) {
+    const title = it?.stellenangebotsTitel;
+    const ref = it?.referenznummer;
+    if (!title) { skipped.missing_title = (skipped.missing_title ?? 0) + 1; continue; }
+    if (!ref) { skipped.missing_referenznummer = (skipped.missing_referenznummer ?? 0) + 1; continue; }
+    const addr = it?.stellenlokationen?.[0]?.adresse ?? null;
+    if (!addr?.ort) skipped.missing_location_kept = (skipped.missing_location_kept ?? 0) + 1;
+    const smin = typeof it?.gehaltsspanneVon === "number" ? it.gehaltsspanneVon : null;
+    const smax = typeof it?.gehaltsspanneBis === "number" ? it.gehaltsspanneBis : null;
+    const period = it?.verguetungsangabe === "STUNDENLOHN" ? "hour" : it?.verguetungsangabe ? String(it.verguetungsangabe).toLowerCase() : null;
+    const jobType = it?.arbeitszeitVollzeit ? "full_time" : (it?.arbeitszeitTeilzeitVormittag || it?.arbeitszeitTeilzeitNachmittag || it?.arbeitszeitTeilzeitAbend || it?.arbeitszeitTeilzeitFlexibel) ? "part_time" : null;
+    const posted = it?.datumErsteVeroeffentlichung ?? it?.veroeffentlichungszeitraum?.von ?? null;
+    const salary = smin != null || smax != null
+      ? `${smin ?? ""}${smax != null && smax !== smin ? `–${smax}` : ""} EUR${period === "hour" ? "/h" : ""}`
+      : null;
+    out.push({
+      external_id: String(ref),
+      source_portal: `portal:${s.name}`,
+      source_id: s.id,
+      title: String(title),
+      company: it?.firma ? String(it.firma) : s.name,
+      description: null,
+      location: addr?.ort ? String(addr.ort) : null,
+      country: s.country,
+      url: `https://www.arbeitsagentur.de/jobsuche/jobdetail/${encodeURIComponent(String(ref))}`,
+      job_type: jobType,
+      salary_min: smin, salary_max: smax, currency: smin != null || smax != null ? "EUR" : null,
+      salary,
+      posted_at: posted ? new Date(posted).toISOString() : null,
+      raw_data: {
+        api_version: "v6",
+        plz: addr?.plz ?? null, region: addr?.region ?? null,
+        lat: it?.stellenlokationen?.[0]?.breite ?? null, lon: it?.stellenlokationen?.[0]?.laenge ?? null,
+        salary_period: period, vertragsdauer: it?.vertragsdauer ?? null,
+        hauptberuf: it?.hauptberuf ?? null, eintrittsdatum: it?.eintrittszeitraum?.von ?? null,
+        stellenangebotsart: it?.stellenangebotsart ?? null,
+      },
+      fetched_at: nowIso(),
+    } as NormalizedJob);
+  }
+  if (Object.keys(skipped).length) console.warn(`[arbeitsagentur] mapping notes: ${JSON.stringify(skipped)}`);
+  return out;
+}
+
 async function adapterPortalApi(s: JobSource): Promise<NormalizedJob[]> {
   const url = String(s.config.url ?? "");
   if (!url) throw new Error("portal_api: missing config.url");
+  if (/arbeitsagentur\.de/i.test(url)) return adapterArbeitsagenturV6(s);
   if (s.config.token_required && !s.config.token) {
     throw new Error("portal_api: token_required but no config.token set");
   }
