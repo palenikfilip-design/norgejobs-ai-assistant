@@ -656,7 +656,7 @@ Deno.serve(async (req) => {
       const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "google/gemini-2.5-flash", messages: convo, tools: TOOLS, tool_choice: "auto" }),
+        body: JSON.stringify({ model: "google/gemini-3-flash-preview", messages: convo, tools: TOOLS, tool_choice: "auto" }),
       });
       if (!aiResp.ok) {
         const errText = await aiResp.text().catch(() => "");
@@ -668,7 +668,7 @@ Deno.serve(async (req) => {
       const data = await aiResp.json();
       await logAiCall(getServiceSupabase(), {
         function_name: "chat-leslie",
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3-flash-preview",
         usage: data?.usage ?? null,
       });
       const msg = data?.choices?.[0]?.message;

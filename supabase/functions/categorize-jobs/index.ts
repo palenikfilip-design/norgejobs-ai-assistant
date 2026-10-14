@@ -48,7 +48,7 @@ async function classifyBatch(jobs: JobRow[], supabase: any): Promise<string[]> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-3-flash-preview",
       messages: [
         {
           role: "system",
@@ -69,7 +69,7 @@ async function classifyBatch(jobs: JobRow[], supabase: any): Promise<string[]> {
   const data = await res.json();
   await logAiCall(supabase, {
     function_name: "categorize-jobs",
-    model: "google/gemini-2.5-flash",
+    model: "google/gemini-3-flash-preview",
     usage: data?.usage ?? null,
   });
   const content = data?.choices?.[0]?.message?.content ?? "{}";

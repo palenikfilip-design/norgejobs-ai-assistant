@@ -227,7 +227,7 @@ Deno.serve(async (req) => {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "google/gemini-3-flash-preview",
           messages: chatMessages,
           tools: TOOLS,
         }),
@@ -239,7 +239,7 @@ Deno.serve(async (req) => {
       const ai = await aiResp.json();
       await logAiCall(admin, {
         function_name: "chat-archiles",
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3-flash-preview",
         usage: ai?.usage ?? null,
       });
       const choice = ai.choices?.[0]?.message;

@@ -10,7 +10,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MODEL = "google/gemini-2.5-flash";
+const MODEL = "google/gemini-3-flash-preview";
 
 const SYSTEM = `Jsi Leslie, asistentka pro hledání práce. Uživatel ti česky napsal korekci toho, co sis o něm myslela.
 Tvůj úkol: převeď to na konkrétní operace v JSON formátu a krátce potvrď, co jsi změnila.
