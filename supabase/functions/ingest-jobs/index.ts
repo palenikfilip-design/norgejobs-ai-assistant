@@ -759,7 +759,7 @@ async function adapterArbeitsagenturV6(s: JobSource): Promise<NormalizedJob[]> {
     if (!addr?.ort) skipped.missing_location_kept = (skipped.missing_location_kept ?? 0) + 1;
     const smin = typeof it?.gehaltsspanneVon === "number" ? it.gehaltsspanneVon : null;
     const smax = typeof it?.gehaltsspanneBis === "number" ? it.gehaltsspanneBis : null;
-    const period = it?.verguetungsangabe === "STUNDENLOHN" ? "hour" : it?.verguetungsangabe ? String(it.verguetungsangabe).toLowerCase() : null;
+    const period = it?.verguetungsangabe === "STUNDENLOHN" ? "hour" : it?.verguetungsangabe && it.verguetungsangabe !== "KEINE_ANGABEN" ? String(it.verguetungsangabe).toLowerCase() : null;
     const jobType = it?.arbeitszeitVollzeit ? "full_time" : (it?.arbeitszeitTeilzeitVormittag || it?.arbeitszeitTeilzeitNachmittag || it?.arbeitszeitTeilzeitAbend || it?.arbeitszeitTeilzeitFlexibel) ? "part_time" : null;
     const posted = it?.datumErsteVeroeffentlichung ?? it?.veroeffentlichungszeitraum?.von ?? null;
     const salary = smin != null || smax != null
