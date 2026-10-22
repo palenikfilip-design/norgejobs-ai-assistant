@@ -880,6 +880,8 @@ export type Database = {
           created_at: string
           currency: string | null
           data_completeness: string
+          deactivated_at: string | null
+          deactivation_reason: string | null
           description: string | null
           display_category: string
           enriched_at: string | null
@@ -890,9 +892,11 @@ export type Database = {
           foreigner_friendly: boolean | null
           foreigner_signals: Json | null
           id: string
+          is_active: boolean
           is_seasonal: boolean | null
           job_type: string | null
           language_requirements: Json
+          last_liveness_check: string | null
           location: string | null
           needs_review: boolean
           positions_available: number
@@ -932,6 +936,8 @@ export type Database = {
           created_at?: string
           currency?: string | null
           data_completeness?: string
+          deactivated_at?: string | null
+          deactivation_reason?: string | null
           description?: string | null
           display_category?: string
           enriched_at?: string | null
@@ -942,9 +948,11 @@ export type Database = {
           foreigner_friendly?: boolean | null
           foreigner_signals?: Json | null
           id?: string
+          is_active?: boolean
           is_seasonal?: boolean | null
           job_type?: string | null
           language_requirements?: Json
+          last_liveness_check?: string | null
           location?: string | null
           needs_review?: boolean
           positions_available?: number
@@ -984,6 +992,8 @@ export type Database = {
           created_at?: string
           currency?: string | null
           data_completeness?: string
+          deactivated_at?: string | null
+          deactivation_reason?: string | null
           description?: string | null
           display_category?: string
           enriched_at?: string | null
@@ -994,9 +1004,11 @@ export type Database = {
           foreigner_friendly?: boolean | null
           foreigner_signals?: Json | null
           id?: string
+          is_active?: boolean
           is_seasonal?: boolean | null
           job_type?: string | null
           language_requirements?: Json
+          last_liveness_check?: string | null
           location?: string | null
           needs_review?: boolean
           positions_available?: number
