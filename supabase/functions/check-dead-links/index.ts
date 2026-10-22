@@ -82,13 +82,9 @@ async function checkBatch(
         if (!upErr) deactivated++;
         else console.error("update cached_matches failed:", upErr.message);
       } else {
-        // public_jobs has no is_active column — delete the dead row.
-        const { error: delErr } = await supabase
-          .from(table)
-          .delete()
-          .eq("id", row.id);
-        if (!delErr) deactivated++;
-        else console.error("delete public_jobs failed:", delErr.message);
+        // Never hard-delete catalog rows; public_jobs liveness is owned by
+        // check-job-liveness (404/410 only). Skip here.
+        continue;
       }
     }
   }
@@ -111,7 +107,7 @@ Deno.serve(async (req) => {
     });
 
     const cm = await checkBatch(supabase, "cached_matches", "job_url");
-    const pj = await checkBatch(supabase, "public_jobs", "url");
+    const pj = { checked: 0, deactivated: 0, note: "handled by check-job-liveness" };
 
     const result = {
       cached_matches: cm,

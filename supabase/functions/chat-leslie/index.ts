@@ -207,6 +207,7 @@ async function executeSearch(
   const svc = getServiceSupabase();
   let q = svc.from("public_jobs")
     .select(SELECT_COLS)
+    .eq("is_active", true)
     .not("enriched_at", "is", null)
     .in("data_completeness", ["complete","partial"]);
   if (attempt.countries && attempt.countries.length > 0) {

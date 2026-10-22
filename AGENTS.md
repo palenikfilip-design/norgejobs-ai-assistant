@@ -1,0 +1,1 @@
+- Catalog rows in public_jobs are never hard-deleted: liveness sets is_active=false (only on HTTP 404/410) and every reader/stat view filters is_active=true — keeps history and avoids false deletions from flaky portals.

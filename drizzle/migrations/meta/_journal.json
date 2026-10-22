@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1792709426005,
+      "tag": "0000_public_jobs_liveness_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792709441980,
+      "tag": "0001_stats_views_active_only",
+      "breakpoints": true
+    }
+  ]
+}

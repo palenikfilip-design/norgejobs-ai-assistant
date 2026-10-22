@@ -91,6 +91,7 @@ async function fetchCandidates(
     .select(
       "id,source_portal,external_id,title,company,location,country,region,salary,salary_min,salary_max,currency,salary_normalized_eur,url,job_type,category,is_seasonal,description,trust_score,data_completeness,additional_locations,skill_class,foreigner_friendly,foreigner_signals",
     )
+    .eq("is_active", true)
     .not("enriched_at", "is", null)
     .order("trust_score", { ascending: false })
     .order("created_at", { ascending: false })
