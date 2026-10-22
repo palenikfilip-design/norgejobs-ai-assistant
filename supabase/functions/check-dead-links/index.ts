@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
     });
 
     const cm = await checkBatch(supabase, "cached_matches", "job_url");
-    const pj = await checkBatch(supabase, "public_jobs", "url");
+    const pj = { checked: 0, deactivated: 0, note: "handled by check-job-liveness" };
 
     const result = {
       cached_matches: cm,
