@@ -295,7 +295,7 @@ async function adapterHtmlIschgl(emp: EmployerRow): Promise<NormalizedJob[]> {
       const html = await fetchText(url);
       // <title>Job title | Ischgl</title>
       const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
-      let title = titleMatch ? stripHtml(titleMatch[1]).replace(/\s*[|\-–·]\s*Ischgl.*$/i, "").trim() : "";
+      let title = titleMatch ? stripHtml(titleMatch[1]).replace(/\s*\|.*$/, "").replace(/\s*[\-–·]\s*Ischgl.*$/i, "").trim() : "";
       if (!title) {
         const h1 = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
         title = h1 ? stripHtml(h1[1]) : `Ischgl job ${id}`;
@@ -350,6 +350,7 @@ async function adapterHtmlIschgl(emp: EmployerRow): Promise<NormalizedJob[]> {
       console.warn(`[html_ischgl] detail ${id} skipped:`, err instanceof Error ? err.message : err);
     }
   }
+  }));
   return jobs;
 }
 
