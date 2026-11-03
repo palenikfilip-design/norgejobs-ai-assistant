@@ -1,1 +1,2 @@
 - Catalog rows in public_jobs are never hard-deleted: liveness sets is_active=false (only on HTTP 404/410) and every reader/stat view filters is_active=true — keeps history and avoids false deletions from flaky portals.
+- Liveness sweep is self-driving: pg_cron calls check-job-liveness every 5 min with a DB lease, adaptive batch size and per-source 429 backoff stored in liveness_* tables; rows re-checked after 3 days — keeps the catalog fresh without manual runs.
