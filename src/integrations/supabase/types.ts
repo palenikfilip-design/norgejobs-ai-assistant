@@ -780,6 +780,87 @@ export type Database = {
         }
         Relationships: []
       }
+      liveness_runs: {
+        Row: {
+          batch_size: number | null
+          by_source: Json
+          checked: number
+          deactivated: number
+          duration_ms: number | null
+          id: string
+          inconclusive: number
+          note: string | null
+          started_at: string
+        }
+        Insert: {
+          batch_size?: number | null
+          by_source?: Json
+          checked?: number
+          deactivated?: number
+          duration_ms?: number | null
+          id?: string
+          inconclusive?: number
+          note?: string | null
+          started_at?: string
+        }
+        Update: {
+          batch_size?: number | null
+          by_source?: Json
+          checked?: number
+          deactivated?: number
+          duration_ms?: number | null
+          id?: string
+          inconclusive?: number
+          note?: string | null
+          started_at?: string
+        }
+        Relationships: []
+      }
+      liveness_source_backoff: {
+        Row: {
+          backoff_until: string | null
+          consecutive_429: number
+          delay_ms: number
+          source_portal: string
+          updated_at: string
+        }
+        Insert: {
+          backoff_until?: string | null
+          consecutive_429?: number
+          delay_ms?: number
+          source_portal: string
+          updated_at?: string
+        }
+        Update: {
+          backoff_until?: string | null
+          consecutive_429?: number
+          delay_ms?: number
+          source_portal?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      liveness_state: {
+        Row: {
+          batch_size: number
+          id: number
+          lease_until: string | null
+          updated_at: string
+        }
+        Insert: {
+          batch_size?: number
+          id?: number
+          lease_until?: string | null
+          updated_at?: string
+        }
+        Update: {
+          batch_size?: number
+          id?: number
+          lease_until?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           age: number | null
@@ -1508,6 +1589,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      liveness_acquire_lease: { Args: { _seconds: number }; Returns: number }
       map_display_category: { Args: { _cat: string }; Returns: string }
       register_job_view: { Args: { p_job_url: string }; Returns: number }
       set_ingest_cron_secret: { Args: { _value: string }; Returns: undefined }
