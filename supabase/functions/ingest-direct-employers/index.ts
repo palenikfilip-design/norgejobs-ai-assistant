@@ -167,6 +167,18 @@ async function adapterSmartRecruiters(emp: EmployerRow): Promise<NormalizedJob[]
     }));
 }
 
+function parseWorkdayPosted(v: unknown): string | null {
+  if (typeof v !== "string" || !v) return null;
+  const s = v.toLowerCase();
+  const day = 86_400_000;
+  if (s.includes("today")) return new Date().toISOString();
+  if (s.includes("yesterday")) return new Date(Date.now() - day).toISOString();
+  const m = s.match(/(\d+)\+?\s*days?/);
+  if (m) return new Date(Date.now() - Number(m[1]) * day).toISOString();
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 async function adapterWorkday(emp: EmployerRow): Promise<NormalizedJob[]> {
   const tenant = String(emp.ats_config.tenant ?? "");
   const wd = Number(emp.ats_config.wd ?? 0);
