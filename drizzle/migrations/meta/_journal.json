@@ -15,6 +15,13 @@
       "when": 1792709441980,
       "tag": "0001_stats_views_active_only",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793738981911,
+      "tag": "0002_liveness_scheduler_state",
+      "breakpoints": true
     }
   ]
 }

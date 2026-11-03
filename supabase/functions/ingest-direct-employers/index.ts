@@ -242,44 +242,60 @@ async function adapterWpRest(emp: EmployerRow): Promise<NormalizedJob[]> {
     }));
 }
 
-// Ischgl HTML adapter — server-side rendered listing at /en/jobs
-// Detail URLs follow /en/jobs/<slug>_job_<id>
+// Ischgl HTML adapter. Since mid-2026 www.ischgl.com/en/jobs redirects to
+// www.paznaun-ischgl.com/en/crew/jobs/jobs?regions[]=ischgl (paginated, ?page=N).
+// Detail URLs: /en/crew/jobs/jobs/<slug>_job_<id>; "_job_business_<id>" are
+// employer profiles, not jobs, and are skipped.
 async function adapterHtmlIschgl(emp: EmployerRow): Promise<NormalizedJob[]> {
   const cfg = emp.ats_config as Record<string, unknown>;
-  const base = String(cfg.base ?? "https://www.ischgl.com").replace(/\/+$/, "");
-  const listingUrl = String(cfg.listing_url ?? `${base}/en/jobs`);
+  const listingUrl = String(cfg.listing_url ?? "https://www.paznaun-ischgl.com/en/crew/jobs/jobs?regions%5B0%5D=ischgl");
   const sourcePortal = String(cfg.source_portal ?? "html:ischgl");
   const isSeasonal = cfg.is_seasonal === true;
   const seasonalType = cfg.seasonal_type ?? null;
   const category = cfg.category ?? null;
   const displayCategory = cfg.display_category ?? null;
 
-  let listingHtml: string;
+  // Resolve redirects once to learn the real origin + listing path.
+  let finalListing: URL;
   try {
-    listingHtml = await fetchText(listingUrl);
+    const res = await fetch(listingUrl, { headers: { "User-Agent": "Mozilla/5.0 (compatible; LeslieJobIngest/1.0)", Accept: "text/html" } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    await res.body?.cancel().catch(() => {});
+    finalListing = new URL(res.url || listingUrl);
   } catch (err) {
     console.error("[html_ischgl] listing fetch failed", err);
     return [];
   }
+  const base = finalListing.origin;
 
-  // Match links like /en/jobs/<slug>_job_<id> — capture once per id.
-  const linkRe = /href=["'](\/en\/jobs\/[a-z0-9][^"'\s]*?_job_(\d+)[^"']*)["']/gi;
+  const linkRe = /href=["']((?:https?:\/\/[^"'/]+)?\/[a-z]{2}\/(?:crew\/jobs\/)?jobs\/(?:jobs\/)?[a-z0-9][^"'\s]*?_job_(\d+))["']/gi;
   const seen = new Map<string, string>();
-  let m: RegExpExecArray | null;
-  while ((m = linkRe.exec(listingHtml)) !== null) {
-    const path = m[1];
-    const id = m[2];
-    if (!seen.has(id)) seen.set(id, path);
+  for (let page = 1; page <= 20; page++) {
+    const u = new URL(finalListing.toString());
+    u.searchParams.set("page", String(page));
+    let html: string;
+    try { html = await fetchText(u.toString()); } catch (err) { console.warn("[html_ischgl] page", page, err); break; }
+    const before = seen.size;
+    let m: RegExpExecArray | null;
+    while ((m = linkRe.exec(html)) !== null) {
+      if (!seen.has(m[2])) seen.set(m[2], m[1]);
+    }
+    if (seen.size === before) break; // no new jobs → past last page
   }
+  console.log(`[html_ischgl] found ${seen.size} job links`);
 
   const jobs: NormalizedJob[] = [];
-  for (const [id, path] of seen) {
-    const url = `${base}${path}`;
+  const entries = [...seen];
+  let idx = 0;
+  await Promise.all(Array.from({ length: 5 }, async () => {
+  while (idx < entries.length) {
+    const [id, path] = entries[idx++];
+    const url = path.startsWith("http") ? path : `${base}${path}`;
     try {
       const html = await fetchText(url);
       // <title>Job title | Ischgl</title>
       const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
-      let title = titleMatch ? stripHtml(titleMatch[1]).replace(/\s*[|\-–·]\s*Ischgl.*$/i, "").trim() : "";
+      let title = titleMatch ? stripHtml(titleMatch[1]).replace(/\s*\|.*$/, "").replace(/\s*[\-–·]\s*Ischgl.*$/i, "").trim() : "";
       if (!title) {
         const h1 = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
         title = h1 ? stripHtml(h1[1]) : `Ischgl job ${id}`;
@@ -334,6 +350,7 @@ async function adapterHtmlIschgl(emp: EmployerRow): Promise<NormalizedJob[]> {
       console.warn(`[html_ischgl] detail ${id} skipped:`, err instanceof Error ? err.message : err);
     }
   }
+  }));
   return jobs;
 }
 
