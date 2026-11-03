@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { arbeitnowCountry } from "./arbeitnowCountry.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -949,7 +950,7 @@ async function adapterArbeitnow(s: JobSource): Promise<NormalizedJob[]> {
         company: it.company_name ? String(it.company_name) : null,
         description: stripHtml(it.description ?? null),
         location: location ? String(location) : null,
-        country: null, // Arbeitnow does not expose a reliable country
+        country: arbeitnowCountry(location ? String(location) : null, remote),
         url,
         job_type: Array.isArray(it.job_types) && it.job_types[0] ? String(it.job_types[0]) : null,
         salary_min: null, salary_max: null, currency: null,

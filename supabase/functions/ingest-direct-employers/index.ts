@@ -167,6 +167,18 @@ async function adapterSmartRecruiters(emp: EmployerRow): Promise<NormalizedJob[]
     }));
 }
 
+function parseWorkdayPosted(v: unknown): string | null {
+  if (typeof v !== "string" || !v) return null;
+  const s = v.toLowerCase();
+  const day = 86_400_000;
+  if (s.includes("today")) return new Date().toISOString();
+  if (s.includes("yesterday")) return new Date(Date.now() - day).toISOString();
+  const m = s.match(/(\d+)\+?\s*days?/);
+  if (m) return new Date(Date.now() - Number(m[1]) * day).toISOString();
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 async function adapterWorkday(emp: EmployerRow): Promise<NormalizedJob[]> {
   const tenant = String(emp.ats_config.tenant ?? "");
   const wd = Number(emp.ats_config.wd ?? 0);
@@ -194,7 +206,8 @@ async function adapterWorkday(emp: EmployerRow): Promise<NormalizedJob[]> {
       salary_min: null,
       salary_max: null,
       currency: null,
-      posted_at: it.postedOn ?? null,
+      // Workday returns relative text ("Posted Today", "Posted 4 Days Ago", "Posted 30+ Days Ago")
+      posted_at: parseWorkdayPosted(it.postedOn),
       raw_data: {},
       fetched_at: nowIso(),
     }));
@@ -425,7 +438,9 @@ Deno.serve(async (req) => {
 
       results.push({ company: emp.company_name, source, total: rows.length, added, duration_ms: duration });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = err instanceof Error
+        ? err.message
+        : (err && typeof err === "object" ? JSON.stringify(err) : String(err));
       console.error(`[ingest-direct-employers] ${emp.company_name} failed`, msg);
       errors.push({ company: emp.company_name, error: msg });
       await supabase.from("ingest_logs").insert({
