@@ -80,6 +80,11 @@ Deno.serve(async (req) => {
   let body: { mode?: string; batch_size?: number } = {};
   try { body = await req.json(); } catch { /* noop */ }
   const mode = body.mode ?? "count";
+  // Writes + AI spend are service-role only (prevents anonymous cost abuse).
+  const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  if (mode !== "count" && bearer !== Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) {
+    return json({ error: "forbidden" }, 403);
+  }
 
   if (mode === "count") {
     const { count } = await baseQuery(supabase, "id", { count: "exact", head: true });
