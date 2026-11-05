@@ -45,8 +45,8 @@ const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status });
 
 // Queue: active + enriched + (skill_class null OR (foreigner_friendly null AND foreigner_signals null))
-function baseQuery(supabase: any, cols: string) {
-  return supabase.from("public_jobs").select(cols)
+function baseQuery(supabase: any, cols: string, opts?: Record<string, unknown>) {
+  return supabase.from("public_jobs").select(cols, opts)
     .eq("is_active", true).not("enriched_at", "is", null)
     .or("skill_class.is.null,and(foreigner_friendly.is.null,foreigner_signals.is.null)");
 }
@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
   const mode = body.mode ?? "count";
 
   if (mode === "count") {
-    const { count } = await baseQuery(supabase, "id").select("id", { count: "exact", head: true });
+    const { count } = await baseQuery(supabase, "id", { count: "exact", head: true });
     const n = count ?? 0;
     const perCall = estimateCost(MODEL, 380, 60);
     return json({ queue: n, est_cost_per_call_usd: perCall, est_total_usd: +(n * perCall).toFixed(4) });
