@@ -91,7 +91,8 @@ Deno.serve(async (req) => {
   if (mode === "regex") {
     const stats = { scanned: 0, skill_set: 0, foreigner_set: 0 };
     let cursor: string | null = null;
-    for (let i = 0; i < 40; i++) {
+    const t0 = Date.now();
+    for (let i = 0; i < 40 && Date.now() - t0 < 100_000; i++) {
       let q = baseQuery(supabase, "id,title,category,display_category,description,skill_class,foreigner_friendly,foreigner_signals")
         .order("id").limit(500);
       if (cursor) q = q.gt("id", cursor);
