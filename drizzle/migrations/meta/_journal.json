@@ -22,6 +22,13 @@
       "when": 1793738981911,
       "tag": "0002_liveness_scheduler_state",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793989888382,
+      "tag": "0003_normalize_public_jobs_country",
+      "breakpoints": true
     }
   ]
 }
