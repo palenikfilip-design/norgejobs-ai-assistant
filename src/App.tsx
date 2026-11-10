@@ -32,6 +32,10 @@ import ArchilesChat from "./pages/admin/ArchilesChat";
 import ArchilesAutonomy from "./pages/admin/ArchilesAutonomy";
 import ArchilesStatistics from "./pages/admin/ArchilesStatistics";
 import NotFound from "./pages/NotFound";
+import ForEmployers from "./pages/employer/ForEmployers";
+import EmployerCompany from "./pages/employer/EmployerCompany";
+import EmployerDashboard from "./pages/employer/EmployerDashboard";
+import CompanyPage from "./pages/CompanyPage";
 
 const queryClient = new QueryClient();
 
@@ -71,6 +75,10 @@ const App = () => (
             <Route path="/admin/archiles/chat" element={<ArchilesChat />} />
             <Route path="/admin/archiles/autonomy" element={<ArchilesAutonomy />} />
             <Route path="/admin/archiles/statistics" element={<ArchilesStatistics />} />
+            <Route path="/for-employers" element={<ForEmployers />} />
+            <Route path="/employer/company" element={<EmployerCompany />} />
+            <Route path="/employer/dashboard" element={<EmployerDashboard />} />
+            <Route path="/company/:slug" element={<CompanyPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

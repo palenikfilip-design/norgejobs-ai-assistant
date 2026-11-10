@@ -1,2 +1,4 @@
 - Catalog rows in public_jobs are never hard-deleted: liveness sets is_active=false (only on HTTP 404/410) and every reader/stat view filters is_active=true — keeps history and avoids false deletions from flaky portals.
 - Liveness sweep is self-driving: pg_cron calls check-job-liveness every 5 min with a DB lease, adaptive batch size and per-source 429 backoff stored in liveness_* tables; rows re-checked after 3 days — keeps the catalog fresh without manual runs.
+- Employer accounts: role comes only from user_roles ('employer' via signup metadata user_type, everything else 'user'); companies are read publicly only through the public_companies view (active rows, no user_id) — base table stays owner/admin-only.
+- Company logos live in the private company-logos bucket (workspace blocks public buckets); logo_url stores a path or URL, resolved via signed URL.

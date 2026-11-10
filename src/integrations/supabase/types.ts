@@ -289,6 +289,60 @@ export type Database = {
         }
         Relationships: []
       }
+      companies: {
+        Row: {
+          contact_email: string | null
+          country: string | null
+          created_at: string
+          description: string | null
+          id: string
+          instagram_url: string | null
+          logo_url: string | null
+          name: string
+          show_contact_email: boolean
+          slug: string
+          status: Database["public"]["Enums"]["company_status"]
+          trust_level: Database["public"]["Enums"]["company_trust_level"]
+          updated_at: string
+          user_id: string | null
+          website_url: string | null
+        }
+        Insert: {
+          contact_email?: string | null
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          instagram_url?: string | null
+          logo_url?: string | null
+          name: string
+          show_contact_email?: boolean
+          slug: string
+          status?: Database["public"]["Enums"]["company_status"]
+          trust_level?: Database["public"]["Enums"]["company_trust_level"]
+          updated_at?: string
+          user_id?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          contact_email?: string | null
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          instagram_url?: string | null
+          logo_url?: string | null
+          name?: string
+          show_contact_email?: boolean
+          slug?: string
+          status?: Database["public"]["Enums"]["company_status"]
+          trust_level?: Database["public"]["Enums"]["company_trust_level"]
+          updated_at?: string
+          user_id?: string | null
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       country_context: {
         Row: {
           avg_salary_eur: number
@@ -1569,6 +1623,49 @@ export type Database = {
         }
         Relationships: []
       }
+      public_companies: {
+        Row: {
+          contact_email: string | null
+          country: string | null
+          description: string | null
+          id: string | null
+          instagram_url: string | null
+          logo_url: string | null
+          name: string | null
+          slug: string | null
+          trust_level: Database["public"]["Enums"]["company_trust_level"] | null
+          website_url: string | null
+        }
+        Insert: {
+          contact_email?: never
+          country?: string | null
+          description?: string | null
+          id?: string | null
+          instagram_url?: string | null
+          logo_url?: string | null
+          name?: string | null
+          slug?: string | null
+          trust_level?:
+            | Database["public"]["Enums"]["company_trust_level"]
+            | null
+          website_url?: string | null
+        }
+        Update: {
+          contact_email?: never
+          country?: string | null
+          description?: string | null
+          id?: string | null
+          instagram_url?: string | null
+          logo_url?: string | null
+          name?: string | null
+          slug?: string | null
+          trust_level?:
+            | Database["public"]["Enums"]["company_trust_level"]
+            | null
+          website_url?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       ai_budget_increment: { Args: { _cost: number }; Returns: undefined }
@@ -1599,7 +1696,9 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "employer"
+      company_status: "draft" | "active"
+      company_trust_level: "new" | "verified" | "gold"
       job_skill_class: "manual" | "skilled" | "management" | "unknown"
     }
     CompositeTypes: {
@@ -1728,7 +1827,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "employer"],
+      company_status: ["draft", "active"],
+      company_trust_level: ["new", "verified", "gold"],
       job_skill_class: ["manual", "skilled", "management", "unknown"],
     },
   },

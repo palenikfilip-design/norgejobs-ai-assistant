@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+import { isEmployer } from "@/lib/companies";
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -25,7 +27,8 @@ const Login = () => {
     if (error) {
       toast({ title: "Error", description: error, variant: "destructive" });
     } else {
-      navigate("/dashboard");
+      const { data: { user } } = await supabase.auth.getUser();
+      navigate(user && (await isEmployer(user.id)) ? "/employer/dashboard" : "/dashboard");
     }
   };
 

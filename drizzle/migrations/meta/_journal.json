@@ -29,6 +29,20 @@
       "when": 1793989888382,
       "tag": "0003_normalize_public_jobs_country",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794349223319,
+      "tag": "0004_add_employer_role",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794349244703,
+      "tag": "0005_create_companies",
+      "breakpoints": true
     }
   ]
 }
