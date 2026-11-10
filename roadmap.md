@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Verify employer logo ownership, route separation, email confirmation settings and auth triggers; server-side anonymous logos implemented. Full employer/email/logo flow awaits a confirmed employer and company logo.
+
 - [x] Zmapovat Archiles a všechny aktuální zdroje pracovních nabídek
 - [x] Shrnout způsob načítání a stav zdrojů pro uživatele
 - [ ] Opravit přihlášení (tlačítko Povolit) – server teď běží; zvětšení čeká na potvrzení po diagnostice

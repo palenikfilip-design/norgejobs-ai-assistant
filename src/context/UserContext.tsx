@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isEmployer } from "@/lib/companies";
 import type { User, Session } from "@supabase/supabase-js";
 import { type CandidateDimensions, defaultCandidateDimensions } from "@/types/candidateDimensions";
 import { type LifestyleProfile, defaultLifestyleProfile } from "@/types/lifestyleProfile";
@@ -320,6 +321,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   // Load profile from DB when authenticated
   const loadFromDB = useCallback(async (userId: string, email: string) => {
+    if (await isEmployer(userId)) {
+      setUser({ ...defaultUser, isAuthenticated: true, email });
+      return;
+    }
     const profileData = await loadProfileFromDB(userId);
     const presets = await loadPresetsFromDB(userId);
     if (profileData) {
@@ -376,7 +381,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const loginWithProvider = async (provider: "google" | "apple") => {
-    await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: window.location.origin + "/onboarding" } });
+    await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: window.location.origin + "/auth/callback" } });
   };
 
   const logout = async () => {

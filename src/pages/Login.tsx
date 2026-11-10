@@ -34,14 +34,14 @@ const Login = () => {
 
   const handleSocial = async (provider: "google" | "apple") => {
     const result = await lovable.auth.signInWithOAuth(provider, {
-      redirect_uri: window.location.origin + "/dashboard",
+      redirect_uri: window.location.origin + "/auth/callback",
     });
     if (result.error) {
       toast({ title: "Error", description: String(result.error), variant: "destructive" });
       return;
     }
     if (result.redirected) return;
-    navigate("/dashboard");
+    navigate("/auth/callback");
   };
 
   return (

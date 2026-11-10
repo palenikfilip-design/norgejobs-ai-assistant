@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Globe, Camera as Instagram, Mail, Loader2, MapPin } from "lucide-react";
-import { resolveLogoUrl, TRUST_LABELS } from "@/lib/companies";
+import { TRUST_LABELS } from "@/lib/companies";
 import type { Tables } from "@/integrations/supabase/types";
 
 const CompanyPage = () => {
@@ -12,9 +12,19 @@ const CompanyPage = () => {
   const [logo, setLogo] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.from("public_companies").select("*").eq("slug", slug!).maybeSingle().then(async ({ data }) => {
-      setC(data); if (data) setLogo(await resolveLogoUrl(data.logo_url));
-    });
+    let cancelled = false;
+    setC(undefined); setLogo(null);
+    if (!slug) { setC(null); return; }
+    (async () => {
+      const { data } = await supabase.from("public_companies").select("*").eq("slug", slug).maybeSingle();
+      if (cancelled) return;
+      setC(data);
+      if (!data?.logo_url) return;
+      if (/^https?:\/\//.test(data.logo_url)) { setLogo(data.logo_url); return; }
+      const response = await supabase.functions.invoke("public-company-logo", { body: { slug } });
+      if (!cancelled && !response.error) setLogo(response.data?.signedUrl ?? null);
+    })();
+    return () => { cancelled = true; };
   }, [slug]);
 
   if (c === undefined) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>;

@@ -36,6 +36,7 @@ import ForEmployers from "./pages/employer/ForEmployers";
 import EmployerCompany from "./pages/employer/EmployerCompany";
 import EmployerDashboard from "./pages/employer/EmployerDashboard";
 import CompanyPage from "./pages/CompanyPage";
+import AccountRouteGuard from "./components/AccountRouteGuard";
 
 const queryClient = new QueryClient();
 
@@ -46,7 +47,9 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <AccountRouteGuard>
           <Routes>
+            <Route path="/auth/callback" element={<Login />} />
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
@@ -81,6 +84,7 @@ const App = () => (
             <Route path="/company/:slug" element={<CompanyPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </AccountRouteGuard>
         </BrowserRouter>
       </TooltipProvider>
     </UserProvider>

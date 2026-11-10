@@ -1,0 +1,5 @@
+DROP POLICY IF EXISTS "Employer updates own logo" ON storage.objects;
+DROP POLICY IF EXISTS "Public read company logos" ON storage.objects;
+CREATE POLICY "Employer updates own logo" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'company-logos' AND (storage.foldername(name))[1] = auth.uid()::text AND public.has_role(auth.uid(), 'employer')) WITH CHECK (bucket_id = 'company-logos' AND (storage.foldername(name))[1] = auth.uid()::text AND public.has_role(auth.uid(), 'employer'));
+CREATE POLICY "Employer deletes own logo" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'company-logos' AND (storage.foldername(name))[1] = auth.uid()::text AND public.has_role(auth.uid(), 'employer'));
+CREATE POLICY "Employer reads own logo" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'company-logos' AND (storage.foldername(name))[1] = auth.uid()::text AND public.has_role(auth.uid(), 'employer'));

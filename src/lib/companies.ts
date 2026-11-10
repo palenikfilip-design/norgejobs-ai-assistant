@@ -16,6 +16,7 @@ export async function resolveLogoUrl(logo: string | null | undefined): Promise<s
 }
 
 export async function isEmployer(userId: string) {
-  const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "employer").maybeSingle();
+  const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "employer").maybeSingle();
+  if (error) throw error;
   return !!data;
 }
