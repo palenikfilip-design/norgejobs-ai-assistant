@@ -82,6 +82,7 @@ Deno.serve(async (req) => {
     .from("public_jobs")
     .select("id,title,description,country,company")
     .is("title_cs", null)
+    .is("company_id", null)
     .not("enriched_at", "is", null)
     .in("data_completeness", ["complete", "partial"])
     .order("trust_score", { ascending: false })

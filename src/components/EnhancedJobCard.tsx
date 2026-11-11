@@ -21,6 +21,10 @@ import { defaultJobDimensions } from "@/types/candidateDimensions";
 import { generateBoostSuggestions } from "@/utils/skillBooster";
 import { useUser } from "@/context/UserContext";
 import { toCzechPill } from "@/utils/reasonLabels";
+import { Link } from "react-router-dom";
+import { employerSlugFromUrl } from "@/lib/employerJobs";
+import { useEmployerCompany } from "@/hooks/useEmployerCompany";
+import { TRUST_LABELS } from "@/lib/companies";
 import { formatViews, useJobViewCount, registerJobView } from "@/utils/jobViews";
 
 interface EnhancedJobCardProps {
@@ -101,7 +105,9 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
 
   // URL safety
   const rawUrl = job.sourceUrl || "";
-  const validUrl =
+  const employerSlug = employerSlugFromUrl(rawUrl);
+  const { data: employerCompany } = useEmployerCompany(employerSlug);
+  const validUrl = employerSlug ? rawUrl :
     rawUrl &&
     /^https?:\/\//i.test(rawUrl) &&
     !/lovableproject\.com/i.test(rawUrl) &&
@@ -163,8 +169,16 @@ const EnhancedJobCard = ({ job, index, userCurrency = "CZK", onGenerateCoverLett
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-foreground text-lg leading-tight">{job.title}</h3>
               <div className="text-muted-foreground text-sm mt-0.5 flex items-center gap-2 flex-wrap">
-                <span>{job.company}</span>
-                {companySignalBadge && (
+                {employerSlug ? (
+                  <Link to={`/company/${employerSlug}`} className="flex items-center gap-2 hover:text-foreground">
+                    {employerCompany?.logo && <img src={employerCompany.logo} alt="" className="w-6 h-6 rounded object-contain bg-muted" />}
+                    <span className="underline-offset-2 hover:underline">{employerCompany?.name ?? job.company}</span>
+                  </Link>
+                ) : <span>{job.company}</span>}
+                {employerCompany?.trust_level && (
+                  <Badge variant="secondary" className="text-[10px] px-2 py-0">{TRUST_LABELS[employerCompany.trust_level ?? "new"]}</Badge>
+                )}
+                {!employerSlug && companySignalBadge && (
                   <span className={`text-[10px] px-2 py-0.5 rounded-full border ${companySignalBadge.className}`}>
                     {companySignalBadge.label}
                   </span>

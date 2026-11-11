@@ -345,6 +345,9 @@ export default function Admin() {
           <Button asChild variant="outline" size="sm">
             <Link to="/admin/portals">Mapa portálů</Link>
           </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/admin/employer-jobs">Firemní nabídky</Link>
+          </Button>
         </div>
       </header>
 

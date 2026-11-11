@@ -409,6 +409,121 @@ export type Database = {
         }
         Relationships: []
       }
+      employer_jobs: {
+        Row: {
+          accommodation_cost: number | null
+          accommodation_provided: boolean
+          benefits: Json
+          city: string
+          company_id: string
+          completeness_score: number
+          country: string
+          created_at: string
+          description: string | null
+          duration: string
+          experience: string | null
+          expiry_date: string | null
+          food_provided: boolean | null
+          id: string
+          job_type: string
+          languages: Json
+          public_job_id: string | null
+          published_at: string | null
+          salary_amount: number
+          salary_currency: string
+          salary_period: string
+          start_date: string | null
+          start_immediately: boolean
+          status: Database["public"]["Enums"]["employer_job_status"]
+          title: string
+          transport_provided: boolean | null
+          updated_at: string
+          working_hours: string | null
+        }
+        Insert: {
+          accommodation_cost?: number | null
+          accommodation_provided?: boolean
+          benefits?: Json
+          city: string
+          company_id: string
+          completeness_score?: number
+          country: string
+          created_at?: string
+          description?: string | null
+          duration: string
+          experience?: string | null
+          expiry_date?: string | null
+          food_provided?: boolean | null
+          id?: string
+          job_type: string
+          languages?: Json
+          public_job_id?: string | null
+          published_at?: string | null
+          salary_amount: number
+          salary_currency?: string
+          salary_period?: string
+          start_date?: string | null
+          start_immediately?: boolean
+          status?: Database["public"]["Enums"]["employer_job_status"]
+          title: string
+          transport_provided?: boolean | null
+          updated_at?: string
+          working_hours?: string | null
+        }
+        Update: {
+          accommodation_cost?: number | null
+          accommodation_provided?: boolean
+          benefits?: Json
+          city?: string
+          company_id?: string
+          completeness_score?: number
+          country?: string
+          created_at?: string
+          description?: string | null
+          duration?: string
+          experience?: string | null
+          expiry_date?: string | null
+          food_provided?: boolean | null
+          id?: string
+          job_type?: string
+          languages?: Json
+          public_job_id?: string | null
+          published_at?: string | null
+          salary_amount?: number
+          salary_currency?: string
+          salary_period?: string
+          start_date?: string | null
+          start_immediately?: boolean
+          status?: Database["public"]["Enums"]["employer_job_status"]
+          title?: string
+          transport_provided?: boolean | null
+          updated_at?: string
+          working_hours?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employer_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employer_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employer_jobs_public_job_id_fkey"
+            columns: ["public_job_id"]
+            isOneToOne: false
+            referencedRelation: "public_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employer_sources: {
         Row: {
           ats_config: Json
@@ -1011,6 +1126,7 @@ export type Database = {
           benefits: Json
           category: string | null
           company: string | null
+          company_id: string | null
           country: string | null
           created_at: string
           currency: string | null
@@ -1067,6 +1183,7 @@ export type Database = {
           benefits?: Json
           category?: string | null
           company?: string | null
+          company_id?: string | null
           country?: string | null
           created_at?: string
           currency?: string | null
@@ -1123,6 +1240,7 @@ export type Database = {
           benefits?: Json
           category?: string | null
           company?: string | null
+          company_id?: string | null
           country?: string | null
           created_at?: string
           currency?: string | null
@@ -1172,6 +1290,20 @@ export type Database = {
           view_count?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "public_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "public_jobs_source_id_fkey"
             columns: ["source_id"]
@@ -1674,6 +1806,15 @@ export type Database = {
         Args: { origin: string; residence: string; since: string }
         Returns: Json
       }
+      deactivate_employer_public_job: {
+        Args: { _public_job_id: string; _reason: string }
+        Returns: undefined
+      }
+      employer_job_completeness: {
+        Args: { j: Database["public"]["Tables"]["employer_jobs"]["Row"] }
+        Returns: number
+      }
+      expire_employer_jobs: { Args: never; Returns: number }
       get_public_jobs_count: { Args: never; Returns: number }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
@@ -1688,8 +1829,13 @@ export type Database = {
       }
       liveness_acquire_lease: { Args: { _seconds: number }; Returns: number }
       map_display_category: { Args: { _cat: string }; Returns: string }
+      owns_company: { Args: { _company_id: string }; Returns: boolean }
       register_job_view: { Args: { p_job_url: string }; Returns: number }
       set_ingest_cron_secret: { Args: { _value: string }; Returns: undefined }
+      sync_employer_public_job: {
+        Args: { j: Database["public"]["Tables"]["employer_jobs"]["Row"] }
+        Returns: string
+      }
       verify_ingest_cron_secret: {
         Args: { _provided: string }
         Returns: boolean
@@ -1699,6 +1845,12 @@ export type Database = {
       app_role: "admin" | "moderator" | "user" | "employer"
       company_status: "draft" | "active"
       company_trust_level: "new" | "verified" | "gold"
+      employer_job_status:
+        | "draft"
+        | "pending_review"
+        | "published"
+        | "closed"
+        | "expired"
       job_skill_class: "manual" | "skilled" | "management" | "unknown"
     }
     CompositeTypes: {
@@ -1830,6 +1982,13 @@ export const Constants = {
       app_role: ["admin", "moderator", "user", "employer"],
       company_status: ["draft", "active"],
       company_trust_level: ["new", "verified", "gold"],
+      employer_job_status: [
+        "draft",
+        "pending_review",
+        "published",
+        "closed",
+        "expired",
+      ],
       job_skill_class: ["manual", "skilled", "management", "unknown"],
     },
   },

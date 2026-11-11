@@ -757,7 +757,8 @@ Deno.serve(async (req) => {
     const { data, error } = await supabase
       .from("public_jobs")
       .select("*")
-      .in("id", body.job_ids);
+      .in("id", body.job_ids)
+      .is("company_id", null); // employer offers are never enriched
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500,
@@ -769,6 +770,7 @@ Deno.serve(async (req) => {
       .from("public_jobs")
       .select("*")
       .is("enriched_at", null)
+      .is("company_id", null)
       .limit(batchSize);
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {

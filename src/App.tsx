@@ -35,6 +35,8 @@ import NotFound from "./pages/NotFound";
 import ForEmployers from "./pages/employer/ForEmployers";
 import EmployerCompany from "./pages/employer/EmployerCompany";
 import EmployerDashboard from "./pages/employer/EmployerDashboard";
+import EmployerJobForm from "./pages/employer/EmployerJobForm";
+import AdminEmployerJobs from "./pages/admin/AdminEmployerJobs";
 import CompanyPage from "./pages/CompanyPage";
 import AccountRouteGuard from "./components/AccountRouteGuard";
 
@@ -81,6 +83,9 @@ const App = () => (
             <Route path="/for-employers" element={<ForEmployers />} />
             <Route path="/employer/company" element={<EmployerCompany />} />
             <Route path="/employer/dashboard" element={<EmployerDashboard />} />
+            <Route path="/employer/jobs/new" element={<EmployerJobForm />} />
+            <Route path="/employer/jobs/:id/edit" element={<EmployerJobForm />} />
+            <Route path="/admin/employer-jobs" element={<AdminEmployerJobs />} />
             <Route path="/company/:slug" element={<CompanyPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

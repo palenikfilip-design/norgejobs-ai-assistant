@@ -108,6 +108,7 @@ Deno.serve(async (req) => {
       .from("public_jobs")
       .select("id, title, location")
       .is("category", null)
+      .is("company_id", null) // never touch employer-authored offers
       .order("fetched_at", { ascending: false })
       .limit(MAX_JOBS_PER_RUN);
 

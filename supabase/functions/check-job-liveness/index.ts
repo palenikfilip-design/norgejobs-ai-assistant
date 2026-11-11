@@ -109,6 +109,7 @@ Deno.serve(async (req) => {
     const cutoff = new Date(Date.now() - RECHECK_DAYS * 86400_000).toISOString();
     let q = supabase.from("public_jobs").select("id,source_portal,external_id,url")
       .eq("is_active", true)
+      .neq("source_portal", "employer") // employer offers: lifecycle owned by employer/expiry
       .or(`last_liveness_check.is.null,last_liveness_check.lt.${cutoff}`);
     if (blocked.length) q = q.not("source_portal", "in", `(${blocked.map((s) => `"${s.replace(/"/g, '\\"')}"`).join(",")})`);
     const { data, error } = await q.order("last_liveness_check", { ascending: true, nullsFirst: true }).limit(batch);

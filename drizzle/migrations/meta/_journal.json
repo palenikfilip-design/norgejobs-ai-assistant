@@ -50,6 +50,20 @@
       "when": 1794350271815,
       "tag": "0006_restrict_company_logo_ownership",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794437338896,
+      "tag": "0007_employer_jobs",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794437501017,
+      "tag": "0008_employer_jobs_draft_start_date",
+      "breakpoints": true
     }
   ]
 }
