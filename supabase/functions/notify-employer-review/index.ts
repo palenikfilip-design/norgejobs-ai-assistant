@@ -8,7 +8,7 @@ const Body = z.object({
   job_id: z.string().uuid().optional(),
   note: z.string().max(2000).optional(),
 });
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
+const RESEND_URL = "https://api.resend.com/emails";
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 
 Deno.serve(async (req) => {
@@ -47,11 +47,11 @@ Deno.serve(async (req) => {
     };
     const [subject, body] = tpl[event];
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY"), RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    if (!LOVABLE_API_KEY || !RESEND_API_KEY) return reply({ sent: false, reason: "email_not_configured" });
-    const r = await fetch(`${GATEWAY_URL}/emails`, {
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+    if (!RESEND_API_KEY) return reply({ sent: false, reason: "email_not_configured" });
+    const r = await fetch(RESEND_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}`, "X-Connection-Api-Key": RESEND_API_KEY },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${RESEND_API_KEY}` },
       body: JSON.stringify({ from: Deno.env.get("RESEND_FROM") ?? "Leslie <onboarding@resend.dev>", to: [to], subject,
         html: `<div style="font-family:sans-serif;max-width:560px">${body}<p style="color:#888">Leslie</p></div>` }),
     });

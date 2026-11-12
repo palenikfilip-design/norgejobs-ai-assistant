@@ -4,7 +4,7 @@
 - [x] Pravidlo: nezměněný stav povolen; uzavření/koncept zveřejněné nabídky ji skryje z katalogu
 - [x] Fáze 3: schvalovací fronta, trust levely, hlášení, pozastavení firmy
 - [x] Pravidlo: nabídku lze zveřejnit jen u schválené firmy; majitel vidí náhled své firmy
-- [ ] E-maily zaměstnavatelům (Resend) – čeká na propojení účtu Resend
+- [x] E-maily zaměstnavatelům (Resend) – napojeno na uložený klíč; odesílatel onboarding@resend.dev doručí jen vlastníkovi účtu, dokud nebude ověřená doména
 
 - [x] Verify employer logo ownership, route separation, email confirmation settings and auth triggers; server-side anonymous logos implemented. Full employer/email/logo flow awaits a confirmed employer and company logo.
 
