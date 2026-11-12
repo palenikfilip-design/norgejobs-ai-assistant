@@ -414,6 +414,7 @@ export type Database = {
           accommodation_cost: number | null
           accommodation_provided: boolean
           benefits: Json
+          category: string | null
           city: string
           company_id: string
           completeness_score: number
@@ -432,6 +433,7 @@ export type Database = {
           salary_amount: number
           salary_currency: string
           salary_period: string
+          skill_class: Database["public"]["Enums"]["job_skill_class"] | null
           start_date: string | null
           start_immediately: boolean
           status: Database["public"]["Enums"]["employer_job_status"]
@@ -444,6 +446,7 @@ export type Database = {
           accommodation_cost?: number | null
           accommodation_provided?: boolean
           benefits?: Json
+          category?: string | null
           city: string
           company_id: string
           completeness_score?: number
@@ -462,6 +465,7 @@ export type Database = {
           salary_amount: number
           salary_currency?: string
           salary_period?: string
+          skill_class?: Database["public"]["Enums"]["job_skill_class"] | null
           start_date?: string | null
           start_immediately?: boolean
           status?: Database["public"]["Enums"]["employer_job_status"]
@@ -474,6 +478,7 @@ export type Database = {
           accommodation_cost?: number | null
           accommodation_provided?: boolean
           benefits?: Json
+          category?: string | null
           city?: string
           company_id?: string
           completeness_score?: number
@@ -492,6 +497,7 @@ export type Database = {
           salary_amount?: number
           salary_currency?: string
           salary_period?: string
+          skill_class?: Database["public"]["Enums"]["job_skill_class"] | null
           start_date?: string | null
           start_immediately?: boolean
           status?: Database["public"]["Enums"]["employer_job_status"]

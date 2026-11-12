@@ -33,3 +33,20 @@ export function employerSlugFromUrl(url: string | null | undefined): string | nu
   const m = url?.match(/^\/company\/([^/?#]+)/);
   return m ? decodeURIComponent(m[1]) : null;
 }
+
+/** Catalog categories (public_jobs.category) offered to employers. */
+export const JOB_CATEGORIES = [
+  { value: "Gastronomy", label: "Gastronomie a hotely" }, { value: "SkiResort", label: "Lyžařská střediska" },
+  { value: "Agriculture", label: "Zemědělství" }, { value: "Construction", label: "Stavebnictví" },
+  { value: "Manufacturing", label: "Výroba" }, { value: "Logistics", label: "Logistika a sklady" },
+  { value: "Transport", label: "Doprava a řidiči" }, { value: "Healthcare", label: "Zdravotnictví a péče" },
+  { value: "Education", label: "Vzdělávání" }, { value: "Office", label: "Kancelář a administrativa" },
+  { value: "Sales", label: "Prodej a obchod" }, { value: "IT", label: "IT a technologie" },
+  { value: "Marine", label: "Námořní a rybářství" }, { value: "AuPair", label: "Au pair" },
+  { value: "Management", label: "Management" }, { value: "Other", label: "Ostatní" },
+] as const;
+export const SKILL_LEVELS = [
+  { value: "manual", label: "Manuální práce" }, { value: "skilled", label: "Odborná práce" },
+  { value: "management", label: "Vedoucí pozice" },
+] as const;
+export type SkillLevel = (typeof SKILL_LEVELS)[number]["value"];

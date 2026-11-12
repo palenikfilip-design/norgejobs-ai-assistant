@@ -64,6 +64,13 @@
       "when": 1794437501017,
       "tag": "0008_employer_jobs_draft_start_date",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794520354989,
+      "tag": "0009_employer_jobs_category_level",
+      "breakpoints": true
     }
   ]
 }

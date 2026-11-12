@@ -9,18 +9,18 @@ import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, X } from "lucide-react";
-import { CURRENCIES, JOB_TYPES, LANG_LEVELS, completeness, type EmployerJobStatus } from "@/lib/employerJobs";
+import { CURRENCIES, JOB_CATEGORIES, SKILL_LEVELS, type SkillLevel, JOB_TYPES, LANG_LEVELS, completeness, type EmployerJobStatus } from "@/lib/employerJobs";
 
 type Lang = { language: string; level: string };
 type Form = {
-  title: string; country: string; city: string; job_type: string; start_immediately: boolean; start_date: string;
+  title: string; category: string; skill_class: SkillLevel | ""; country: string; city: string; job_type: string; start_immediately: boolean; start_date: string;
   duration: string; salary_amount: string; salary_currency: string; salary_period: "hour" | "month";
   accommodation_provided: boolean; accommodation_cost: string; languages: Lang[]; experience: string;
   working_hours: string; food_provided: boolean | null; transport_provided: boolean | null; description: string;
   benefits: string; expiry_date: string;
 };
 const empty: Form = {
-  title: "", country: "", city: "", job_type: "seasonal", start_immediately: false, start_date: "", duration: "",
+  title: "", category: "", skill_class: "", country: "", city: "", job_type: "seasonal", start_immediately: false, start_date: "", duration: "",
   salary_amount: "", salary_currency: "EUR", salary_period: "month", accommodation_provided: false, accommodation_cost: "",
   languages: [], experience: "", working_hours: "", food_provided: null, transport_provided: null, description: "",
   benefits: "", expiry_date: "",
@@ -56,7 +56,7 @@ const EmployerJobForm = () => {
         if (!j) return navigate("/employer/dashboard");
         setStatus(j.status as EmployerJobStatus);
         setForm({
-          title: j.title, country: j.country, city: j.city, job_type: j.job_type, start_immediately: j.start_immediately,
+          title: j.title, category: j.category ?? "", skill_class: (j.skill_class as SkillLevel) ?? "", country: j.country, city: j.city, job_type: j.job_type, start_immediately: j.start_immediately,
           start_date: j.start_date ?? "", duration: j.duration, salary_amount: String(j.salary_amount),
           salary_currency: j.salary_currency, salary_period: j.salary_period as "hour" | "month",
           accommodation_provided: j.accommodation_provided, accommodation_cost: j.accommodation_cost?.toString() ?? "",
@@ -77,11 +77,14 @@ const EmployerJobForm = () => {
 
   const save = async (target: "draft" | "pending_review" | "keep") => {
     if (!companyId) return;
+    if (target !== "draft" && !form.category)
+      return toast({ title: "Vyber kategorii práce", variant: "destructive" });
     if (target !== "draft" && !form.start_immediately && !form.start_date)
       return toast({ title: "Vyplň datum nástupu", variant: "destructive" });
     setSaving(true);
     const payload = {
-      company_id: companyId, title: form.title, country: form.country, city: form.city, job_type: form.job_type,
+      company_id: companyId, title: form.title, category: form.category || null,
+      skill_class: form.skill_class || null, country: form.country, city: form.city, job_type: form.job_type,
       start_immediately: form.start_immediately, start_date: form.start_immediately ? null : form.start_date || null,
       duration: form.duration, salary_amount: Number(form.salary_amount), salary_currency: form.salary_currency,
       salary_period: form.salary_period, accommodation_provided: form.accommodation_provided,
@@ -121,6 +124,18 @@ const EmployerJobForm = () => {
         <section className="space-y-4">
           <h2 className="font-display text-lg font-semibold">Základní údaje</h2>
           <div className="space-y-2"><Label>Název pozice *</Label><Input required value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="Kuchař/ka" /></div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="space-y-2"><Label htmlFor="category">Kategorie práce *</Label>
+              <select id="category" required className={sel} value={form.category} onChange={(e) => set("category", e.target.value)}>
+                <option value="" disabled>Vyber kategorii</option>
+                {JOB_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+              </select></div>
+            <div className="space-y-2"><Label htmlFor="skill_class">Úroveň</Label>
+              <select id="skill_class" className={sel} value={form.skill_class} onChange={(e) => set("skill_class", e.target.value as SkillLevel | "")}>
+                <option value="">Neuvedeno</option>
+                {SKILL_LEVELS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+              </select></div>
+          </div>
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-2"><Label>Země *</Label><Input required value={form.country} onChange={(e) => set("country", e.target.value)} placeholder="Austria" /></div>
             <div className="space-y-2"><Label>Město *</Label><Input required value={form.city} onChange={(e) => set("city", e.target.value)} placeholder="Ischgl" /></div>
