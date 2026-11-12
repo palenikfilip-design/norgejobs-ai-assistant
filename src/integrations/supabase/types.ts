@@ -291,6 +291,8 @@ export type Database = {
       }
       companies: {
         Row: {
+          approved_at: string | null
+          approved_jobs_count: number
           contact_email: string | null
           country: string | null
           created_at: string
@@ -299,6 +301,8 @@ export type Database = {
           instagram_url: string | null
           logo_url: string | null
           name: string
+          registration_number: string | null
+          rejection_note: string | null
           show_contact_email: boolean
           slug: string
           status: Database["public"]["Enums"]["company_status"]
@@ -308,6 +312,8 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
+          approved_at?: string | null
+          approved_jobs_count?: number
           contact_email?: string | null
           country?: string | null
           created_at?: string
@@ -316,6 +322,8 @@ export type Database = {
           instagram_url?: string | null
           logo_url?: string | null
           name: string
+          registration_number?: string | null
+          rejection_note?: string | null
           show_contact_email?: boolean
           slug: string
           status?: Database["public"]["Enums"]["company_status"]
@@ -325,6 +333,8 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
+          approved_at?: string | null
+          approved_jobs_count?: number
           contact_email?: string | null
           country?: string | null
           created_at?: string
@@ -333,6 +343,8 @@ export type Database = {
           instagram_url?: string | null
           logo_url?: string | null
           name?: string
+          registration_number?: string | null
+          rejection_note?: string | null
           show_contact_email?: boolean
           slug?: string
           status?: Database["public"]["Enums"]["company_status"]
@@ -424,12 +436,16 @@ export type Database = {
           duration: string
           experience: string | null
           expiry_date: string | null
+          first_approved_at: string | null
           food_provided: boolean | null
           id: string
+          is_reported_hidden: boolean
           job_type: string
           languages: Json
           public_job_id: string | null
           published_at: string | null
+          rejection_note: string | null
+          reports_count: number
           salary_amount: number
           salary_currency: string
           salary_period: string
@@ -456,12 +472,16 @@ export type Database = {
           duration: string
           experience?: string | null
           expiry_date?: string | null
+          first_approved_at?: string | null
           food_provided?: boolean | null
           id?: string
+          is_reported_hidden?: boolean
           job_type: string
           languages?: Json
           public_job_id?: string | null
           published_at?: string | null
+          rejection_note?: string | null
+          reports_count?: number
           salary_amount: number
           salary_currency?: string
           salary_period?: string
@@ -488,12 +508,16 @@ export type Database = {
           duration?: string
           experience?: string | null
           expiry_date?: string | null
+          first_approved_at?: string | null
           food_provided?: boolean | null
           id?: string
+          is_reported_hidden?: boolean
           job_type?: string
           languages?: Json
           public_job_id?: string | null
           published_at?: string | null
+          rejection_note?: string | null
+          reports_count?: number
           salary_amount?: number
           salary_currency?: string
           salary_period?: string
@@ -748,6 +772,51 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      job_reports: {
+        Row: {
+          created_at: string
+          details: string | null
+          employer_job_id: string | null
+          id: string
+          job_id: string
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          employer_job_id?: string | null
+          id?: string
+          job_id: string
+          reason: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          employer_job_id?: string | null
+          id?: string
+          job_id?: string
+          reason?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_reports_employer_job_id_fkey"
+            columns: ["employer_job_id"]
+            isOneToOne: false
+            referencedRelation: "employer_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_reports_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "public_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       job_snapshots: {
         Row: {
@@ -1833,6 +1902,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_privileged_writer: { Args: never; Returns: boolean }
       liveness_acquire_lease: { Args: { _seconds: number }; Returns: number }
       map_display_category: { Args: { _cat: string }; Returns: string }
       owns_company: { Args: { _company_id: string }; Returns: boolean }
@@ -1849,7 +1919,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "employer"
-      company_status: "draft" | "active"
+      company_status: "draft" | "active" | "suspended"
       company_trust_level: "new" | "verified" | "gold"
       employer_job_status:
         | "draft"
@@ -1986,7 +2056,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user", "employer"],
-      company_status: ["draft", "active"],
+      company_status: ["draft", "active", "suspended"],
       company_trust_level: ["new", "verified", "gold"],
       employer_job_status: [
         "draft",

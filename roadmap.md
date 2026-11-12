@@ -2,7 +2,9 @@
 
 - [x] Fáze 2: firemní nabídky (tabulka, pravidla stavů, synchronizace do katalogu, formulář, přehled, karty, admin tlačítko Zveřejnit)
 - [x] Pravidlo: nezměněný stav povolen; uzavření/koncept zveřejněné nabídky ji skryje z katalogu
-- [ ] Fáze 3: frontu schvalování pro adminy
+- [x] Fáze 3: schvalovací fronta, trust levely, hlášení, pozastavení firmy
+- [x] Pravidlo: nabídku lze zveřejnit jen u schválené firmy; majitel vidí náhled své firmy
+- [ ] E-maily zaměstnavatelům (Resend) – čeká na propojení účtu Resend
 
 - [x] Verify employer logo ownership, route separation, email confirmation settings and auth triggers; server-side anonymous logos implemented. Full employer/email/logo flow awaits a confirmed employer and company logo.
 

@@ -43,18 +43,20 @@ const EmployerJobForm = () => {
   const [form, setForm] = useState<Form>(empty);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [rejectionNote, setRejectionNote] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return navigate("/login");
       const { data: c } = await supabase.from("companies").select("id,status").eq("user_id", user.id).maybeSingle();
-      if (!c || c.status !== "active") return navigate("/employer/company");
+      if (!c || c.status === "draft") return navigate("/employer/company");
       setCompanyId(c.id);
       if (id) {
         const { data: j } = await supabase.from("employer_jobs").select("*").eq("id", id).maybeSingle();
         if (!j) return navigate("/employer/dashboard");
         setStatus(j.status as EmployerJobStatus);
+        setRejectionNote(j.status === "draft" ? j.rejection_note : null);
         setForm({
           title: j.title, category: j.category ?? "", skill_class: (j.skill_class as SkillLevel) ?? "", country: j.country, city: j.city, job_type: j.job_type, start_immediately: j.start_immediately,
           start_date: j.start_date ?? "", duration: j.duration, salary_amount: String(j.salary_amount),
@@ -112,6 +114,7 @@ const EmployerJobForm = () => {
         className="max-w-2xl mx-auto glass-card-elevated rounded-2xl p-6 sm:p-8 space-y-6">
         <div className="flex items-center justify-between gap-3">
           <h1 className="font-display text-2xl sm:text-3xl font-bold">{id ? "Upravit nabídku" : "Nová nabídka"}</h1>
+          {rejectionNote && <div className="rounded-xl border border-red-accent/40 bg-muted p-3 text-sm">Důvod vrácení: {rejectionNote}. Uprav nabídku a odešli ji znovu ke schválení.</div>}
           <Button asChild variant="ghost" size="sm"><Link to="/employer/dashboard">Zpět</Link></Button>
         </div>
 

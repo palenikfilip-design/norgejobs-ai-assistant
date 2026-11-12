@@ -71,6 +71,20 @@
       "when": 1794520354989,
       "tag": "0009_employer_jobs_category_level",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794521854862,
+      "tag": "0010_company_status_suspended",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794521891943,
+      "tag": "0011_review_queue_trust_reports",
+      "breakpoints": true
     }
   ]
 }

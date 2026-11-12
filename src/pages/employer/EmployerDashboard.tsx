@@ -33,7 +33,7 @@ const EmployerDashboard = () => {
       if (!user) return navigate("/login");
       if (!(await isEmployer(user.id))) return navigate("/dashboard");
       const { data } = await supabase.from("companies").select("*").eq("user_id", user.id).maybeSingle();
-      if (!data || data.status !== "active") return navigate("/employer/company");
+      if (!data || data.status === "draft") return navigate("/employer/company");
       setC(data); setLogo(await resolveLogoUrl(data.logo_url));
       const { data: r } = await supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
       setAdmin(!!r);
@@ -49,9 +49,14 @@ const EmployerDashboard = () => {
           <div className="w-16 h-16 rounded-xl bg-muted overflow-hidden">{logo && <img src={logo} alt={c.name} className="w-full h-full object-contain" />}</div>
           <div className="flex-1">
             <h1 className="font-display text-2xl font-bold">{c.name}</h1>
-            <div className="flex gap-2 mt-1"><Badge variant="secondary">{TRUST_LABELS[c.trust_level]}</Badge><Badge variant="outline">Aktivní</Badge></div>
+            <div className="flex gap-2 mt-1"><Badge variant="secondary">{TRUST_LABELS[c.trust_level]}</Badge><Badge variant="outline">{c.status === "suspended" ? "Pozastavená" : c.approved_at ? "Schválená" : "Čeká na schválení"}</Badge></div>
+            {c.trust_level === "new" && c.status !== "suspended" && (
+              <p className="text-xs text-muted-foreground mt-2">Ještě {Math.max(0, 3 - c.approved_jobs_count)} schválené nabídky a firma získá status Ověřená – úpravy se pak zveřejní hned.</p>
+            )}
           </div>
         </div>
+        {c.status === "suspended" && <div className="rounded-xl border border-destructive p-4 text-sm">Firma je pozastavená. Nabídky jsou skryté a nové nejde odeslat ke schválení.</div>}
+        {c.status === "active" && !c.approved_at && <div className="rounded-xl border border-border bg-muted p-4 text-sm">Profil firmy čeká na schválení. Nabídky můžeš připravit a odeslat, zveřejní se až po schválení firmy.</div>}
         <div className="flex flex-wrap gap-3">
           <Button asChild variant="outline"><Link to="/employer/company">Upravit profil</Link></Button>
           <Button asChild variant="outline"><Link to={`/company/${c.slug}`}>Zobrazit veřejnou stránku</Link></Button>
@@ -70,12 +75,14 @@ const EmployerDashboard = () => {
                 <div className="flex-1 min-w-[12rem]">
                   <div className="font-semibold">{j.title}</div>
                   <div className="text-sm text-muted-foreground">{j.city}, {j.country} · platí do {j.expiry_date ?? "—"}</div>
+                  {st === "draft" && j.rejection_note && <div className="mt-2 rounded-lg border border-red-accent/40 bg-muted p-2 text-sm">Vráceno k úpravě: {j.rejection_note}</div>}
+                  {j.is_reported_hidden && <div className="mt-2 text-sm text-red-accent">Dočasně skryto kvůli hlášením – čeká na kontrolu.</div>}
                 </div>
                 <Badge variant={st === "published" ? "default" : "outline"}>{STATUS_LABELS[st]}</Badge>
                 <div className="flex flex-wrap gap-2">
                   <Button asChild size="sm" variant="outline"><Link to={`/employer/jobs/${j.id}/edit`}>Upravit</Link></Button>
                   {st === "published" && <Button size="sm" variant="ghost" onClick={() => setStatus(j.id, "closed")}>Uzavřít</Button>}
-                  {(st === "closed" || st === "expired") && <Button size="sm" variant="ghost" onClick={() => setStatus(j.id, "pending_review")}>Znovu odeslat ke schválení</Button>}
+                  {(st === "closed" || st === "expired") && c.status !== "suspended" && <Button size="sm" variant="ghost" onClick={() => setStatus(j.id, "pending_review")}>Znovu odeslat ke schválení</Button>}
                   {admin && st === "pending_review" && <Button size="sm" onClick={() => setStatus(j.id, "published")}>Zveřejnit (admin)</Button>}
                 </div>
               </div>

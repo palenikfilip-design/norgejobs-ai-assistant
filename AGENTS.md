@@ -5,3 +5,6 @@
 - AccountRouteGuard validates Auth and protected user_roles before mounting account pages; role lookup errors fail closed to prevent onboarding redirects for employers.
 - Employer offers live in employer_jobs; DB triggers (not UI) enforce status rights (employers: draft/pending_review/closed only), sync published offers into public_jobs (source_portal='employer', company_id, url '/company/:slug?job=id') and deactivate that copy on close/draft/expiry/delete — one source of truth for permissions.
 - Background catalog jobs (liveness, archiles-enrich, categorize, translations) skip rows with company_id / source_portal='employer' so employer-authored data is never overwritten; matching falls back to regex skill classification for them.
+
+- Employer review: protected columns (approval, trust, reports, rejection notes, suspension) are reverted for non-admins in BEFORE triggers via is_privileged_writer(); internal trigger writes set the transaction-local app.leslie_privileged flag — UI never enforces rights.
+- An employer offer can go live only when its company is active AND approved_at is set (DB-enforced); public_companies shows only approved companies, owners preview their own via the base table.

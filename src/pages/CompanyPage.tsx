@@ -3,13 +3,14 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Globe, Camera as Instagram, Mail, Loader2, MapPin } from "lucide-react";
-import { TRUST_LABELS } from "@/lib/companies";
+import { TRUST_LABELS, resolveLogoUrl } from "@/lib/companies";
 import type { Tables } from "@/integrations/supabase/types";
 
 const CompanyPage = () => {
   const { slug } = useParams();
   const [c, setC] = useState<Tables<"public_companies"> | null | undefined>(undefined);
   const [logo, setLogo] = useState<string | null>(null);
+  const [preview, setPreview] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -18,6 +19,22 @@ const CompanyPage = () => {
     (async () => {
       const { data } = await supabase.from("public_companies").select("*").eq("slug", slug).maybeSingle();
       if (cancelled) return;
+      if (!data) {
+        // Owner preview before approval: RLS only returns the owner's (or admin's) own row.
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const { data: own } = await supabase.from("companies")
+            .select("id, name, slug, logo_url, country, description, website_url, instagram_url, trust_level, contact_email, show_contact_email")
+            .eq("slug", slug).maybeSingle();
+          if (cancelled) return;
+          if (own) {
+            setPreview(true);
+            setC({ ...own, contact_email: own.show_contact_email ? own.contact_email : null } as Tables<"public_companies">);
+            setLogo(await resolveLogoUrl(own.logo_url));
+            return;
+          }
+        }
+      }
       setC(data);
       if (!data?.logo_url) return;
       if (/^https?:\/\//.test(data.logo_url)) { setLogo(data.logo_url); return; }
@@ -31,6 +48,7 @@ const CompanyPage = () => {
   if (!c) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Firma nenalezena</div>;
   return (
     <div className="min-h-screen bg-background p-4">
+      {preview && <div className="max-w-3xl mx-auto mb-3 rounded-xl border border-border bg-muted p-3 text-sm">Režim náhledu – profil firmy zatím čeká na schválení a veřejnost ho nevidí.</div>}
       <div className="max-w-3xl mx-auto glass-card-elevated rounded-2xl p-8 space-y-5">
         <div className="flex items-center gap-5">
           <div className="w-20 h-20 rounded-xl bg-muted overflow-hidden">{logo && <img src={logo} alt={c.name ?? ""} className="w-full h-full object-contain" />}</div>

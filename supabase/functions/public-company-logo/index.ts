@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
     const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!url || !key) return reply({ error: "Logo service unavailable" }, 503);
     const db = createClient(url, key);
-    const { data, error } = await db.from("companies").select("logo_url").eq("slug", parsed.data.slug).eq("status", "active").maybeSingle();
+    const { data, error } = await db.from("companies").select("logo_url").eq("slug", parsed.data.slug).eq("status", "active").not("approved_at", "is", null).maybeSingle();
     if (error) return reply({ error: "Logo service unavailable" }, 503);
     if (!data) return reply({ error: "Company not found" }, 404);
     const path = publicLogoPath(data.logo_url);
