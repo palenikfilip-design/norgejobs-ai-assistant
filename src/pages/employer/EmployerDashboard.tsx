@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { isEmployer, resolveLogoUrl, TRUST_LABELS } from "@/lib/companies";
 import { STATUS_LABELS, type EmployerJobStatus } from "@/lib/employerJobs";
 import { useToast } from "@/hooks/use-toast";
+import OfferApplications from "@/components/employer/OfferApplications";
 import type { Tables } from "@/integrations/supabase/types";
 
 const EmployerDashboard = () => {

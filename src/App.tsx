@@ -38,6 +38,7 @@ import EmployerDashboard from "./pages/employer/EmployerDashboard";
 import EmployerJobForm from "./pages/employer/EmployerJobForm";
 import AdminEmployerJobs from "./pages/admin/AdminEmployerJobs";
 import CompanyPage from "./pages/CompanyPage";
+import Applications from "./pages/Applications";
 import AccountRouteGuard from "./components/AccountRouteGuard";
 
 const queryClient = new QueryClient();
@@ -64,6 +65,7 @@ const App = () => (
             <Route path="/presets" element={<Presets />} />
             <Route path="/sources" element={<JobSources />} />
             <Route path="/premium" element={<Premium />} />
+            <Route path="/applications" element={<Applications />} />
             <Route path="/saved" element={<SavedJobs />} />
             <Route path="/cv" element={<CV />} />
             <Route path="/cv/:id" element={<CVEditor />} />

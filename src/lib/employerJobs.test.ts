@@ -12,3 +12,10 @@ describe("employerSlugFromUrl", () => {
   it("parses company link", () => expect(employerSlugFromUrl("/company/acme-12?job=1")).toBe("acme-12"));
   it("ignores scraped links", () => expect(employerSlugFromUrl("https://x.com/company/a")).toBeNull());
 });
+
+import { validContactOptions } from "./employerJobs";
+describe("contact options", () => {
+  it("requires at least one option", () => expect(validContactOptions([])).toBe(false));
+  it("accepts cv, message and email", () => expect(validContactOptions(["cv", "message", "email"])).toBe(true));
+  it("rejects unknown methods", () => expect(validContactOptions(["phone"])).toBe(false));
+});

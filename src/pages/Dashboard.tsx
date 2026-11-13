@@ -15,7 +15,7 @@ import JobFiltersPanel from "@/components/JobFiltersPanel";
 import QuickFilterBar, { defaultQuickFilters, type QuickFilters } from "@/components/QuickFilterBar";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageCircle, LogOut, Sparkles, BriefcaseBusiness, Filter, Globe, Crown, Eye, Bookmark, Loader2, RefreshCw, Clock, FileText } from "lucide-react";
+import { MessageCircle, LogOut, Sparkles, BriefcaseBusiness, Filter, Globe, Crown, Eye, Bookmark, Loader2, RefreshCw, Clock, FileText, Send } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -425,6 +425,9 @@ const Dashboard = () => {
 
             <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10" onClick={() => navigate("/saved")} aria-label={t("header.savedJobs")}>
               <Bookmark className="w-5 h-5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10" onClick={() => navigate("/applications")} aria-label="Moje přihlášky">
+              <Send className="w-5 h-5" />
             </Button>
             <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10" onClick={() => navigate("/cv")} aria-label="Životopisy">
               <FileText className="w-5 h-5" />

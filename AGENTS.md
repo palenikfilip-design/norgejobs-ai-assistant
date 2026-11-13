@@ -8,3 +8,4 @@
 
 - Employer review: protected columns (approval, trust, reports, rejection notes, suspension) are reverted for non-admins in BEFORE triggers via is_privileged_writer(); internal trigger writes set the transaction-local app.leslie_privileged flag — UI never enforces rights.
 - An employer offer can go live only when its company is active AND approved_at is set (DB-enforced); public_companies shows only approved companies, owners preview their own via the base table.
+- Employer contact: contact emails never go into public_jobs/raw_data (only contact_options); emails are served via the authenticated get_employer_job_contact_email RPC, which logs reveals to employer_job_email_reveals (not applications). job_applications (methods cv/message) are validated and filled (applicant identity, email, CV snapshot) by a BEFORE INSERT trigger, and a weekly cron deletes them 6 months after employer_jobs.closed_at — client input is never trusted for identity.

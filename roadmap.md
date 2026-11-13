@@ -13,3 +13,5 @@
 - [ ] Opravit přihlášení (tlačítko Povolit) – server teď běží; zvětšení čeká na potvrzení po diagnostice
 - [x] Diagnostika po 3 měsících (jen čtení, žádné změny)
 - [ ] Nahradit neplatný model motivačních dopisů – plán schválen; blokuje chybějící dokumentace Gateway Messages pro tento projekt a neověřené obnovení AI přístupu; kód nezměněn
+- [x] Krok 4: kontaktní možnosti u firemních nabídek (CV / zpráva / e-mail), přihlášky, Moje přihlášky se stažením, přehled pro firmu, upozornění e-mailem, mazání 6 měsíců po uzavření
+- [x] Zobrazení e-mailu se jen počítá zvlášť (bez upozornění, bez limitu), není to přihláška
