@@ -421,6 +421,52 @@ export type Database = {
         }
         Relationships: []
       }
+      employer_job_email_reveals: {
+        Row: {
+          company_id: string
+          employer_job_id: string
+          id: string
+          revealed_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          employer_job_id: string
+          id?: string
+          revealed_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          employer_job_id?: string
+          id?: string
+          revealed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employer_job_email_reveals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employer_job_email_reveals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employer_job_email_reveals_employer_job_id_fkey"
+            columns: ["employer_job_id"]
+            isOneToOne: false
+            referencedRelation: "employer_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employer_jobs: {
         Row: {
           accommodation_cost: number | null
@@ -428,8 +474,11 @@ export type Database = {
           benefits: Json
           category: string | null
           city: string
+          closed_at: string | null
           company_id: string
           completeness_score: number
+          contact_email: string | null
+          contact_options: string[]
           country: string
           created_at: string
           description: string | null
@@ -464,8 +513,11 @@ export type Database = {
           benefits?: Json
           category?: string | null
           city: string
+          closed_at?: string | null
           company_id: string
           completeness_score?: number
+          contact_email?: string | null
+          contact_options?: string[]
           country: string
           created_at?: string
           description?: string | null
@@ -500,8 +552,11 @@ export type Database = {
           benefits?: Json
           category?: string | null
           city?: string
+          closed_at?: string | null
           company_id?: string
           completeness_score?: number
+          contact_email?: string | null
+          contact_options?: string[]
           country?: string
           created_at?: string
           description?: string | null
@@ -643,6 +698,86 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      job_applications: {
+        Row: {
+          applicant_email: string | null
+          applicant_name: string | null
+          applicant_user_id: string
+          company_id: string
+          created_at: string
+          cv_id: string | null
+          cv_snapshot: Json | null
+          employer_job_id: string
+          gdpr_consent_at: string
+          id: string
+          method: string
+          note: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          applicant_email?: string | null
+          applicant_name?: string | null
+          applicant_user_id: string
+          company_id: string
+          created_at?: string
+          cv_id?: string | null
+          cv_snapshot?: Json | null
+          employer_job_id: string
+          gdpr_consent_at: string
+          id?: string
+          method: string
+          note?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          applicant_email?: string | null
+          applicant_name?: string | null
+          applicant_user_id?: string
+          company_id?: string
+          created_at?: string
+          cv_id?: string | null
+          cv_snapshot?: Json | null
+          employer_job_id?: string
+          gdpr_consent_at?: string
+          id?: string
+          method?: string
+          note?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_applications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_applications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_applications_cv_id_fkey"
+            columns: ["cv_id"]
+            isOneToOne: false
+            referencedRelation: "user_cvs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_applications_employer_job_id_fkey"
+            columns: ["employer_job_id"]
+            isOneToOne: false
+            referencedRelation: "employer_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       job_matches: {
         Row: {
@@ -1877,6 +2012,7 @@ export type Database = {
     Functions: {
       ai_budget_increment: { Args: { _cost: number }; Returns: undefined }
       ai_budget_remaining_today: { Args: never; Returns: number }
+      cleanup_old_job_applications: { Args: never; Returns: number }
       compute_cultural_context: {
         Args: { origin: string; residence: string; since: string }
         Returns: Json
@@ -1890,6 +2026,10 @@ export type Database = {
         Returns: number
       }
       expire_employer_jobs: { Args: never; Returns: number }
+      get_employer_job_contact_email: {
+        Args: { p_job_id: string }
+        Returns: string
+      }
       get_public_jobs_count: { Args: never; Returns: number }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }

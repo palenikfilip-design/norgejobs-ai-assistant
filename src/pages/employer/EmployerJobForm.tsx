@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, X } from "lucide-react";
-import { CURRENCIES, JOB_CATEGORIES, SKILL_LEVELS, type SkillLevel, JOB_TYPES, LANG_LEVELS, completeness, type EmployerJobStatus } from "@/lib/employerJobs";
+import { CURRENCIES, JOB_CATEGORIES, SKILL_LEVELS, type SkillLevel, JOB_TYPES, LANG_LEVELS, completeness, type EmployerJobStatus, CONTACT_OPTIONS, type ContactOption, validContactOptions } from "@/lib/employerJobs";
 
 type Lang = { language: string; level: string };
 type Form = {
@@ -17,13 +17,13 @@ type Form = {
   duration: string; salary_amount: string; salary_currency: string; salary_period: "hour" | "month";
   accommodation_provided: boolean; accommodation_cost: string; languages: Lang[]; experience: string;
   working_hours: string; food_provided: boolean | null; transport_provided: boolean | null; description: string;
-  benefits: string; expiry_date: string;
+  benefits: string; expiry_date: string; contact_options: ContactOption[]; contact_email: string;
 };
 const empty: Form = {
   title: "", category: "", skill_class: "", country: "", city: "", job_type: "seasonal", start_immediately: false, start_date: "", duration: "",
   salary_amount: "", salary_currency: "EUR", salary_period: "month", accommodation_provided: false, accommodation_cost: "",
   languages: [], experience: "", working_hours: "", food_provided: null, transport_provided: null, description: "",
-  benefits: "", expiry_date: "",
+  benefits: "", expiry_date: "", contact_options: ["cv", "message"], contact_email: "",
 };
 const sel = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
 
@@ -65,6 +65,7 @@ const EmployerJobForm = () => {
           languages: (j.languages as Lang[]) ?? [], experience: j.experience ?? "", working_hours: j.working_hours ?? "",
           food_provided: j.food_provided, transport_provided: j.transport_provided, description: j.description ?? "",
           benefits: ((j.benefits as string[]) ?? []).join(", "), expiry_date: j.expiry_date ?? "",
+          contact_options: (j.contact_options as ContactOption[]) ?? ["cv"], contact_email: j.contact_email ?? "",
         });
       }
       setLoading(false);
@@ -83,6 +84,8 @@ const EmployerJobForm = () => {
       return toast({ title: "Vyber kategorii práce", variant: "destructive" });
     if (target !== "draft" && !form.start_immediately && !form.start_date)
       return toast({ title: "Vyplň datum nástupu", variant: "destructive" });
+    if (!validContactOptions(form.contact_options))
+      return toast({ title: "Vyber aspoň jeden způsob kontaktu", variant: "destructive" });
     setSaving(true);
     const payload = {
       company_id: companyId, title: form.title, category: form.category || null,
@@ -94,6 +97,7 @@ const EmployerJobForm = () => {
       languages: form.languages.filter((l) => l.language.trim()), experience: form.experience || null,
       working_hours: form.working_hours || null, food_provided: form.food_provided, transport_provided: form.transport_provided,
       description: form.description || null, benefits: benefitList, expiry_date: form.expiry_date || null,
+      contact_options: form.contact_options, contact_email: form.contact_email.trim() || null,
       ...(target === "keep" ? {} : { status: target }),
     };
     const res = id
@@ -171,6 +175,23 @@ const EmployerJobForm = () => {
           <div className="flex items-center gap-3"><Switch checked={form.accommodation_provided} onCheckedChange={(v) => set("accommodation_provided", v)} /><span className="text-sm">Ubytování zajištěno *</span></div>
           {form.accommodation_provided && (
             <div className="space-y-2"><Label>Cena ubytování měsíčně (0 = zdarma)</Label><Input type="number" min="0" value={form.accommodation_cost} onChange={(e) => set("accommodation_cost", e.target.value)} /></div>
+          )}
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="font-display text-lg font-semibold">Jak tě uchazeči kontaktují *</h2>
+          {CONTACT_OPTIONS.map((o) => (
+            <label key={o.value} className="flex items-center gap-3 text-sm">
+              <input type="checkbox" className="h-4 w-4 accent-primary" checked={form.contact_options.includes(o.value)}
+                onChange={(e) => set("contact_options", e.target.checked ? [...form.contact_options, o.value] : form.contact_options.filter((x) => x !== o.value))} />
+              {o.label}
+            </label>
+          ))}
+          {form.contact_options.length === 0 && <p className="text-sm text-destructive">Vyber aspoň jednu možnost.</p>}
+          {form.contact_options.includes("email") && (
+            <div className="space-y-2"><Label>Kontaktní e-mail pro tuto nabídku</Label>
+              <Input type="email" value={form.contact_email} onChange={(e) => set("contact_email", e.target.value)} placeholder="Prázdné = e-mail firmy" />
+              <p className="text-xs text-muted-foreground">Zobrazí se jen přihlášeným uchazečům.</p></div>
           )}
         </section>
 

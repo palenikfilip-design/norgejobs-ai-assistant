@@ -50,3 +50,16 @@ export const SKILL_LEVELS = [
   { value: "management", label: "Vedoucí pozice" },
 ] as const;
 export type SkillLevel = (typeof SKILL_LEVELS)[number]["value"];
+
+export type ContactOption = "cv" | "message" | "email";
+export const CONTACT_OPTIONS: { value: ContactOption; label: string }[] = [
+  { value: "cv", label: "Přihláška s životopisem" }, { value: "message", label: "Zpráva" }, { value: "email", label: "E-mail" },
+];
+/** At least one known contact option must be chosen. */
+export function validContactOptions(opts: string[]): boolean {
+  return opts.length > 0 && opts.every((o) => CONTACT_OPTIONS.some((c) => c.value === o));
+}
+export type ApplicationStatus = "new" | "seen" | "rejected" | "shortlisted";
+export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
+  new: "Nová", seen: "Zobrazená", shortlisted: "Užší výběr", rejected: "Odmítnutá",
+};

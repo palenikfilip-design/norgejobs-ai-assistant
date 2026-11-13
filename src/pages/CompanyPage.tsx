@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
+import JobApplyPanel from "@/components/employer/JobApplyPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Globe, Camera as Instagram, Mail, Loader2, MapPin } from "lucide-react";
@@ -8,6 +9,8 @@ import type { Tables } from "@/integrations/supabase/types";
 
 const CompanyPage = () => {
   const { slug } = useParams();
+  const [params] = useSearchParams();
+  const jobId = params.get("job");
   const [c, setC] = useState<Tables<"public_companies"> | null | undefined>(undefined);
   const [logo, setLogo] = useState<string | null>(null);
   const [preview, setPreview] = useState(false);
@@ -67,6 +70,7 @@ const CompanyPage = () => {
           {c.contact_email && <a href={`mailto:${c.contact_email}`} className="flex items-center gap-1 text-red-accent"><Mail className="w-4 h-4" />{c.contact_email}</a>}
         </div>
       </div>
+      {jobId && !preview && <div className="max-w-3xl mx-auto mt-5"><JobApplyPanel jobId={jobId} companyName={c.name ?? ""} /></div>}
     </div>
   );
 };
