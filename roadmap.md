@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Six-scene landing background: licensed self-hosted clips, still-photo fallback, contrast and desktop/mobile performance verification
+
 - [x] Newest-jobs landing counter: refresh-time active/24-hour count, durable snapshot, mobile layout and count verification
 
 - [x] Fáze 2: firemní nabídky (tabulka, pravidla stavů, synchronizace do katalogu, formulář, přehled, karty, admin tlačítko Zveřejnit)

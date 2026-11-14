@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import LeslieAvatar from "@/components/LeslieAvatar";
 import leslieFullBody from "@/assets/leslie-fullbody.png";
+import LandingLandscape from "@/components/LandingLandscape";
 import { supabase } from "@/integrations/supabase/client";
 import {
   type LeslieStats,
@@ -151,11 +152,8 @@ const Index = () => {
       </div>
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-navy-gradient">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-accent/20 rounded-full blur-[120px]" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-navy-light/40 rounded-full blur-[120px]" />
-        </div>
+      <section className="relative overflow-hidden landing-hero">
+        <LandingLandscape />
 
         <div className="relative max-w-5xl mx-auto px-4 py-10 md:py-14">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-8 md:gap-12">
@@ -219,7 +217,7 @@ const Index = () => {
                 </span>
               </h1>
 
-              <p className="text-base md:text-lg text-primary-foreground/60 max-w-xl mb-4">
+              <p className="text-base md:text-lg text-primary-foreground/90 max-w-xl mb-4">
                 {t("landing.intro")}
               </p>
 
