@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Six-scene landing background: licensed self-hosted clips, still-photo fallback, contrast and desktop/mobile performance verification
+- [x] Six-scene landing background: licensed self-hosted clips, still-photo fallback, contrast and desktop/mobile performance verification
 
 - [x] Newest-jobs landing counter: refresh-time active/24-hour count, durable snapshot, mobile layout and count verification
 
