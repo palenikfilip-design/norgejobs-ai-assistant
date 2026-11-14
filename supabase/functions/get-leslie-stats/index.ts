@@ -36,6 +36,7 @@ type LeslieStats = {
   active_companies?: number;
   countries_covered?: number;
   total_active_jobs?: number;
+  jobs_today?: number;
   quality_active_jobs?: number;
   total_positions?: number;
   quality_total_positions?: number;
@@ -47,6 +48,7 @@ type LeslieStats = {
 
 type LeslieStatsSnapshot = {
   total_active_jobs: number;
+  jobs_today: number;
   fully_enriched: number;
   employers: number;
   countries: number;
@@ -65,6 +67,7 @@ const errorMessage = (error: unknown) => {
 
 const snapshotToStats = (snapshot: LeslieStatsSnapshot): LeslieStats => ({
   total_active_jobs: snapshot.total_active_jobs,
+  jobs_today: snapshot.jobs_today,
   quality_active_jobs: snapshot.fully_enriched,
   active_companies: snapshot.employers,
   countries_covered: snapshot.countries,
@@ -75,29 +78,6 @@ const snapshotToStats = (snapshot: LeslieStatsSnapshot): LeslieStats => ({
 
 const hasNumbers = (s: LeslieStats | null | undefined): s is LeslieStats =>
   !!s && typeof s.total_active_jobs === "number" && s.total_active_jobs > 0;
-
-const persistSnapshot = async (supabase: ReturnType<typeof createClient>, stats: LeslieStats) => {
-  try {
-    const { error } = await withTimeout(
-      supabase
-        .from("leslie_stats_snapshot")
-        .upsert(
-          {
-            id: true,
-            total_active_jobs: stats.total_active_jobs ?? 0,
-            fully_enriched: stats.quality_active_jobs ?? 0,
-            employers: stats.active_companies ?? 0,
-            countries: stats.countries_covered ?? 0,
-            updated_at: stats.computed_at ?? new Date().toISOString(),
-          },
-          { onConflict: "id" },
-        ),
-    );
-    if (error) console.warn("leslie_stats_snapshot upsert warning:", errorMessage(error));
-  } catch (e) {
-    console.warn("leslie_stats_snapshot upsert skipped:", errorMessage(e));
-  }
-};
 
 const readMatview = async (supabase: ReturnType<typeof createClient>): Promise<LeslieStats | null> => {
   try {
@@ -118,7 +98,7 @@ const readSnapshot = async (supabase: ReturnType<typeof createClient>): Promise<
     const { data, error } = await withTimeout(
       supabase
         .from("leslie_stats_snapshot")
-        .select("total_active_jobs, fully_enriched, employers, countries, updated_at")
+        .select("total_active_jobs, jobs_today, fully_enriched, employers, countries, updated_at")
         .eq("id", true)
         .maybeSingle(),
     );
@@ -153,8 +133,7 @@ Deno.serve(async (req) => {
     if (matview) {
       lastGood = matview;
       cache = { data: matview, expires: Date.now() + TTL_MS };
-      // Fire-and-forget: don't hold the response for the snapshot write.
-      persistSnapshot(supabase, matview);
+      // The scheduled refresh persists the snapshot; page loads are read-only.
       return respond(matview);
     }
 

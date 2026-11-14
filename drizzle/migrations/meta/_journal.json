@@ -92,6 +92,20 @@
       "when": 1794605664680,
       "tag": "0012_employer_job_applications",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794681261421,
+      "tag": "0013_landing_stats_durable_newest_snapshot",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794681285977,
+      "tag": "0014_schedule_durable_landing_stats_refresh",
+      "breakpoints": true
     }
   ]
 }

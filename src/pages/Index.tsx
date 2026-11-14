@@ -14,6 +14,8 @@ import {
   hasStatNumbers,
   readCachedStats,
   writeCachedStats,
+  showNewestJobs,
+  mergeStats,
 } from "@/data/statsFallback";
 
 // Feature flag for testimonials section (flip to true once we have real ones)
@@ -60,8 +62,11 @@ const Index = () => {
         if (cancelled || error) return;
         const fresh = data as LeslieStats | null;
         if (hasStatNumbers(fresh)) {
-          setStats(fresh);
-          writeCachedStats(fresh);
+          setStats((previous) => {
+            const merged = mergeStats(previous, fresh);
+            writeCachedStats(merged);
+            return merged;
+          });
         }
       })
       .catch(() => {})
@@ -97,10 +102,10 @@ const Index = () => {
   ];
 
   // Show the real catalog size; enrichment progress is shown as a subtitle.
-  const jobCount = stats.total_active_jobs ?? stats.quality_active_jobs ?? STATIC_STATS_FALLBACK.total_active_jobs!;
+  const jobCount = stats.total_active_jobs ?? stats.quality_active_jobs ?? STATIC_STATS_FALLBACK.total_active_jobs ?? 0;
   const qualityCount = stats.quality_active_jobs ?? null;
-  const companies = stats.active_companies ?? STATIC_STATS_FALLBACK.active_companies!;
-  const countries = stats.countries_covered ?? STATIC_STATS_FALLBACK.countries_covered!;
+  const companies = stats.active_companies ?? STATIC_STATS_FALLBACK.active_companies ?? 0;
+  const countries = stats.countries_covered ?? STATIC_STATS_FALLBACK.countries_covered ?? 0;
   const sources = stats.active_sources ?? 9;
 
   const steps = [
@@ -221,7 +226,8 @@ const Index = () => {
               {/* Stats hierarchy */}
               <div className="mb-4">
                 <div className="rounded-2xl bg-primary-foreground/5 border border-primary-foreground/10 p-4 md:p-5">
-                  <div className="text-center">
+                  <div className={`grid items-center gap-4 text-center ${showNewestJobs(stats) ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
+                  <div>
                     <div className="font-display font-bold text-gradient-accent text-5xl md:text-6xl leading-none">
                       <CountUp value={jobCount} locale={numberLocale} />
                     </div>
@@ -233,6 +239,17 @@ const Index = () => {
                         {t("landing.qualitySubtitle", { count: qualityCount })}
                       </div>
                     )}
+                  </div>
+                  {showNewestJobs(stats) && (
+                    <div data-testid="newest-jobs-counter" className="min-w-0">
+                      <div className="font-display font-bold text-gradient-accent text-3xl md:text-4xl leading-none whitespace-nowrap">
+                        +{stats.jobs_today?.toLocaleString(numberLocale)}
+                      </div>
+                      <div className="mt-1 text-primary-foreground/70 text-sm md:text-base">
+                        {t("landing.newJobsLast24Hours")}
+                      </div>
+                    </div>
+                  )}
                   </div>
                   <div className="mt-4 pt-4 border-t border-primary-foreground/10 grid grid-cols-2 gap-3 text-center">
                     <div>

@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Newest-jobs landing counter: refresh-time active/24-hour count, durable snapshot, mobile layout and count verification
+
 - [x] Fáze 2: firemní nabídky (tabulka, pravidla stavů, synchronizace do katalogu, formulář, přehled, karty, admin tlačítko Zveřejnit)
 - [x] Pravidlo: nezměněný stav povolen; uzavření/koncept zveřejněné nabídky ji skryje z katalogu
 - [x] Fáze 3: schvalovací fronta, trust levely, hlášení, pozastavení firmy

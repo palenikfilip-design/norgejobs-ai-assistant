@@ -11,6 +11,7 @@ export type LeslieStats = {
   active_companies?: number;
   countries_covered?: number;
   total_active_jobs?: number;
+  jobs_today?: number;
   quality_active_jobs?: number;
   total_positions?: number;
   quality_total_positions?: number;
@@ -34,6 +35,14 @@ export const STATIC_STATS_FALLBACK: LeslieStats = {
 
 export const hasStatNumbers = (s: LeslieStats | null | undefined): s is LeslieStats =>
   !!s && !s.fallback && typeof s.total_active_jobs === "number" && s.total_active_jobs > 0;
+
+export const showNewestJobs = (stats: LeslieStats): boolean =>
+  typeof stats.jobs_today === "number" && stats.jobs_today > 0;
+
+export const mergeStats = (previous: LeslieStats, fresh: LeslieStats): LeslieStats => ({
+  ...fresh,
+  jobs_today: fresh.jobs_today ?? previous.jobs_today,
+});
 
 export const readCachedStats = (): LeslieStats | null => {
   try {

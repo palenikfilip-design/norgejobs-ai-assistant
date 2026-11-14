@@ -1159,6 +1159,36 @@ export type Database = {
         }
         Relationships: []
       }
+      leslie_stats_snapshot: {
+        Row: {
+          countries: number
+          employers: number
+          fully_enriched: number
+          id: boolean
+          jobs_today: number
+          total_active_jobs: number
+          updated_at: string
+        }
+        Insert: {
+          countries: number
+          employers: number
+          fully_enriched: number
+          id?: boolean
+          jobs_today: number
+          total_active_jobs: number
+          updated_at: string
+        }
+        Update: {
+          countries?: number
+          employers?: number
+          fully_enriched?: number
+          id?: boolean
+          jobs_today?: number
+          total_active_jobs?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       liveness_runs: {
         Row: {
           batch_size: number | null
@@ -2046,6 +2076,7 @@ export type Database = {
       liveness_acquire_lease: { Args: { _seconds: number }; Returns: number }
       map_display_category: { Args: { _cat: string }; Returns: string }
       owns_company: { Args: { _company_id: string }; Returns: boolean }
+      refresh_leslie_stats: { Args: never; Returns: undefined }
       register_job_view: { Args: { p_job_url: string }; Returns: number }
       set_ingest_cron_secret: { Args: { _value: string }; Returns: undefined }
       sync_employer_public_job: {
