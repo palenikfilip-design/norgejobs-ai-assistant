@@ -1,3 +1,4 @@
+import { gatewayFetch, gatewayErrorResponse } from "../_shared/aiGateway.ts";
 // Archiles enrichment pipeline — Phase 2
 // Processes public_jobs rows: deterministic region+salary, AI extraction, trust score, review decision.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -376,7 +377,7 @@ Set country_confidence accordingly: "high" when a country/state/major city is un
 
 Be conservative. If unsure, use "unknown" or null. Better to mark for human review than guess wrong.`;
 
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const res = await gatewayFetch(createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""), "https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -724,6 +725,7 @@ async function enrichJob(
 
     return { ok: true, needs_review, result: fullResult, ms: Date.now() - started };
   } catch (e) {
+    if (gatewayErrorResponse(e, corsHeaders)) throw e;
     const msg = e instanceof Error ? e.message : String(e);
     return { ok: false, needs_review: true, error: msg, ms: Date.now() - started };
   }
@@ -731,6 +733,7 @@ async function enrichJob(
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  try {
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -829,4 +832,11 @@ Deno.serve(async (req) => {
     budget_halted: budgetHalted,
     results,
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
+  } catch (error) {
+    const response = gatewayErrorResponse(error, corsHeaders);
+    if (response) return response;
+    console.error("AI job failed", error);
+    return new Response(JSON.stringify({ error: "job_failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
 });

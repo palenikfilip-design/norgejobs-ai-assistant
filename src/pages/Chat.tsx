@@ -10,6 +10,7 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import LeslieAvatar from "@/components/LeslieAvatar";
+import { readChatError } from "@/lib/chatError";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 interface JobCard {
@@ -72,6 +73,7 @@ const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([{ id: "welcome", role: "assistant", content: WELCOME }]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [reactions, setReactions] = useState<Record<string, "like" | "dislike">>({});
   const [ratingDetails, setRatingDetails] = useState<Record<string, { action: "like" | "dislike"; title: string; company: string | null; country: string | null; category: string | null }>>({});
   const [pendingRatingsSent, setPendingRatingsSent] = useState(false);
@@ -227,6 +229,7 @@ const Chat = () => {
     setMessages(next);
     setInput("");
     setSending(true);
+    setSendError(null);
 
     const ratingsPayload = opts?.includeRatings ? Object.values(ratingDetails) : [];
 
@@ -240,10 +243,12 @@ const Chat = () => {
         },
       });
       if (error) {
-        const status = (error as { context?: { status?: number } })?.context?.status;
+        const description = await readChatError(error);
+        setSendError(description);
+        setInput(text);
         toast({
           title: "Chyba",
-          description: status === 429 ? "Moc rychle. Zkus to za chvíli." : status === 402 ? "Došly kredity." : "Něco se pokazilo.",
+          description,
           variant: "destructive",
         });
         setSending(false);
@@ -268,7 +273,10 @@ const Chat = () => {
       }
     } catch (e) {
       console.error("chat-leslie call failed:", e);
-      toast({ title: "Chyba", description: "Něco se pokazilo.", variant: "destructive" });
+      const description = await readChatError(e);
+      setSendError(description);
+      setInput(text);
+      toast({ title: "Chyba", description, variant: "destructive" });
     } finally {
       setSending(false);
     }
@@ -483,6 +491,7 @@ const Chat = () => {
 
       {/* Input */}
       <div className="sticky bottom-0 bg-card/80 backdrop-blur-xl border-t border-border/50 p-4">
+        {sendError && <p role="alert" className="max-w-2xl mx-auto mb-3 text-sm text-destructive">{sendError}</p>}
         <div className="max-w-2xl mx-auto flex gap-2">
           <Input
             ref={inputRef}

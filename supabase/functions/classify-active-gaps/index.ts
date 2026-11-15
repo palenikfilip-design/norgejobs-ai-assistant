@@ -1,3 +1,4 @@
+import { gatewayFetch, gatewayErrorResponse } from "../_shared/aiGateway.ts";
 // Targeted classification pass for ACTIVE, already-enriched jobs that are
 // missing skill_class and/or foreigner_friendly.
 //
@@ -58,7 +59,7 @@ skill_class: manual = physical/entry-level, no formal qualification; skilled = n
 foreigner_signals: true only with clear evidence (language_ok = local language not required / English OK; accommodation = housing provided; hires_foreign = welcomes foreign workers; international_agency = recruits internationally; requires_local_language = fluent local language mandatory).
 Title: ${job.title}
 Description: ${desc}`;
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const res = await gatewayFetch(createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""), "https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", "Lovable-API-Key": key, "X-Lovable-AIG-SDK": "raw" },
     body: JSON.stringify({ model: MODEL, messages: [{ role: "user", content: prompt }], response_format: { type: "json_object" } }),
@@ -76,6 +77,7 @@ Description: ${desc}`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  try {
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   let body: { mode?: string; batch_size?: number } = {};
   try { body = await req.json(); } catch { /* noop */ }
@@ -158,6 +160,7 @@ Deno.serve(async (req) => {
           await supabase.from("public_jobs").update(upd).eq("id", r.id);
           stats.processed++;
         } catch (e: any) {
+          if (gatewayErrorResponse(e, corsHeaders)) { stats.halted = String(e.message); return; }
           stats.failed++;
           if (e?.status === 402 || e?.status === 403) stats.halted = String(e.message);
           else if (e?.status === 429) { stats.halted = "rate_limited"; }
@@ -168,4 +171,11 @@ Deno.serve(async (req) => {
     return json({ ok: true, mode, ...stats, cost_usd: +stats.cost_usd.toFixed(5), ms: Date.now() - started });
   }
   return json({ error: "unknown mode" }, 400);
+  } catch (error) {
+    const response = gatewayErrorResponse(error, corsHeaders);
+    if (response) return response;
+    console.error("AI job failed", error);
+    return new Response(JSON.stringify({ error: "job_failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
 });

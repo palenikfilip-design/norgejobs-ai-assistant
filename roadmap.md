@@ -1,5 +1,9 @@
 # Roadmap
 
+- [x] Preserve chat AI error status/reason, display actionable failure and stop loading — authenticated UI verified with 403 and restored draft
+- [x] Persist workspace AI pause and gate all AI entrypoints; blocked path verified after deployment, 25 tests passed
+- [ ] Restore AI access — blocked by workspace monthly AI cap (120 credits); owner must choose a higher cap
+
 - [x] Apply Norgejobs theme across app, replace black styling, verify AA on vineyard/forest desktop and mobile
 - [x] Extend employer headlines to Czechia, Slovakia and other countries
 

@@ -1,3 +1,4 @@
+import { gatewayFetch, gatewayErrorResponse } from "../_shared/aiGateway.ts";
 // Archiles — admin assistant. Uses Lovable AI Gateway with function calling.
 // Read-only data access to the Leslie catalog + admin-only persistence.
 
@@ -177,6 +178,7 @@ async function runTool(name: string, args: any, admin: any) {
     }
     return { error: `Unknown tool: ${name}` };
   } catch (e: any) {
+    if (gatewayErrorResponse(e, corsHeaders)) throw e;
     return { error: e.message ?? String(e) };
   }
 }
@@ -223,7 +225,7 @@ Deno.serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
-      const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const aiResp = await gatewayFetch(admin, "https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -271,6 +273,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
+    const gatewayResponse = gatewayErrorResponse(e, corsHeaders);
+    if (gatewayResponse) return gatewayResponse;
     return new Response(JSON.stringify({ error: e.message ?? String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

@@ -1,3 +1,4 @@
+import { assertGatewayActive } from "./aiGateway.ts";
 // Shared cost-tracking + daily-budget enforcement for all AI-calling edge functions.
 // Rates are approximate published Lovable AI gateway prices, USD per 1M tokens.
 const RATES: Record<string, { in: number; out: number }> = {
@@ -12,6 +13,7 @@ export function estimateCost(model: string, inputTokens: number, outputTokens: n
 
 /** Returns true if there is still budget remaining for today. */
 export async function hasBudgetRemaining(supabase: any): Promise<{ ok: boolean; spent: number; limit: number }> {
+  await assertGatewayActive(supabase);
   const today = new Date().toISOString().slice(0, 10);
   const { data } = await supabase
     .from("ai_daily_budget")

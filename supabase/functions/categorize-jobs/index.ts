@@ -1,3 +1,4 @@
+import { gatewayFetch, gatewayErrorResponse } from "../_shared/aiGateway.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { hasBudgetRemaining, logAiCall } from "../_shared/aiBudget.ts";
 
@@ -41,7 +42,7 @@ async function classifyBatch(jobs: JobRow[], supabase: any): Promise<string[]> {
 
   const prompt = `Categorize each job into ONE of: ${CATEGORIES.join(", ")}. Return JSON array same length as input.\n\nJobs:\n${lines}`;
 
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const res = await gatewayFetch(supabase, "https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -138,6 +139,7 @@ Deno.serve(async (req) => {
         }
         batches++;
       } catch (err) {
+    if (gatewayErrorResponse(err, corsHeaders)) throw err;
         const msg = err instanceof Error ? err.message : String(err);
         console.error("[categorize-jobs] batch failed", msg);
         errors.push(msg);
@@ -169,6 +171,8 @@ Deno.serve(async (req) => {
       },
     );
   } catch (err) {
+    const gatewayResponse = gatewayErrorResponse(err, corsHeaders);
+    if (gatewayResponse) return gatewayResponse;
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[categorize-jobs] failed", msg);
     await supabase.from("ingest_logs").insert({

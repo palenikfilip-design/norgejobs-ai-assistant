@@ -1,3 +1,4 @@
+import { gatewayFetch, gatewayErrorResponse } from "../_shared/aiGateway.ts";
 // interpret-correction — turn a plain-language user correction into structured
 // operations against their learning profile + active preset. Explicit text
 // instructions OVERRIDE inferred behavioral signals (Socrates principle).
@@ -77,7 +78,7 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
 
     const userMsg = `Korekce: """${text}"""\n\nCo si zatím Leslie myslí (JSON, smí být null):\n${JSON.stringify(currentProfile)}`;
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResp = await gatewayFetch(admin, "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -187,6 +188,8 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
+    const gatewayResponse = gatewayErrorResponse(e, corsHeaders);
+    if (gatewayResponse) return gatewayResponse;
     console.error("interpret-correction error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),

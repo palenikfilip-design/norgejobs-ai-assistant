@@ -68,6 +68,33 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_gateway_state: {
+        Row: {
+          error_type: string
+          id: boolean
+          message: string
+          paused: boolean
+          status: number
+          updated_at: string
+        }
+        Insert: {
+          error_type?: string
+          id?: boolean
+          message?: string
+          paused?: boolean
+          status?: number
+          updated_at?: string
+        }
+        Update: {
+          error_type?: string
+          id?: boolean
+          message?: string
+          paused?: boolean
+          status?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       archiles_autonomy: {
         Row: {
           auto_delete_dead: boolean

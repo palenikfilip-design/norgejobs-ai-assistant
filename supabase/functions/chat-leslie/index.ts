@@ -1,3 +1,4 @@
+import { gatewayFetch, gatewayErrorResponse } from "../_shared/aiGateway.ts";
 // Leslie — preset-building catalog search assistant.
 // Strict rules: never recommend external sites, converge to a preset+jobs fast.
 
@@ -654,7 +655,7 @@ Deno.serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
         );
       }
-      const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const aiResp = await gatewayFetch(getServiceSupabase(), "https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({ model: "google/gemini-3-flash-preview", messages: convo, tools: TOOLS, tool_choice: "auto" }),
@@ -725,6 +726,8 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({ reply: "Něco se zaseklo, zkus to prosím znovu.", jobs: [] }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
+    const gatewayResponse = gatewayErrorResponse(e, corsHeaders);
+    if (gatewayResponse) return gatewayResponse;
     const msg = e instanceof Error ? e.message : String(e);
     console.error("chat-leslie error:", msg);
     return new Response(JSON.stringify({ error: msg }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });

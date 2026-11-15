@@ -1,3 +1,4 @@
+import { gatewayFetch, gatewayErrorResponse } from "../_shared/aiGateway.ts";
 // Extracts structured info from a short conversation and routes it into:
 //   - profiles (AVATAR — stable identity: languages, profession, etc.)
 //   - user_presets (PRESET — current search intent: countries, salary, seasonal, …)
@@ -120,7 +121,7 @@ SKILL LEVEL — set skill_level to one of "manual" | "skilled" | "management" | 
 Conversation:
 ${convo}`;
 
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const resp = await gatewayFetch(supabase, "https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -153,6 +154,7 @@ ${convo}`;
   try {
     return JSON.parse(match[0]) as Extracted;
   } catch (e) {
+    if (gatewayErrorResponse(e, corsHeaders)) throw e;
     console.warn("Could not parse AI JSON:", e);
     return {};
   }
@@ -331,6 +333,7 @@ Deno.serve(async (req) => {
         }
       }
     } catch (presetErr) {
+    if (gatewayErrorResponse(presetErr, corsHeaders)) throw presetErr;
       console.warn("preset routing failed (non-fatal):", presetErr);
     }
 
@@ -344,6 +347,7 @@ Deno.serve(async (req) => {
         confidence,
       });
     } catch (logErr) {
+    if (gatewayErrorResponse(logErr, corsHeaders)) throw logErr;
       console.warn("chat_extractions log failed (non-fatal):", logErr);
     }
 
@@ -352,6 +356,8 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
+    const gatewayResponse = gatewayErrorResponse(e, corsHeaders);
+    if (gatewayResponse) return gatewayResponse;
     const msg = e instanceof Error ? e.message : String(e);
     console.error("extract-preferences error:", msg);
     return new Response(JSON.stringify({ error: msg }), {

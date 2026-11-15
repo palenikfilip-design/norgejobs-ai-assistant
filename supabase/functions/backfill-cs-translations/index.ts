@@ -1,3 +1,4 @@
+import { gatewayFetch, gatewayErrorResponse } from "../_shared/aiGateway.ts";
 // Targeted Czech-translation backfill for public_jobs rows that were enriched
 // before title_cs/summary_cs were generated reliably (e.g. Airbnb / multi-country
 // Greenhouse postings). Cheap flash-lite call, respects daily AI budget.
@@ -33,7 +34,7 @@ JOB: ${job.title} @ ${job.company ?? "?"} (${job.country ?? "?"})
 DESCRIPTION: ${descSnippet || "(none)"}`;
 
   try {
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const resp = await gatewayFetch(supabase, "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({ model: MODEL, messages: [{ role: "user", content: prompt }] }),
@@ -55,6 +56,7 @@ DESCRIPTION: ${descSnippet || "(none)"}`;
       ? parsed.summary_cs.trim().slice(0, 400) : null;
     return { title_cs, summary_cs };
   } catch (e) {
+    if (gatewayErrorResponse(e, corsHeaders)) throw e;
     console.error("translate exception", e);
     return null;
   }
@@ -62,6 +64,7 @@ DESCRIPTION: ${descSnippet || "(none)"}`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  try {
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -112,4 +115,11 @@ Deno.serve(async (req) => {
     failed,
     budget_halted: budgetHalted,
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
+  } catch (error) {
+    const response = gatewayErrorResponse(error, corsHeaders);
+    if (response) return response;
+    console.error("AI job failed", error);
+    return new Response(JSON.stringify({ error: "job_failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
 });

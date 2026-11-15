@@ -1,3 +1,4 @@
+import { gatewayFetch, gatewayErrorResponse } from "../_shared/aiGateway.ts";
 // Catalog-based job matching: reads from public_jobs (Archiles catalog),
 // pre-filters by preset hard criteria, then AI-scores against avatar + preset.
 
@@ -174,7 +175,7 @@ Return ONLY valid JSON:
 {"overall":<n>,"dimensions":{"role_match":<n>,"location_match":<n>,"seasonality_match":<n>,"language_match":<n>,"salary_match":<n>},"reasons":[<strings>],"warnings":[<strings>],"company_signal":"established|growing|unknown|warning"}`;
 
   try {
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const resp = await gatewayFetch(supabase, "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -223,6 +224,7 @@ Return ONLY valid JSON:
     const signal = allowed.has(String(parsed.company_signal)) ? String(parsed.company_signal) : "unknown";
     return { score: overall, dimensions, reasons, warnings, company_signal: signal };
   } catch (e) {
+    if (gatewayErrorResponse(e, corsHeaders)) throw e;
     if (e instanceof Error && (e.message === "rate_limited" || e.message === "payment_required")) throw e;
     console.error("scoreJobWithAI failed:", e);
     return { score: 50, dimensions: {}, reasons: [], warnings: [], company_signal: "unknown" };
@@ -459,6 +461,8 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
+    const gatewayResponse = gatewayErrorResponse(e, corsHeaders);
+    if (gatewayResponse) return gatewayResponse;
     const msg = e instanceof Error ? e.message : String(e);
     const status = msg === "rate_limited" ? 429 : msg === "payment_required" ? 402 : 500;
     console.error("match-jobs error:", msg);
