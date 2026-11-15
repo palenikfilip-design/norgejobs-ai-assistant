@@ -57,7 +57,7 @@
     /* Light veil: the landscapes stay clearly visible. Darker only at the very
        top (header links) and along the bottom edge; the text block gets its own
        scrim (.landing-hero__text::before). */
-    --landscape-overlay: linear-gradient(180deg, hsl(var(--landscape-ink) / 0.82) 0%, hsl(var(--landscape-ink) / 0.26) 18%, hsl(var(--landscape-ink) / 0.06) 45%, hsl(var(--landscape-ink) / 0.34) 100%);
+    --landscape-overlay: linear-gradient(180deg, hsl(var(--landscape-ink) / 0.7) 0%, hsl(var(--landscape-ink) / 0.22) 18%, hsl(var(--landscape-ink) / 0.06) 45%, hsl(var(--landscape-ink) / 0.34) 100%);
     --gradient-navy: linear-gradient(135deg, hsl(217 38% 10%), hsl(217 30% 22%));
     --gradient-accent: linear-gradient(135deg, hsl(0 84% 60%), hsl(350 80% 50%));
     --shadow-card: 0 1px 3px 0 hsl(217 33% 17% / 0.04), 0 1px 2px -1px hsl(217 33% 17% / 0.04);
@@ -163,35 +163,35 @@
   inset: -3rem -3.5rem;
   z-index: -1;
   pointer-events: none;
-  /* Many gradual stops so the dark area fades out without a visible edge. */
-  background: radial-gradient(140% 120% at 50% 50%,
+  /* closest-side keeps the fade inside the box, so there is no visible edge. */
+  background: radial-gradient(closest-side,
     hsl(var(--landscape-ink) / 0.95) 0%,
-    hsl(var(--landscape-ink) / 0.9) 30%,
-    hsl(var(--landscape-ink) / 0.76) 50%,
-    hsl(var(--landscape-ink) / 0.5) 68%,
-    hsl(var(--landscape-ink) / 0.25) 82%,
-    hsl(var(--landscape-ink) / 0.08) 92%,
+    hsl(var(--landscape-ink) / 0.9) 32%,
+    hsl(var(--landscape-ink) / 0.74) 52%,
+    hsl(var(--landscape-ink) / 0.48) 70%,
+    hsl(var(--landscape-ink) / 0.22) 85%,
+    hsl(var(--landscape-ink) / 0.06) 95%,
     transparent 100%);
 }
 /* Stats card: a dark panel so the red counters and small labels stay readable
    over bright scenes (snow, sky, water). */
 .landing-panel {
-  background: hsl(var(--landscape-ink) / 0.66);
-  border-color: hsl(var(--landscape-text) / 0.16);
+  background: hsl(var(--landscape-ink) / 0.74);
+  border-color: hsl(var(--landscape-text) / 0.14);
 }
 /* Translucent dark fill for pills and the secondary button, so their light text
    stays readable over bright scenes. */
 .landing-panel-soft { background: hsl(var(--landscape-ink) / 0.55); }
 @media (max-width: 767px) {
-  .landing-hero { --landscape-overlay: linear-gradient(180deg, hsl(var(--landscape-ink) / 0.76) 0%, hsl(var(--landscape-ink) / 0.24) 22%, hsl(var(--landscape-ink) / 0.1) 52%, hsl(var(--landscape-ink) / 0.36) 100%); }
+  .landing-hero { --landscape-overlay: linear-gradient(180deg, hsl(var(--landscape-ink) / 0.8) 0%, hsl(var(--landscape-ink) / 0.26) 22%, hsl(var(--landscape-ink) / 0.08) 52%, hsl(var(--landscape-ink) / 0.3) 100%); }
   .landing-hero__text::before {
     inset: -1.25rem -1rem;
-    background: radial-gradient(125% 108% at 50% 50%,
+    background: radial-gradient(closest-side,
       hsl(var(--landscape-ink) / 0.95) 0%,
-      hsl(var(--landscape-ink) / 0.9) 34%,
-      hsl(var(--landscape-ink) / 0.72) 54%,
-      hsl(var(--landscape-ink) / 0.42) 70%,
-      hsl(var(--landscape-ink) / 0.16) 86%,
+      hsl(var(--landscape-ink) / 0.88) 36%,
+      hsl(var(--landscape-ink) / 0.68) 58%,
+      hsl(var(--landscape-ink) / 0.38) 76%,
+      hsl(var(--landscape-ink) / 0.12) 90%,
       transparent 100%);
   }
 }

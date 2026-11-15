@@ -144,7 +144,7 @@ const Index = () => {
         <span className="text-primary-foreground/30">|</span>
         <button
           onClick={() => i18n.changeLanguage("cs")}
-          className={`px-2 py-1 rounded transition ${currentLang === "cs" ? "text-primary-foreground font-semibold" : "text-primary-foreground/50 hover:text-primary-foreground/80"}`}
+          className={`px-2 py-1 rounded transition ${currentLang === "cs" ? "text-primary-foreground font-semibold" : "text-primary-foreground/75 hover:text-primary-foreground/90"}`}
           aria-label="Čeština"
         >
           🇨🇿 CS
@@ -152,7 +152,7 @@ const Index = () => {
         <span className="text-primary-foreground/30">|</span>
         <button
           onClick={() => i18n.changeLanguage("en")}
-          className={`px-2 py-1 rounded transition ${currentLang === "en" ? "text-primary-foreground font-semibold" : "text-primary-foreground/50 hover:text-primary-foreground/80"}`}
+          className={`px-2 py-1 rounded transition ${currentLang === "en" ? "text-primary-foreground font-semibold" : "text-primary-foreground/75 hover:text-primary-foreground/90"}`}
           aria-label="English"
         >
           🇬🇧 EN
