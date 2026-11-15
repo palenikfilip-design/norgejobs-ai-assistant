@@ -1,8 +1,8 @@
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUser } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
-import { Bot, ArrowRight, Sparkles, Globe, MessageCircle, MessagesSquare, Search, CheckCircle2 } from "lucide-react";
+import { Bot, ArrowRight, Sparkles, Globe, MessageCircle, MessagesSquare, Search, CheckCircle2, Building2, Users, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import LeslieAvatar from "@/components/LeslieAvatar";
@@ -134,6 +134,14 @@ const Index = () => {
     <div className="min-h-screen">
       {/* Top bar with language switcher */}
       <div className="absolute top-0 right-0 z-20 p-4 flex items-center gap-1 text-sm">
+        <Link
+          to="/for-employers"
+          data-testid="employer-entry"
+          className="px-2 py-1 rounded font-medium text-primary-foreground hover:text-primary-foreground transition"
+        >
+          {t("landing.forCompanies")}
+        </Link>
+        <span className="text-primary-foreground/30">|</span>
         <button
           onClick={() => i18n.changeLanguage("cs")}
           className={`px-2 py-1 rounded transition ${currentLang === "cs" ? "text-primary-foreground font-semibold" : "text-primary-foreground/50 hover:text-primary-foreground/80"}`}
@@ -203,9 +211,9 @@ const Index = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7 }}
-              className="text-center md:text-left flex-1 min-w-0"
+              className="text-center md:text-left flex-1 min-w-0 landing-hero__text"
             >
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-foreground/10 border border-primary-foreground/10 text-primary-foreground/80 text-sm mb-3">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full landing-panel-soft border border-primary-foreground/10 text-primary-foreground/90 text-sm mb-3">
                 <Sparkles className="w-4 h-4 text-red-accent" />
                 {t("landing.badge")}
               </div>
@@ -223,7 +231,7 @@ const Index = () => {
 
               {/* Stats hierarchy */}
               <div className="mb-4">
-                <div className="rounded-2xl bg-primary-foreground/5 border border-primary-foreground/10 p-4 md:p-5">
+                <div className="rounded-2xl landing-panel border p-4 md:p-5">
                   <div className={`grid items-center gap-4 text-center ${showNewestJobs(stats) ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
                   <div>
                     <div className="font-display font-bold text-gradient-accent text-5xl md:text-6xl leading-none">
@@ -268,7 +276,7 @@ const Index = () => {
                     </div>
                   </div>
                   {updatedCaption && (
-                    <div className="mt-4 text-[11px] text-primary-foreground/40 text-center">
+                    <div className="mt-4 text-[11px] text-primary-foreground/65 text-center">
                       {updatedCaption}
                     </div>
                   )}
@@ -278,7 +286,7 @@ const Index = () => {
               <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
                 <Button
                   size="lg"
-                  className="bg-accent-gradient text-accent-foreground hover:opacity-90 text-lg px-11 py-6 h-auto"
+                  className="bg-accent-gradient text-accent-foreground hover:opacity-90 text-[19px] font-bold px-11 py-6 h-auto"
                   onClick={() => navigate("/signup")}
                 >
                   {t("landing.ctaCreate")}
@@ -287,7 +295,7 @@ const Index = () => {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-primary-foreground/50 bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20 text-lg px-11 py-6 h-auto"
+                  className="border-primary-foreground/50 landing-panel-soft text-primary-foreground hover:bg-primary-foreground/20 text-[19px] font-bold px-11 py-6 h-auto"
                   onClick={() => navigate("/login")}
                 >
                   {t("landing.ctaLogin")}
@@ -398,11 +406,45 @@ const Index = () => {
           </p>
           <Button
             size="lg"
-            className="bg-accent-gradient text-accent-foreground hover:opacity-90 text-base px-10"
+            className="bg-accent-gradient text-accent-foreground hover:opacity-90 text-[19px] font-bold px-10"
             onClick={() => navigate("/signup")}
           >
             {t("landing.ctaReadyBtn")}
             <ArrowRight className="w-5 h-5 ml-2" />
+          </Button>
+        </div>
+      </section>
+
+      {/* Pro firmy — vstup do existujícího firemního účtu (/for-employers) */}
+      <section className="py-14 bg-card border-t border-border">
+        <div className="max-w-3xl mx-auto px-4 text-center">
+          <p className="text-red-accent font-semibold uppercase tracking-wider text-xs mb-3">
+            {t("landing.employerSectionKicker")}
+          </p>
+          <h2 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-5">
+            {t("landing.employerSectionTitle")}
+          </h2>
+          <ul className="space-y-2 mb-7">
+            {[
+              { icon: Building2, text: t("landing.employerSectionLine1") },
+              { icon: Users, text: t("landing.employerSectionLine2") },
+              { icon: ShieldCheck, text: t("landing.employerSectionLine3") },
+            ].map((line) => (
+              <li key={line.text} className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <line.icon className="w-4 h-4 text-red-accent shrink-0" />
+                <span>{line.text}</span>
+              </li>
+            ))}
+          </ul>
+          <Button
+            asChild
+            size="lg"
+            className="bg-accent-gradient text-accent-foreground hover:opacity-90 text-[19px] font-bold px-10"
+          >
+            <Link to="/for-employers" data-testid="employer-cta">
+              {t("landing.employerSectionBtn")}
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Link>
           </Button>
         </div>
       </section>
