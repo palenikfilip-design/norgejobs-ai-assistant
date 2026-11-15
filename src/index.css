@@ -2,89 +2,105 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 220 39% 11%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 220 39% 11%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 39% 11%;
-
-    --primary: 217 33% 17%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 220 20% 98%;
-    --secondary-foreground: 220 39% 11%;
-
-    --muted: 220 20% 98%;
-    --muted-foreground: 220 9% 46%;
-
-    --accent: 0 84% 60%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 217 33% 17%;
+    /* Norgejobs primitives; all theme roles resolve through these. */
+    --brand-navy: 218.901099 100% 17.843137%;
+    --brand-red: 347.931034 87.878788% 38.823529%;
+    --brand-white: 0 0% 100%;
+    --brand-light-blue: 216 48.387097% 93.921569%;
+    --brand-blue: 213.333333 44.262295% 35.882353%;
+    --brand-border: 215.217391 28.75% 68.627451%;
+    --background: var(--brand-light-blue);
+    --foreground: var(--brand-navy);
+    --card: var(--brand-light-blue);
+    --card-foreground: var(--brand-navy);
+    --popover: var(--brand-light-blue);
+    --popover-foreground: var(--brand-navy);
+    --primary: var(--brand-navy);
+    --primary-foreground: var(--brand-white);
+    --secondary: var(--brand-white);
+    --secondary-foreground: var(--brand-navy);
+    --muted: var(--brand-light-blue);
+    --muted-foreground: var(--brand-navy);
+    --accent: var(--brand-red);
+    --accent-foreground: var(--brand-white);
+    --destructive: var(--brand-red);
+    --destructive-foreground: var(--brand-white);
+    --border: var(--brand-border);
+    --input: var(--brand-border);
+    --ring: var(--brand-navy);
 
     --radius: 0.75rem;
 
-    --sidebar-background: 217 33% 10%;
-    --sidebar-foreground: 210 40% 92%;
-    --sidebar-primary: 0 84% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 18%;
-    --sidebar-accent-foreground: 210 40% 92%;
-    --sidebar-border: 217 30% 20%;
-    --sidebar-ring: 0 84% 60%;
+    --sidebar-background: var(--brand-navy);
+    --sidebar-foreground: var(--brand-white);
+    --sidebar-primary: var(--brand-red);
+    --sidebar-primary-foreground: var(--brand-white);
+    --sidebar-accent: var(--brand-blue);
+    --sidebar-accent-foreground: var(--brand-white);
+    --sidebar-border: var(--brand-blue);
+    --sidebar-ring: var(--brand-white);
 
-    /* Custom tokens */
-    --navy: 217 33% 17%;
-    --navy-light: 217 25% 24%;
-    --navy-dark: 217 38% 10%;
-    --red-accent: 0 84% 60%;
-    --red-accent-light: 0 84% 68%;
-    --soft-blue: 199 89% 94%;
-    --landscape-ink: 220 16% 5%;
-    --landscape-text: 0 0% 100%;
+    --navy: var(--brand-navy);
+    --navy-light: var(--brand-blue);
+    --navy-dark: var(--brand-navy);
+    --red-accent: var(--brand-red);
+    --red-accent-light: var(--brand-red);
+    --soft-blue: var(--brand-light-blue);
+    --landscape-ink: var(--brand-navy);
+    --landscape-text: var(--brand-white);
     /* Light veil: the landscapes stay clearly visible. Darker only at the very
        top (header links) and along the bottom edge; the text block gets its own
        scrim (.landing-hero__text::before). */
-    --landscape-overlay: linear-gradient(180deg, hsl(var(--landscape-ink) / 0.7) 0%, hsl(var(--landscape-ink) / 0.22) 18%, hsl(var(--landscape-ink) / 0.06) 45%, hsl(var(--landscape-ink) / 0.34) 100%);
-    --gradient-navy: linear-gradient(135deg, hsl(217 38% 10%), hsl(217 30% 22%));
-    --gradient-accent: linear-gradient(135deg, hsl(0 84% 60%), hsl(350 80% 50%));
-    --shadow-card: 0 1px 3px 0 hsl(217 33% 17% / 0.04), 0 1px 2px -1px hsl(217 33% 17% / 0.04);
-    --shadow-elevated: 0 10px 30px -8px hsl(217 33% 17% / 0.12);
-    --shadow-glow: 0 0 40px -10px hsl(0 84% 60% / 0.2);
+    --landscape-overlay: linear-gradient(180deg, hsl(var(--landscape-ink) / 0.85) 0%, hsl(var(--landscape-ink) / 0.22) 18%, hsl(var(--landscape-ink) / 0.06) 45%, hsl(var(--landscape-ink) / 0.34) 100%);
+    --gradient-navy: linear-gradient(135deg, hsl(var(--navy)), hsl(var(--navy-light)));
+    --gradient-accent: linear-gradient(135deg, hsl(var(--red-accent)), hsl(var(--red-accent)));
+    --shadow-card: 0 1px 3px hsl(var(--navy) / 0.08);
+    --shadow-elevated: 0 10px 30px -8px hsl(var(--navy) / 0.18);
+    --shadow-glow: 0 0 40px -10px hsl(var(--red-accent) / 0.2);
+    --shadow-job-hover: 0 0 0 4px hsl(var(--navy) / 0.18), 0 18px 45px -12px hsl(var(--navy) / 0.55);
+    --shadow-sm: 0 1px 2px hsl(var(--navy) / 0.05);
+    --shadow-default: 0 1px 3px hsl(var(--navy) / 0.1), 0 1px 2px hsl(var(--navy) / 0.06);
+    --shadow-md: 0 4px 6px -1px hsl(var(--navy) / 0.1), 0 2px 4px -2px hsl(var(--navy) / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(var(--navy) / 0.1), 0 4px 6px -4px hsl(var(--navy) / 0.1);
+    --shadow-xl: 0 20px 25px -5px hsl(var(--navy) / 0.1), 0 8px 10px -6px hsl(var(--navy) / 0.1);
+    --shadow-2xl: 0 25px 50px -12px hsl(var(--navy) / 0.25);
+    --shadow-inner: inset 0 2px 4px hsl(var(--navy) / 0.05);
+    --drop-shadow-sm: 0 1px 1px hsl(var(--navy) / 0.05);
+    --drop-shadow-default: 0 2px 2px hsl(var(--navy) / 0.1);
+    --drop-shadow-md: 0 4px 3px hsl(var(--navy) / 0.1);
+    --drop-shadow-lg: 0 10px 8px hsl(var(--navy) / 0.1);
+    --drop-shadow-xl: 0 20px 13px hsl(var(--navy) / 0.1);
+    --drop-shadow-2xl: 0 25px 25px hsl(var(--navy) / 0.15);
+    --chart-1: var(--brand-navy);
+    --chart-2: var(--brand-red);
+    --chart-3: var(--brand-blue);
+    --chart-4: 216 60% 55%;
+    --chart-5: var(--brand-border);
+    --chart-6: 215 70% 40%;
+    --chart-7: 216 50% 75%;
+    --chart-8: 218 65% 30%;
+    --chart-9: var(--brand-light-blue);
+
   }
 
   .dark {
-    --background: 217 38% 6%;
-    --foreground: 210 40% 92%;
-    --card: 217 35% 10%;
-    --card-foreground: 210 40% 92%;
-    --popover: 217 35% 10%;
-    --popover-foreground: 210 40% 92%;
-    --primary: 210 40% 92%;
-    --primary-foreground: 217 33% 17%;
-    --secondary: 217 30% 16%;
-    --secondary-foreground: 210 40% 92%;
-    --muted: 217 30% 16%;
-    --muted-foreground: 220 9% 55%;
-    --accent: 0 84% 60%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 25% 18%;
-    --input: 217 25% 18%;
-    --ring: 0 84% 60%;
+    --background: var(--brand-navy);
+    --foreground: var(--brand-white);
+    --card: var(--brand-blue);
+    --card-foreground: var(--brand-white);
+    --popover: var(--brand-blue);
+    --popover-foreground: var(--brand-white);
+    --primary: var(--brand-navy);
+    --primary-foreground: var(--brand-white);
+    --secondary: var(--brand-blue);
+    --secondary-foreground: var(--brand-white);
+    --muted: var(--brand-blue);
+    --muted-foreground: var(--brand-white);
+    --border: var(--brand-border);
+    --input: var(--brand-border);
+    --ring: var(--brand-white);
   }
 }
 
@@ -110,25 +126,25 @@
 
 @layer utilities {
   .text-gradient-navy {
-    background: linear-gradient(135deg, hsl(217 38% 10%), hsl(217 25% 30%));
+    background: var(--gradient-navy);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .text-gradient-accent {
-    background: linear-gradient(135deg, hsl(0 84% 60%), hsl(350 80% 50%));
+    background: var(--gradient-accent);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .bg-navy-gradient {
-    background: linear-gradient(135deg, hsl(217 38% 10%), hsl(217 30% 22%));
+    background: var(--gradient-navy);
   }
 
   .bg-accent-gradient {
-    background: linear-gradient(135deg, hsl(0 84% 60%), hsl(350 80% 50%));
+    background: var(--gradient-accent);
   }
 
   .glass-card {
@@ -160,20 +176,15 @@
 .landing-hero__text::before {
   content: "";
   position: absolute;
-  inset: -3rem -3.5rem;
+  inset: -3rem -3rem;
   z-index: -1;
   pointer-events: none;
-  /* closest-side keeps the fade inside the box, so there is no visible edge. */
-  background: radial-gradient(closest-side,
-    hsl(var(--landscape-ink) / 0.95) 0%,
-    hsl(var(--landscape-ink) / 0.9) 32%,
-    hsl(var(--landscape-ink) / 0.74) 52%,
-    hsl(var(--landscape-ink) / 0.48) 70%,
-    hsl(var(--landscape-ink) / 0.22) 85%,
-    hsl(var(--landscape-ink) / 0.06) 95%,
-    transparent 100%);
+  /* Full-strength navy under every line, softly faded outside the text area. */
+  background: hsl(var(--landscape-ink) / 0.84);
+  mask-image: linear-gradient(to right, transparent, hsl(var(--brand-white)) 3rem, hsl(var(--brand-white)) calc(100% - 3rem), transparent), linear-gradient(to bottom, transparent, hsl(var(--brand-white)) 3rem, hsl(var(--brand-white)) calc(100% - 3rem), transparent);
+  mask-composite: intersect;
 }
-/* Stats card: a dark panel so the red counters and small labels stay readable
+/* Stats card: a navy panel so the white counters and small labels stay readable
    over bright scenes (snow, sky, water). */
 .landing-panel {
   background: hsl(var(--landscape-ink) / 0.74);
@@ -185,14 +196,8 @@
 @media (max-width: 767px) {
   .landing-hero { --landscape-overlay: linear-gradient(180deg, hsl(var(--landscape-ink) / 0.8) 0%, hsl(var(--landscape-ink) / 0.26) 22%, hsl(var(--landscape-ink) / 0.08) 52%, hsl(var(--landscape-ink) / 0.3) 100%); }
   .landing-hero__text::before {
-    inset: -1.25rem -1rem;
-    background: radial-gradient(closest-side,
-      hsl(var(--landscape-ink) / 0.95) 0%,
-      hsl(var(--landscape-ink) / 0.88) 36%,
-      hsl(var(--landscape-ink) / 0.68) 58%,
-      hsl(var(--landscape-ink) / 0.38) 76%,
-      hsl(var(--landscape-ink) / 0.12) 90%,
-      transparent 100%);
+    inset: -2rem -1rem;
+    mask-image: linear-gradient(to bottom, transparent, hsl(var(--brand-white)) 2rem, hsl(var(--brand-white)) calc(100% - 2rem), transparent);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -312,7 +317,7 @@
    ============================================================ */
 
 .cv-preview-frame {
-  background: #f3f4f6;
+  background: hsl(var(--soft-blue));
   border-radius: 0.75rem;
   padding: 1rem;
   display: flex;
@@ -320,13 +325,13 @@
 }
 
 .cv-doc {
-  background: #ffffff;
-  color: #111827;
+  background: hsl(var(--brand-white));
+  color: hsl(var(--navy));
   width: 100%;
   max-width: 210mm;
   min-height: 297mm;
   padding: 18mm 16mm;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 24px hsl(var(--navy) / 0.08);
   box-sizing: border-box;
   font-size: 11pt;
   line-height: 1.45;
@@ -337,8 +342,8 @@
 .cv-doc * { box-sizing: border-box; }
 .cv-header { margin-bottom: 1rem; }
 .cv-name { font-size: 24pt; font-weight: 700; margin: 0; line-height: 1.1; }
-.cv-headline { font-size: 12pt; margin: 0.25rem 0 0.5rem; color: #4b5563; }
-.cv-contact { font-size: 10pt; color: #4b5563; display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.cv-headline { font-size: 12pt; margin: 0.25rem 0 0.5rem; color: hsl(var(--navy)); }
+.cv-contact { font-size: 10pt; color: hsl(var(--navy)); display: flex; flex-wrap: wrap; gap: 0.75rem; }
 
 .cv-section { margin-top: 1.1rem; }
 .cv-section-title {
@@ -348,51 +353,51 @@
   letter-spacing: 0.05em;
   margin: 0 0 0.5rem;
   padding-bottom: 0.25rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid hsl(var(--brand-border));
 }
 .cv-entry { margin-bottom: 0.65rem; }
 .cv-entry-head { font-size: 11pt; }
-.cv-period { color: #6b7280; font-weight: 400; }
+.cv-period { color: hsl(var(--navy)); font-weight: 400; }
 .cv-paragraph { margin: 0.25rem 0 0; white-space: pre-wrap; }
 
 .cv-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .cv-tag {
   font-size: 9.5pt;
-  background: #f3f4f6;
-  color: #111827;
+  background: hsl(var(--soft-blue));
+  color: hsl(var(--navy));
   padding: 0.15rem 0.55rem;
   border-radius: 999px;
 }
 
 /* --- Modern: red accent on name + section underlines --- */
-.cv-modern .cv-name { color: #111827; border-bottom: 3px solid #EF4444; display: inline-block; padding-bottom: 0.25rem; }
-.cv-modern .cv-section-title { color: #EF4444; border-bottom-color: #EF4444; }
-.cv-modern .cv-tag { background: #fef2f2; color: #b91c1c; }
+.cv-modern .cv-name { color: hsl(var(--navy)); border-bottom: 3px solid hsl(var(--red-accent)); display: inline-block; padding-bottom: 0.25rem; }
+.cv-modern .cv-section-title { color: hsl(var(--red-accent)); border-bottom-color: hsl(var(--red-accent)); }
+.cv-modern .cv-tag { background: hsl(var(--soft-blue)); color: hsl(var(--red-accent)); }
 
 /* --- Classic: serif, conservative --- */
 .cv-classic { font-family: 'Georgia', 'Times New Roman', serif; }
 .cv-classic .cv-name { text-align: center; font-weight: 700; }
 .cv-classic .cv-headline { text-align: center; font-style: italic; }
 .cv-classic .cv-contact { justify-content: center; }
-.cv-classic .cv-section-title { border-bottom: 2px solid #111827; text-transform: none; letter-spacing: 0; font-style: italic; }
-.cv-classic .cv-tag { background: transparent; border: 1px solid #d1d5db; border-radius: 0.25rem; }
+.cv-classic .cv-section-title { border-bottom: 2px solid hsl(var(--navy)); text-transform: none; letter-spacing: 0; font-style: italic; }
+.cv-classic .cv-tag { background: transparent; border: 1px solid hsl(var(--brand-border)); border-radius: 0.25rem; }
 
 /* --- Creative: side color block --- */
 .cv-creative { padding: 0; display: grid; grid-template-columns: 70mm 1fr; min-height: 297mm; }
-.cv-creative .cv-header { grid-column: 1; grid-row: 1 / -1; background: #1F2937; color: #fff; padding: 16mm 10mm; margin: 0; }
-.cv-creative .cv-name { color: #fff; font-size: 22pt; }
-.cv-creative .cv-headline { color: #EF4444; font-weight: 600; }
-.cv-creative .cv-contact { color: #d1d5db; flex-direction: column; gap: 0.35rem; }
+.cv-creative .cv-header { grid-column: 1; grid-row: 1 / -1; background: hsl(var(--navy)); color: hsl(var(--brand-white)); padding: 16mm 10mm; margin: 0; }
+.cv-creative .cv-name { color: hsl(var(--brand-white)); font-size: 22pt; }
+.cv-creative .cv-headline { color: hsl(var(--brand-white)); font-weight: 600; }
+.cv-creative .cv-contact { color: hsl(var(--brand-border)); flex-direction: column; gap: 0.35rem; }
 .cv-creative > .cv-section { grid-column: 2; margin: 0; padding: 16mm 14mm 0; }
 .cv-creative > .cv-section:first-of-type { padding-top: 16mm; }
 .cv-creative > .cv-section:last-of-type { padding-bottom: 16mm; }
-.cv-creative .cv-section-title { color: #1F2937; border-bottom: 3px solid #EF4444; display: inline-block; padding-right: 1rem; }
-.cv-creative .cv-tag { background: #1F2937; color: #fff; }
+.cv-creative .cv-section-title { color: hsl(var(--navy)); border-bottom: 3px solid hsl(var(--red-accent)); display: inline-block; padding-right: 1rem; }
+.cv-creative .cv-tag { background: hsl(var(--navy)); color: hsl(var(--brand-white)); }
 
 /* ------ Print rules: clean PDF via browser ------ */
 @media print {
   @page { size: A4; margin: 0; }
-  html, body { background: #ffffff !important; }
+  html, body { background: hsl(var(--brand-white)) !important; }
   body * { visibility: hidden !important; }
   .cv-doc, .cv-doc * { visibility: visible !important; }
   .cv-preview-frame { background: transparent !important; padding: 0 !important; }
@@ -406,3 +411,8 @@
   }
   .print\:hidden { display: none !important; }
 }
+
+/* Red accents on navy are decorative; readable labels stay white. */
+.landing-hero .text-gradient-accent { background: none; -webkit-text-fill-color: currentColor; color: hsl(var(--landscape-text)); }
+.landing-hero h1 .text-gradient-accent { text-decoration: underline; text-decoration-color: hsl(var(--red-accent)); text-underline-offset: 0.15em; }
+[data-vaul-drawer-wrapper] { background-color: hsl(var(--navy)); }

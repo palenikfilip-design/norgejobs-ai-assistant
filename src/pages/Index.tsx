@@ -175,7 +175,7 @@ const Index = () => {
               <div className="relative">
                 {/* Soft glow behind the figure */}
                 <div className="absolute inset-x-0 bottom-0 h-2/3 bg-accent-gradient rounded-full blur-3xl opacity-30 animate-pulse pointer-events-none" />
-                <div className="absolute inset-x-8 bottom-2 h-6 bg-black/40 blur-xl rounded-full pointer-events-none" />
+                <div className="absolute inset-x-8 bottom-2 h-6 bg-navy/40 blur-xl rounded-full pointer-events-none" />
                 <img
                   src={leslieFullBody}
                   alt="Leslie AI Assistant"
@@ -241,7 +241,7 @@ const Index = () => {
                       {t("landing.activeJobsLabel")}
                     </div>
                     {qualityCount != null && jobCount != null && qualityCount < jobCount && (
-                      <div className="mt-1 text-primary-foreground/50 text-xs md:text-sm">
+                      <div className="mt-1 text-primary-foreground/75 text-xs md:text-sm">
                         {t("landing.qualitySubtitle", { count: qualityCount })}
                       </div>
                     )}

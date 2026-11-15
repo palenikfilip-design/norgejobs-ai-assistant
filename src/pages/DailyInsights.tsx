@@ -41,18 +41,8 @@ import {
   Legend,
 } from "recharts";
 
-// Tlumená, ale dobře rozlišitelná paleta (teal → modrá → fialová → růžová → jantarová → šedá)
-const COLORS = [
-  "#3b82f6", // blue-500
-  "#0d9488", // teal-600
-  "#8b5cf6", // violet-500
-  "#ec4899", // pink-500
-  "#f59e0b", // amber-500
-  "#10b981", // emerald-500
-  "#6366f1", // indigo-500
-  "#64748b", // slate-500
-  "#a855f7", // purple-500
-];
+// Shared brand-derived chart roles.
+const COLORS = Array.from({ length: 9 }, (_, index) => `hsl(var(--chart-${index + 1}))`);
 
 const inferIndustry = (job: { title: string; company: string; description: string }): string => {
   const text = `${job.title} ${job.company} ${job.description}`.toLowerCase();

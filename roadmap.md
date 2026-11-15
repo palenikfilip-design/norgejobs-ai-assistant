@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Apply Norgejobs theme across app, replace black styling, verify AA on vineyard/forest desktop and mobile
+- [x] Extend employer headlines to Czechia, Slovakia and other countries
+
 - [x] Six-scene landing background: licensed self-hosted clips, still-photo fallback, contrast and desktop/mobile performance verification
 
 - [x] Newest-jobs landing counter: refresh-time active/24-hour count, durable snapshot, mobile layout and count verification

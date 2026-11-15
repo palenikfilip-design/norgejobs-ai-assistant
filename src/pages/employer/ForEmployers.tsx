@@ -35,8 +35,8 @@ const ForEmployers = () => {
       </Button>
       <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-10 items-center py-10">
         <section>
-          <p className="text-red-accent font-semibold uppercase tracking-wider text-sm mb-3">Pro zaměstnavatele</p>
-          <h1 className="font-display text-4xl md:text-5xl font-bold mb-4">Najdi spolehlivé lidi z Česka a Slovenska</h1>
+          <p className="text-primary-foreground font-semibold uppercase tracking-wider text-sm mb-3">Pro zaměstnavatele</p>
+          <h1 className="font-display text-4xl md:text-5xl font-bold mb-4">Hledáte pracovníky z Česka, Slovenska a dalších zemí?</h1>
           <p className="text-primary-foreground/70 mb-8">Vytvoř si firemní profil na Leslie. Tvoje firma, logo a odkazy se zobrazí uchazečům, kteří hledají práci v zahraničí.</p>
           <ul className="space-y-4">
             {[[Building2, "Veřejná stránka firmy s logem, webem a Instagramem"], [Users, "Tisíce uchazečů hledajících sezónní i stálou práci"], [ShieldCheck, "Ověření firmy zvyšuje důvěru uchazečů"]].map(([I, t], i) => {
