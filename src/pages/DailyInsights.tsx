@@ -332,13 +332,14 @@ const DailyInsights = () => {
                 <p className="text-sm text-muted-foreground">No data.</p>
               ) : (
                 <>
-                  <div className="h-56" role="img" aria-label="Job categories; counts and percentages listed below">
+                  <div className="mt-6 mb-8 h-64 shrink-0" role="img" aria-label="Job categories; counts and percentages listed below">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={categorySlices}
                           dataKey="value"
                           nameKey="name"
+                          cy="55%"
                           innerRadius={50}
                           outerRadius={90}
                           stroke="hsl(var(--category-separator))"
