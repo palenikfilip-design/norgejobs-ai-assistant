@@ -14,3 +14,4 @@
 
 - All app colors, gradients and shadow utilities resolve through global HSL brand primitives and semantic theme roles (including print templates and modal scrims); contrasting text on blue remains light because accent text alone cannot meet AA there.
 - Every AI request uses the shared server gateway circuit breaker; terminal 402/403 pauses persist in ai_gateway_state and are cleared only by an administrator after access recovery, preventing scheduled or chained requests during a known block.
+- Category charts share the fixed identity-to-token registry and top-category aggregation in src/lib/categoryCharts.ts; never assign slice colours by rank, so daily ordering cannot change category identity.

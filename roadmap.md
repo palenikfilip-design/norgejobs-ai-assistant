@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Daily highlights: stable muted category colours, top seven plus Ostatní, count/percentage legend; 3 tests pass, signed-in desktop and 320/390/727px verified
+
 - [x] Preserve chat AI error status/reason, display actionable failure and stop loading — authenticated UI verified with 403 and restored draft
 - [x] Persist workspace AI pause and gate all AI entrypoints; blocked path verified after deployment, 25 tests passed
 - [ ] Restore AI access — blocked by workspace monthly AI cap (120 credits); owner must choose a higher cap

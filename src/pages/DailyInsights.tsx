@@ -27,6 +27,7 @@ import { generateBoostSuggestions } from "@/utils/skillBooster";
 import { usePreferenceProfile } from "@/hooks/usePreferenceProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { getJobViews, formatViews } from "@/utils/jobViews";
+import { buildCategorySlices } from "@/lib/categoryCharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   PieChart,
@@ -38,7 +39,6 @@ import {
   YAxis,
   Tooltip as RTooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
 
 // Shared brand-derived chart roles.
@@ -152,6 +152,8 @@ const DailyInsights = () => {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
   }, [matchedJobs]);
+
+  const categorySlices = useMemo(() => buildCategorySlices(industryData), [industryData]);
 
   const matchBuckets = useMemo(() => {
     const buckets = [
@@ -330,19 +332,20 @@ const DailyInsights = () => {
                 <p className="text-sm text-muted-foreground">No data.</p>
               ) : (
                 <>
-                  <div className="h-64">
+                  <div className="h-56" role="img" aria-label="Job categories; counts and percentages listed below">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={industryData}
+                          data={categorySlices}
                           dataKey="value"
                           nameKey="name"
                           innerRadius={50}
                           outerRadius={90}
-                          paddingAngle={2}
+                          stroke="hsl(var(--category-separator))"
+                          strokeWidth={1.5}
                         >
-                          {industryData.map((_, i) => (
-                            <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                          {categorySlices.map((category) => (
+                            <Cell key={category.name} fill={category.colour} />
                           ))}
                         </Pie>
                         <RTooltip
@@ -353,14 +356,27 @@ const DailyInsights = () => {
                             fontSize: 12,
                           }}
                           formatter={(v: number, n: string) => [
-                            `${v} (${Math.round((v / total) * 100)}%)`,
+                            `${v} (${((v / total) * 100).toFixed(1)}%)`,
                             n,
                           ]}
                         />
-                        <Legend wrapperStyle={{ fontSize: 12 }} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
+                  <ul aria-label="Job category legend" className="space-y-2.5 text-sm">
+                    {categorySlices.map((category) => (
+                      <li key={category.name} className="grid grid-cols-[minmax(0,1fr)_3ch_6ch] items-center gap-3">
+                        <span className="flex min-w-0 items-center gap-2 text-card-foreground">
+                          <svg width="12" height="12" className="shrink-0" aria-hidden="true">
+                            <circle cx="6" cy="6" r="5" fill={category.colour} />
+                          </svg>
+                          <span className="break-words">{category.name}</span>
+                        </span>
+                        <span className="text-right tabular-nums text-card-foreground">{category.value}</span>
+                        <span className="text-right tabular-nums text-muted-foreground">{category.percentage.toFixed(1)}%</span>
+                      </li>
+                    ))}
+                  </ul>
                   <p className="text-xs text-foreground mt-2 text-center">
                     <span className="font-semibold">{total} new jobs</span> · Most growing:{" "}
                     <span className="font-semibold text-accent">{industryData[0]?.name}</span>

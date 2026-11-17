@@ -82,6 +82,19 @@
     --chart-7: 216 50% 75%;
     --chart-8: 218 65% 30%;
     --chart-9: var(--brand-light-blue);
+    /* Stable categorical data palette, separate from brand accents. */
+    --category-blue: 211.2 29.644268775% 50.392156863%;
+    --category-terracotta: 15 50% 57.647058824%;
+    --category-sage: 148.235294 21.518987% 53.529412%;
+    --category-mustard: 40.298507463 60.909090909% 56.862745098%;
+    --category-lavender: 264.545454545 20.183486239% 57.254901961%;
+    --category-teal: 184.109589041 29.554655870% 51.568627451%;
+    --category-rose: 349.714285714 33.333333333% 58.823529412%;
+    --category-olive: 75.238095238 25.714285714% 48.039215686%;
+    --category-sand: 30.526315789 24.255319149% 53.921568627%;
+    --category-slate: 213.658536585 18.222222222% 55.882352941%;
+    --category-other: 216 16.393443% 76.078431%;
+    --category-separator: var(--brand-white);
 
   }
 
