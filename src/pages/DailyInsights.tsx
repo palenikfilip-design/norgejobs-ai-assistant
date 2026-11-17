@@ -332,16 +332,17 @@ const DailyInsights = () => {
                 <p className="text-sm text-muted-foreground">No data.</p>
               ) : (
                 <>
-                  <div className="mt-6 mb-8 h-64 shrink-0" role="img" aria-label="Job categories; counts and percentages listed below">
+                  <div className="my-6 grid grid-cols-[minmax(0,1fr)_minmax(80px,1.4fr)_max-content] auto-rows-[minmax(36px,auto)] items-center gap-x-2 sm:gap-x-4">
+                  <div className="col-start-2 min-h-44 h-full min-w-0" style={{ gridRow: `1 / span ${categorySlices.length}` }} role="img" aria-label="Job categories; counts and percentages alongside">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={categorySlices}
                           dataKey="value"
                           nameKey="name"
-                          cy="55%"
-                          innerRadius={50}
-                          outerRadius={90}
+                          cy="50%"
+                          innerRadius="40%"
+                          outerRadius="85%"
                           stroke="hsl(var(--category-separator))"
                           strokeWidth={1.5}
                         >
@@ -364,20 +365,23 @@ const DailyInsights = () => {
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
-                  <ul aria-label="Job category legend" className="space-y-2.5 text-sm">
-                    {categorySlices.map((category) => (
-                      <li key={category.name} className="grid grid-cols-[minmax(0,1fr)_3ch_6ch] items-center gap-3">
-                        <span className="flex min-w-0 items-center gap-2 text-card-foreground">
+                  <ul aria-label="Job category legend" className="contents text-xs sm:text-sm">
+                    {categorySlices.map((category, index) => (
+                      <li key={category.name} className="contents">
+                        <span className="col-start-1 flex min-w-0 items-center gap-1.5 py-1 text-card-foreground" style={{ gridRow: index + 1 }}>
                           <svg width="12" height="12" className="shrink-0" aria-hidden="true">
                             <circle cx="6" cy="6" r="5" fill={category.colour} />
                           </svg>
                           <span className="break-words">{category.name}</span>
                         </span>
-                        <span className="text-right tabular-nums text-card-foreground">{category.value}</span>
-                        <span className="text-right tabular-nums text-muted-foreground">{category.percentage.toFixed(1)}%</span>
+                        <span className="col-start-3 flex items-center justify-end gap-2 tabular-nums" style={{ gridRow: index + 1 }}>
+                          <span className="text-right text-card-foreground">{category.value}</span>
+                          <span className="w-[5ch] text-right text-muted-foreground">{category.percentage.toFixed(1)}%</span>
+                        </span>
                       </li>
                     ))}
                   </ul>
+                  </div>
                   <p className="text-xs text-foreground mt-2 text-center">
                     <span className="font-semibold">{total} new jobs</span> · Most growing:{" "}
                     <span className="font-semibold text-accent">{industryData[0]?.name}</span>
